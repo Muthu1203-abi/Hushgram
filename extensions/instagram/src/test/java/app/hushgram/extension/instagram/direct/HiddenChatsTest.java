@@ -99,6 +99,33 @@ public class HiddenChatsTest {
     }
 
     @Test
+    public void theHiddenUnreadDotNeedsAHiddenUnreadChatAndDoesNotInheritUnreadWhenHidden() {
+        HiddenChats.filter(list(ALICE));
+        assertFalse("unread regular chat, no hidden chats", HiddenChats.hasHiddenUnread());
+
+        HiddenChats.add(MessagesLockTest.ME, ALICE, "Alice");
+        assertFalse("a chat already unread when it was hidden", HiddenChats.hasHiddenUnread());
+
+        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
+        assertTrue("a new hidden-chat push shows the dot", HiddenChats.hasHiddenUnread());
+    }
+
+    @Test
+    public void openingAHiddenChatClearsItsDotAndALaterPushShowsItAgain() {
+        HiddenChats.add(MessagesLockTest.ME, ALICE, "Alice");
+        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
+        assertTrue(HiddenChats.hasHiddenUnread());
+
+        HiddenChats.opened(MessagesLockTest.ME, ALICE);
+        assertFalse("opening the hidden chat clears its dot", HiddenChats.hasHiddenUnread());
+        HiddenChats.filter(list(ALICE));
+        assertFalse("a stale unread snapshot does not bring the dot back", HiddenChats.hasHiddenUnread());
+
+        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
+        assertTrue("a later message shows the dot again", HiddenChats.hasHiddenUnread());
+    }
+
+    @Test
     public void aHiddenChatLeavesTheListTheInboxDrawsItsRowsFrom() {
         HiddenChats.add(ALICE, "Alice");
         List<Object> inbox = Collections.unmodifiableList(list(ALICE, BOB, "7"));

@@ -170,7 +170,7 @@ public class SettingsCardsTest {
     @Test public void everyCategoryExpandsItsControlsBelowTheSameButton() throws Exception {
         open(true, EnumSet.allOf(PatchFamily.class));
         List<Preference> categories = categoryRows();
-        assertEquals("every category, Pause and diagnostics included", 23, categories.size());
+        assertEquals("every listed category, Pause and diagnostics included", 22, categories.size());
         for (Preference row : categories) {
             HushgramPreferenceFragment.Heading group = (HushgramPreferenceFragment.Heading) row;
             assertEquals(0, group.getPreferenceCount());
@@ -240,7 +240,6 @@ public class SettingsCardsTest {
         List<Preference> rows = categoryRows();
         Preference entry = categoryRow("Settings entry");
         Preference backup = categoryRow("Settings backup");
-        Preference about = categoryRow("About");
         Preference first = categoryRow("Ads and privacy");
         assertSame("the list starts with the everyday controls", first, rows.get(0));
         assertTrue(ScreenColors.opensCard(first));
@@ -249,17 +248,13 @@ public class SettingsCardsTest {
                 rows.indexOf(entry) > rows.indexOf(categoryRow("Feed")) && rows.indexOf(entry) < rows.indexOf(backup));
         assertFalse("Settings entry sits inside the card", ScreenColors.opensCard(entry) || ScreenColors.closesCard(entry));
         Preference pause = categoryRow("Pause and diagnostics");
-        assertEquals("Pause and diagnostics folds between backup and About: " + rows,
-                List.of(backup, pause, about), rows.subList(rows.indexOf(backup), rows.size()));
+        assertEquals("Pause and diagnostics ends the category list: " + rows,
+                List.of(backup, pause), rows.subList(rows.indexOf(backup), rows.size()));
         for (Preference row : rows.subList(1, rows.size())) {
             assertFalse(row.getTitle() + " sits inside the card", ScreenColors.opensCard(row) || ScreenColors.closesCard(row));
         }
-        Preference report = page.findPreference(HushgramPreferenceFragment.REPORT_ROW_KEY);
-        assertFalse(ScreenColors.opensCard(report));
-        assertFalse(ScreenColors.closesCard(report));
-        Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
-        assertFalse(ScreenColors.opensCard(support));
-        assertTrue(ScreenColors.closesCard(support));
+        assertNull(page.findPreference("action_report_problem"));
+        assertNull(page.findPreference("action_support_hushgram"));
         assertNull("the active status strip is absent", page.getPreferenceScreen().findPreference("hushgram_status"));
         assertEquals("hushgram_settings_search", onScreen().get(0).getKey());
         assertEquals("hushgram_view_toggle", onScreen().get(1).getKey());
@@ -287,9 +282,6 @@ public class SettingsCardsTest {
         assertFalse("a switch says what it does with its switch",
                 hasChevron(render(page.findPreference(Settings.CATEGORY_PAGES.key))));
         tap(categoryRow("Settings entry"));
-        tap(categoryRow("About"));
-        assertFalse("Version only reports", hasChevron(render(titled("Version"))));
-        assertTrue("Licenses opens a dialog", hasChevron(render(titled("Licenses"))));
     }
 
     @Test public void everyRowLeadsWithAnIconAScreenReaderSkips() throws Exception {

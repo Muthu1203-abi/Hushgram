@@ -527,21 +527,17 @@ public class SettingsRowAccessibilityTest {
         assertRoleLabel(row(preference), preference);
     }
 
-    @Test public void missingFamiliesAndInformationalRowsOfferNoFeatureAction() throws Exception {
+    @Test public void missingFamiliesAndRemovedInformationalRowsStayAbsent() throws Exception {
         open();
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ONLY_FOLLOWING.key));
         assertNull(page.getPreferenceScreen().findPreference("hushgram_status"));
-        Preference status = page.about.getPreference(0);
-        assertEquals("Version", status.getTitle());
-        assertFalse(status.isSelectable());
-        View view = row(status);
-        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
-        assertNotEquals(Button.class.getName(), node.getClassName());
-        assertFalse(node.isCheckable());
-        assertFalse(clickable(node));
-        node.recycle();
-        assertFalse(view.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
+        assertNull(page.getPreferenceScreen().findPreference("action_report_problem"));
+        assertNull(page.getPreferenceScreen().findPreference("action_support_hushgram"));
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            Preference preference = page.getPreferenceScreen().getPreference(i);
+            assertFalse("About category must stay removed", "About".contentEquals(preference.getTitle()));
+        }
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)

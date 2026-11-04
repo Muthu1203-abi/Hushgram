@@ -120,7 +120,8 @@ public final class GhostMode {
     static boolean saveAccountState(String account, boolean on) {
         if (account == null || account.isEmpty()) return false;
         try {
-            JSONObject states = new JSONObject(Settings.GHOST_MODE_ACCOUNT_STATES.savedValue());
+            String saved = Settings.GHOST_MODE_ACCOUNT_STATES.savedValue();
+            JSONObject states = new JSONObject(saved == null || saved.isEmpty() ? "{}" : saved);
             states.put(account, on);
             return Settings.GHOST_MODE_ACCOUNT_STATES.save(states.toString());
         } catch (Throwable ignored) {

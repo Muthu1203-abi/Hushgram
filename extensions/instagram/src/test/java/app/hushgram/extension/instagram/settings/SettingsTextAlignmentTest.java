@@ -160,15 +160,13 @@ public class SettingsTextAlignmentTest {
         ShadowLooper.idleMainLooper();
     }
 
-    /** Version, Hide ads, the last carousel save and the running save, in that order. */
+    /** Hide ads, the last carousel save and the running save, in that order. */
     private List<Preference> rows() {
         List<Preference> found = new ArrayList<>();
-        found.add(page.about.getPreference(0));
         found.add(page.findPreference(Settings.HIDE_ADS.key));
         found.add(page.findPreference("hushgram_last_carousel_save"));
         found.add(page.findPreference("running_save_" + save));
         for (Preference row : found) assertNotNull(found.toString(), row);
-        assertEquals("Version", String.valueOf(found.get(0).getTitle()));
         return found;
     }
 

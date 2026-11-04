@@ -123,6 +123,8 @@ public final class HiddenChats {
     private static final WeakHashMap<View, Boolean> unreadDotWatched = new WeakHashMap<>();
     private static final WeakHashMap<View, GradientDrawable> unreadDots = new WeakHashMap<>();
     private static final Map<String, Set<String>> unreadByAccount = new HashMap<>();
+    /** Unread ids already present when a chat was hidden, or cleared when it was opened. */
+    private static final Map<String, Set<String>> dismissedUnreadByAccount = new HashMap<>();
     private static volatile WeakReference<Activity> lastActivity = new WeakReference<>(null);
 
     private static final String[] HIDE_MENU_BUTTONS = {"HIDE_FROM_PRIMARY", "HIDE_FROM_MESSAGES"};
@@ -235,6 +237,13 @@ public final class HiddenChats {
         }
         synchronized (unreadByAccount) {
             unreadByAccount.put(account, unread);
+            Set<String> dismissed = dismissedUnreadByAccount.get(account);
+            if (dismissed != null) {
+                // Keep stale unread snapshots from bringing a dismissed dot back. Once Instagram
+                // reports the chat as read, a later incoming message can notify normally again.
+                dismissed.retainAll(unread);
+                if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
+            }
         }
         refreshHiddenUnreadDot();
     }
@@ -244,12 +253,21 @@ public final class HiddenChats {
         if (account == null || account.isEmpty()) return;
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>());
-            for (String id : pushIds) if (hidden.contains(id)) unread.add(id);
+            for (String id : pushIds) {
+                if (hidden.contains(id)) {
+                    unread.add(id);
+                    Set<String> dismissed = dismissedUnreadByAccount.get(account);
+                    if (dismissed != null) {
+                        dismissed.remove(id);
+                        if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
+                    }
+                }
+            }
         }
         refreshHiddenUnreadDot();
     }
 
-    private static boolean hasHiddenUnread() {
+    static boolean hasHiddenUnread() {
         String account = ChatAccounts.active();
         if (account == null || account.isEmpty()) return false;
         Set<String> hidden = idsFor(account);
@@ -257,7 +275,10 @@ public final class HiddenChats {
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.get(account);
             if (unread == null) return false;
-            for (String id : unread) if (hidden.contains(id)) return true;
+            Set<String> dismissed = dismissedUnreadByAccount.get(account);
+            for (String id : unread) {
+                if (hidden.contains(id) && (dismissed == null || !dismissed.contains(id))) return true;
+            }
         }
         return false;
     }
@@ -922,6 +943,7 @@ public final class HiddenChats {
         if (empty(account) || empty(id)) return false;
         boolean saved = change(rows -> ChatList.added(rows, account, id, name));
         if (saved) {
+            dismissUnread(account, id);
             changedSoon();
             refreshHiddenUnreadDot();
         }
@@ -942,6 +964,10 @@ public final class HiddenChats {
         if (empty(account) || empty(id)) return false;
         boolean saved = change(rows -> ChatList.removed(rows, account, id));
         if (saved) {
+            synchronized (unreadByAccount) {
+                Set<String> dismissed = dismissedUnreadByAccount.get(account);
+                if (dismissed != null) dismissed.remove(id);
+            }
             changedSoon();
             refreshHiddenUnreadDot();
         }
@@ -985,6 +1011,22 @@ public final class HiddenChats {
         refreshHiddenUnreadDot();
     }
 
+    /** Opening a hidden chat clears its in-app dot without sending or changing Instagram read receipts. */
+    static void opened(String account, String id) {
+        if (empty(account) || empty(id)) return;
+        dismissUnread(account, id);
+        refreshHiddenUnreadDot();
+    }
+
+    private static void dismissUnread(String account, String id) {
+        synchronized (unreadByAccount) {
+            Set<String> unread = unreadByAccount.get(account);
+            if (unread != null && unread.contains(id)) {
+                dismissedUnreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>()).add(id);
+            }
+        }
+    }
+
     private static boolean empty(String text) {
         return text == null || text.trim().isEmpty();
     }
@@ -996,6 +1038,10 @@ public final class HiddenChats {
         redrawer = HiddenChats::redraw;
         parsed = null;
         hiddenOnlyInbox = false;
+        synchronized (unreadByAccount) {
+            unreadByAccount.clear();
+            dismissedUnreadByAccount.clear();
+        }
         synchronized (drawn) {
             drawn.clear();
         }

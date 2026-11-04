@@ -7,7 +7,6 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Esses itens foram definidos quando você aplicou os patches, então a pausa não pode desativá-los. Para descartar um deles, aplique os patches novamente sem o patch entre parênteses depois dele.
 A diagnostic report is already being saved.	Um relatório de diagnóstico já está sendo salvo.
 A file named %1$s in %2$s paused Instagram.	Um arquivo chamado %1$s em %2$s pausou o Instagram.
-About	Sobre
 Add the source to saved photos	Adicionar a origem às fotos salvas
 Ads and privacy	Anúncios e privacidade
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pede ao Android que execute o Instagram na maior taxa de atualização da tela, na mesma resolução. Alguns celulares mantêm um limite próprio para apps, e a economia de bateria ainda pode reduzi-la.
@@ -75,7 +74,6 @@ Settings locked	Configurações bloqueadas
 Lock turned off	Bloqueio desligado
 These settings are locked. Ask to unlock first.	Estas configurações estão bloqueadas. Peça para desbloquear primeiro.
 Full report saved to %1$s	Relatório completo salvo em %1$s
-GPL-3.0, with the notices of the projects this is built on	GPL-3.0, com os avisos dos projetos em que o Instagram se baseia
 Gray out stories you've watched	Deixar em cinza os Stories que você já viu
 Hide ads	Ocultar anúncios
 How far a photo or video you're saving has got, with a button to cancel it	Indica o progresso do salvamento de uma foto ou vídeo, com um botão para cancelá-lo
@@ -118,7 +116,6 @@ Saving... You can cancel from Downloads in Instagram settings.	Salvando... Você
 Set when you patched	Definido ao aplicar os patches
 Settings couldn't open	Não foi possível abrir as configurações
 Settings couldn't refresh completely. Reopen settings and try again.	Não foi possível atualizar completamente as configurações. Reabra as configurações e tente novamente.
-Source code and issues	Código-fonte e relatos de problemas
 Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an ad would have been.	Esconde posts, reels e stories patrocinados, e o anúncio nos comentários. Não sobra espaço vazio onde o anúncio estaria.
 Stays in while paused	O que continua ativo na pausa
 Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Remove os parâmetros de rastreamento dos links que você copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O destino continua sendo a mesma publicação, reel ou perfil.
@@ -133,7 +130,6 @@ There's no diagnostic data to clear.	Não há dados de diagnóstico para limpar.
 There's no diagnostic data to put back.	Não há dados de diagnóstico para restaurar.
 Try again, or go back to Instagram.	Tente novamente ou volte para o Instagram.
 Updates	Atualizações
-Version	Versão
 Version %1$s for Instagram %2$s	Versão %1$s para o Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Enquanto você visualiza stories anonimamente, os que já foram vistos ficam acinzentados e vão para o fim da lista, somente neste celular. O Instagram não recebe a informação de que você os visualizou.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Escreve nos detalhes de uma foto salva a conta que publicou, a data da publicação e um link para a publicação, os dados EXIF que uma galeria ou o exiftool leem. Apenas fotos JPEG, e apenas o que o salvamento sabe. A imagem em si não muda.
@@ -367,6 +363,7 @@ Ring color	Cor dos anéis
 Instagram's colors	Cores do Instagram
 # context: two more colors in the Ring color list, beside Purple, Red and Orange
 Blue	Azul
+Cyan	Ciano
 Gold	Dourado
 Hide the Repost button	Ocultar o botão Repostar
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Tira Repostar e a contagem dos posts e reels, para nada ser repostado para seus seguidores sem querer. Compartilhar continua enviando um post ou reel para alguém.
@@ -808,6 +805,7 @@ Red	Vermelho
 Orange	Laranja
 Green	Verde
 Teal	Azul-petróleo
+Yellow	Amarelo
 Material You	Material You
 Material You needs Android 12 or newer, so Instagram's blue stays.	O Material You precisa do Android 12 ou mais recente, então o azul do Instagram continua.
 # context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
@@ -895,7 +893,6 @@ Tab long presses keep Instagram's own action. Choose one to pick the playback qu
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	Mantenha %1$s pressionado para escolher a qualidade de reprodução no lugar da ação normal dessa aba. Os toques normais e as outras abas ficam como estão. É preciso que a Qualidade de reprodução padrão esteja ativada. Se a mesma aba abrir o Instagram, isso vem primeiro.
 Playback quality: %1$s. The next video you open uses it.	Qualidade de reprodução: %1$s. O próximo vídeo que você abrir vai usá-la.
 Couldn't save the playback quality. Open Instagram settings to set it.	Não foi possível salvar a qualidade de reprodução. Abra as configurações do Instagram para defini-la.
-Support Instagram	Apoie o Instagram
 Hide the Home tab	Ocultar a aba Início
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Tira o Início da barra de abas. A Aba inicial abre onde o Início abriria, então escolha uma diferente do Início que esteja na barra, ou o Início fica. Reinicie o Instagram para ver a mudança.
 Hide the Search tab	Ocultar a aba Pesquisar
@@ -1029,7 +1026,6 @@ Stop background work Instagram doesn't need.	Pare o trabalho em segundo plano de
 Stop Instagram from saying this version is too old.	Impeça o Instagram de dizer que esta versão é antiga demais.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Escolhidos quando você aplicou os patches, então a pausa não os desativa. Aplique os patches de novo para alterá-los.
 Save your Instagram choices to a file, or bring them back.	Salve suas escolhas do Instagram em um arquivo ou traga-as de volta.
-Your version, the source code and licenses.	Sua versão, o código-fonte e as licenças.
 Open settings with a long press on your profile's menu	Abrir configurações ao manter o menu do seu perfil pressionado
 Hide the top bar on the Reels tab	Ocultar a barra superior da aba Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Tira a linha do topo da aba Reels, com o título Reels, o botão da câmera e tudo o mais que o Instagram colocar ali. Os reels que você abre de um perfil, de uma publicação ou de uma conversa continuam com ela. A câmera continua abrindo pelo Início.
@@ -1126,8 +1122,6 @@ Download history cleared.	Histórico de downloads apagado.
 Couldn't clear the download history. Try again.	Não foi possível apagar o histórico de downloads. Tente de novo.
 Loading the picture...	Carregando a foto...
 # context: the settings row right above Support Instagram that opens a new bug report on GitHub
-Report a problem	Relatar um problema
-Opens a GitHub report with your versions and settings filled in. Add what happened.	Abre um relatório no GitHub com suas versões e configurações já preenchidas. Conte o que aconteceu.
 Hide the reply bar on reels from chats	Ocultar a barra de resposta nos reels das conversas
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	A caixa de resposta abaixo de um reel que você abre de uma conversa, com as reações e o botão de mais. A caixa de mensagens da própria conversa continua.
 # context: Layout list title; it picks the font Instagram's text draws in
@@ -1485,7 +1479,6 @@ A long press on the menu button, the three lines at the top right of your own pr
 Custom launch screen	Custom launch screen
 Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
 How you open settings and arrange their layout.	How you open settings and arrange their layout.
-Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
 Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
 Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
 No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.

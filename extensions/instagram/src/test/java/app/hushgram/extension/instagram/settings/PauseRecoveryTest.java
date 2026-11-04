@@ -69,7 +69,7 @@ public class PauseRecoveryTest {
         PatchFamily.inBuildForTests = null;
     }
 
-    @Test public void recoveryStaysBelowSearchAndSupportStaysLastWhenTheFullBuildIsFiltered() throws Exception {
+    @Test public void recoveryStaysBelowSearchWithoutTheRemovedActionsWhenTheFullBuildIsFiltered() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
@@ -79,7 +79,8 @@ public class PauseRecoveryTest {
                 Preference status = statusCard(page);
                 page.searchSettings("zzzz no settings");
                 assertSame(status, page.getPreferenceScreen().getPreference(2));
-                assertNull(page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY));
+                assertNull(page.findPreference("action_report_problem"));
+                assertNull(page.findPreference("action_support_hushgram"));
                 page.searchSettings("coffee");
                 assertSame(status, statusCard(page));
                 page.searchSettings("");
@@ -239,10 +240,8 @@ public class PauseRecoveryTest {
         Preference status = screen.findPreference("hushgram_status");
         assertNotNull(status);
         assertEquals("Instagram is paused", status.getTitle());
-        Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
-        assertNotNull(support);
-        assertSame("Support must remain after the status card and every section", support,
-                screen.getPreference(screen.getPreferenceCount() - 1));
+        assertNull(page.findPreference("action_report_problem"));
+        assertNull(page.findPreference("action_support_hushgram"));
         return status;
     }
 

@@ -14,6 +14,8 @@ import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
@@ -23,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -38,11 +41,13 @@ public class HiddenChatsTapTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private Activity activity;
+    private ActivityController<Activity> controller;
     private final List<Activity> opened = new ArrayList<>();
     private boolean onButton = true;
 
     @Before public void prepare() {
-        activity = Robolectric.buildActivity(Activity.class).setup().get();
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        activity = controller.get();
         HiddenChatsTap.resetForTests();
         HiddenChatsTap.buttons = (shown, x, y) -> onButton;
         HiddenChatsTap.opener = opened::add;
@@ -51,9 +56,13 @@ public class HiddenChatsTapTest {
 
     @After public void close() {
         HiddenChatsTap.resetForTests();
+        HiddenChats.resetForTests();
+        ChatAccounts.resetForTests();
         Settings.DOUBLE_TAP_HIDDEN_CHATS.resetToDefault();
+        Settings.HIDDEN_CHATS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        if (controller != null) controller.close();
     }
 
     private boolean at(int action, float x, float y, long time) {
@@ -151,5 +160,29 @@ public class HiddenChatsTapTest {
     @Test public void aScreenWithoutMessagesButtonsHasNone() {
         HiddenChatsTap.resetForTests();
         assertFalse(HiddenChatsTap.onMessagesButton(activity, 100, 1500));
+    }
+
+    @Test public void leavingAndReturningToInstagramRestoresTheRegularInbox() {
+        String account = "test-account";
+        ChatAccounts.signInForTests(account);
+        HiddenChats.reader = summary -> (String) summary;
+        HiddenChats.add(account, "hidden-chat", "Hidden");
+
+        MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+        try {
+            HiddenChatsTap.touch(activity, event);
+        } finally {
+            event.recycle();
+        }
+
+        HiddenChats.toggleHiddenOnlyInbox();
+        List<Object> chats = Arrays.asList("hidden-chat", "regular-chat");
+        assertEquals(Collections.singletonList("hidden-chat"), HiddenChats.inbox(new Object(), chats));
+
+        controller.pause().stop();
+        controller.start().resume();
+
+        assertEquals("returning to Instagram starts at the normal chat list",
+                Collections.singletonList("regular-chat"), HiddenChats.inbox(new Object(), chats));
     }
 }

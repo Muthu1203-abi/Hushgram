@@ -7,7 +7,6 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
 A diagnostic report is already being saved.	Sudah ada laporan diagnostik yang sedang disimpan.
 A file named %1$s in %2$s paused Instagram.	File bernama %1$s di %2$s menjeda Instagram.
-About	Tentang
 Add the source to saved photos	Tambahkan sumber ke foto tersimpan
 Ads and privacy	Iklan dan privasi
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Meminta Android menjalankan Instagram pada refresh rate tertinggi layarmu, dengan resolusi yang sama. Beberapa ponsel punya batas sendiri untuk aplikasi, dan penghemat baterai tetap bisa menurunkannya.
@@ -75,7 +74,6 @@ Settings locked	Pengaturan dikunci
 Lock turned off	Kunci dimatikan
 These settings are locked. Ask to unlock first.	Pengaturan ini terkunci. Minta buka kunci dulu.
 Full report saved to %1$s	Laporan lengkap disimpan ke %1$s
-GPL-3.0, with the notices of the projects this is built on	GPL-3.0, beserta pemberitahuan dari proyek yang menjadi dasarnya
 Gray out stories you've watched	Abu-abukan cerita yang sudah ditonton
 Hide ads	Sembunyikan iklan
 How far a photo or video you're saving has got, with a button to cancel it	Progres foto atau video yang sedang Anda simpan, dengan tombol untuk membatalkannya
@@ -118,7 +116,6 @@ Saving... You can cancel from Downloads in Instagram settings.	Menyimpan... Kamu
 Set when you patched	Diatur saat Anda menambal
 Settings couldn't open	Pengaturan tidak dapat dibuka
 Settings couldn't refresh completely. Reopen settings and try again.	Pengaturan tidak dapat dimuat ulang sepenuhnya. Buka kembali pengaturan lalu coba lagi.
-Source code and issues	Kode sumber dan laporan masalah
 Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an ad would have been.	Menyembunyikan postingan, reel, dan cerita bersponsor, serta iklan di komentar. Tidak ada celah kosong di tempat iklan seharusnya muncul.
 Stays in while paused	Tetap aktif saat dijeda
 Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Menghapus tag pelacak dari tautan yang kamu salin atau bagikan, dan membuka tautan di bio tanpa pelacak klik Instagram. Tautan tetap membuka postingan, reel, atau profil yang sama.
@@ -133,7 +130,6 @@ There's no diagnostic data to clear.	Tidak ada data diagnostik yang dapat dihapu
 There's no diagnostic data to put back.	Tidak ada data diagnostik yang dapat dikembalikan.
 Try again, or go back to Instagram.	Coba lagi, atau kembali ke Instagram.
 Updates	Pembaruan
-Version	Versi
 Version %1$s for Instagram %2$s	Versi %1$s untuk Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Saat kamu melihat secara anonim, cerita yang sudah kamu tonton berubah abu-abu dan pindah ke ujung baris, hanya di ponsel ini. Instagram tetap tidak diberi tahu bahwa kamu menontonnya.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Menulis akun yang memosting, tanggal postingan, dan tautan ke postingan ke dalam detail foto tersimpan, yaitu EXIF yang dibaca galeri atau exiftool. Hanya foto JPEG, dan hanya yang diketahui saat menyimpan. Gambarnya sendiri tidak berubah.
@@ -367,6 +363,7 @@ Ring color	Warna lingkaran
 Instagram's colors	Warna Instagram
 # context: two more colors in the Ring color list, beside Purple, Red and Orange
 Blue	Biru
+Cyan	Sian
 Gold	Emas
 Hide the Repost button	Sembunyikan tombol Posting ulang
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Menghapus Posting ulang dan jumlahnya dari postingan dan reel, agar tidak ada yang terposting ulang ke pengikut Anda secara tidak sengaja. Bagikan tetap mengirim postingan atau reel ke seseorang.
@@ -808,6 +805,7 @@ Red	Merah
 Orange	Oranye
 Green	Hijau
 Teal	Hijau kebiruan
+Yellow	Kuning
 Material You	Material You
 Material You needs Android 12 or newer, so Instagram's blue stays.	Material You butuh Android 12 atau yang lebih baru, jadi biru Instagram tetap dipakai.
 # context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
@@ -895,7 +893,6 @@ Tab long presses keep Instagram's own action. Choose one to pick the playback qu
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka Instagram, itu yang didahulukan.
 Playback quality: %1$s. The next video you open uses it.	Kualitas pemutaran: %1$s. Video berikutnya yang kamu buka memakainya.
 Couldn't save the playback quality. Open Instagram settings to set it.	Kualitas pemutaran tidak bisa disimpan. Buka pengaturan Instagram untuk mengaturnya.
-Support Instagram	Dukung Instagram
 Hide the Home tab	Sembunyikan tab Beranda
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Menghapus Beranda dari bilah tab. Tab awal kamu terbuka di mana pun Beranda biasanya terbuka, jadi pilih tab awal selain Beranda yang ada di bilah, atau Beranda tetap ada. Mulai ulang Instagram untuk melihat perubahannya.
 Hide the Search tab	Sembunyikan tab Cari
@@ -1029,7 +1026,6 @@ Stop background work Instagram doesn't need.	Hentikan kerja latar belakang yang 
 Stop Instagram from saying this version is too old.	Cegah Instagram menyebut versi ini terlalu lama.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Dipilih saat kamu menambal, jadi Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.
 Save your Instagram choices to a file, or bring them back.	Simpan pilihan Instagram kamu ke file, atau pulihkan kembali.
-Your version, the source code and licenses.	Versimu, kode sumber, dan lisensi.
 Open settings with a long press on your profile's menu	Buka pengaturan dengan menekan lama menu profilmu
 Hide the top bar on the Reels tab	Sembunyikan bilah atas di tab Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Menghapus baris di bagian atas tab Reels, berisi judul Reels, tombol kamera, dan apa pun yang ditaruh Instagram di sana. Reels yang kamu buka dari profil, postingan, atau chat tetap memilikinya. Kamera tetap bisa dibuka dari Beranda.
@@ -1126,8 +1122,6 @@ Download history cleared.	Riwayat unduhan dihapus.
 Couldn't clear the download history. Try again.	Tidak bisa menghapus riwayat unduhan. Coba lagi.
 Loading the picture...	Memuat gambar...
 # context: the settings row right above Support Instagram that opens a new bug report on GitHub
-Report a problem	Laporkan masalah
-Opens a GitHub report with your versions and settings filled in. Add what happened.	Membuka laporan GitHub yang sudah berisi versi dan pengaturanmu. Tambahkan apa yang terjadi.
 Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari chat
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Kotak balasan di bawah reel yang kamu buka dari chat, beserta reaksi dan tombol plusnya. Kotak pesan di chat itu sendiri tetap ada.
 # context: Layout list title; it picks the font Instagram's text draws in
@@ -1485,7 +1479,6 @@ A long press on the menu button, the three lines at the top right of your own pr
 Custom launch screen	Custom launch screen
 Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
 How you open settings and arrange their layout.	How you open settings and arrange their layout.
-Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
 Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
 Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
 No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.

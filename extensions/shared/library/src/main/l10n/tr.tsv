@@ -7,7 +7,6 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Yamaladığında ayarlandıkları için Duraklatma bunları kapatamaz. Birini elemek için yeniden yamala ve onun ardından parantez içinde yazan yamayı dışarıda bırak.
 A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydediliyor.
 A file named %1$s in %2$s paused Instagram.	%2$s içindeki %1$s adlı bir dosya Instagram'u duraklattı.
-About	Hakkında
 Add the source to saved photos	Kayıtlı fotoğraflara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Android'den Instagram'ı ekranının en yüksek yenileme hızında, aynı çözünürlükte çalıştırmasını ister. Bazı telefonlar uygulamalara kendi sınırını koyar ve pil tasarrufu hızı yine de düşürebilir.
@@ -75,7 +74,6 @@ Settings locked	Ayarlar kilitlendi
 Lock turned off	Kilit kapatıldı
 These settings are locked. Ask to unlock first.	Bu ayarlar kilitli. Önce kilidi açmayı iste.
 Full report saved to %1$s	Tam rapor şuraya kaydedildi: %1$s
-GPL-3.0, with the notices of the projects this is built on	GPL-3.0, üzerine kurulduğu projelerin lisans bildirimleriyle
 Gray out stories you've watched	İzlediğin hikayeleri gri göster
 Hide ads	Reklamları gizle
 How far a photo or video you're saving has got, with a button to cancel it	Kaydettiğin fotoğraf veya videonun ilerleme durumu ve iptal etmek için bir düğme
@@ -118,7 +116,6 @@ Saving... You can cancel from Downloads in Instagram settings.	Kaydediliyor... I
 Set when you patched	Yamaladığında ayarlananlar
 Settings couldn't open	Ayarlar açılamadı
 Settings couldn't refresh completely. Reopen settings and try again.	Ayarlar tamamen yenilenemedi. Ayarları yeniden açıp tekrar dene.
-Source code and issues	Kaynak kodu ve sorunlar
 Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an ad would have been.	Sponsorlu gönderileri, reels'leri, hikâyeleri ve yorumlardaki reklamı gizler. Reklamın olacağı yerde boşluk kalmaz.
 Stays in while paused	Duraklatılsa da devrede kalır
 Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Kopyaladığın veya paylaştığın bağlantılardan izleme etiketlerini kaldırır ve biyografideki bağlantıları Instagram'ın tıklama izleyicisi olmadan açar. Bağlantı yine aynı gönderiyi, reels'i veya profili açar.
@@ -133,7 +130,6 @@ There's no diagnostic data to clear.	Temizlenecek tanılama verisi yok.
 There's no diagnostic data to put back.	Geri getirilecek tanılama verisi yok.
 Try again, or go back to Instagram.	Tekrar dene veya Instagram'a geri dön.
 Updates	Güncellemeler
-Version	Sürüm
 Version %1$s for Instagram %2$s	Instagram %2$s için %1$s sürümü
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Anonim izlerken izlediğin bir hikaye griye döner ve sıranın sonuna geçer, yalnızca bu telefonda. Instagram yine de onu izlediğini öğrenmez.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Gönderiyi paylaşan hesabı, gönderi tarihini ve gönderiye bir bağlantıyı, kaydedilen bir fotoğrafın ayrıntılarına, yani bir galeri ya da exiftool'un okuduğu EXIF'e yazar. Yalnızca JPEG fotoğraflar ve yalnızca kaydın bildiği kadar. Resmin kendisi değişmez.
@@ -367,6 +363,7 @@ Ring color	Halka rengi
 Instagram's colors	Instagram renkleri
 # context: two more colors in the Ring color list, beside Purple, Red and Orange
 Blue	Mavi
+Cyan	Camgöbeği
 Gold	Altın
 Hide the Repost button	Yeniden paylaş düğmesini gizle
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Gönderilerden ve reels videolarından Yeniden paylaş düğmesini ve sayısını kaldırır, böylece hiçbir şey yanlışlıkla takipçilerine yeniden paylaşılmaz. Paylaş ile bir gönderiyi veya reels videosunu birine göndermeye devam edebilirsin.
@@ -808,6 +805,7 @@ Red	Kırmızı
 Orange	Turuncu
 Green	Yeşil
 Teal	Camgöbeği
+Yellow	Sarı
 Material You	Material You
 Material You needs Android 12 or newer, so Instagram's blue stays.	Material You için Android 12 veya daha yenisi gerekiyor, bu yüzden Instagram mavisi kalıyor.
 # context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
@@ -895,7 +893,6 @@ Tab long presses keep Instagram's own action. Choose one to pick the playback qu
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	Sekmenin normal işlemi yerine oynatma kalitesini seçmek için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Varsayılan oynatma kalitesi açık olmalı. Aynı sekme Instagram'ı açıyorsa o öncelikli olur.
 Playback quality: %1$s. The next video you open uses it.	Oynatma kalitesi: %1$s. Açacağın sonraki video bunu kullanır.
 Couldn't save the playback quality. Open Instagram settings to set it.	Oynatma kalitesi kaydedilemedi. Ayarlamak için Instagram ayarlarını aç.
-Support Instagram	Instagram'ı destekle
 Hide the Home tab	Ana Sayfa sekmesini gizle
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Ana Sayfa'yı sekme çubuğundan kaldırır. Ana Sayfa'nın açılacağı her yerde Başlangıç sekmesi açılır, bu yüzden çubukta olan ve Ana Sayfa olmayan bir Başlangıç sekmesi seç, yoksa Ana Sayfa kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide the Search tab	Ara sekmesini gizle
@@ -1029,7 +1026,6 @@ Stop background work Instagram doesn't need.	Instagram'ın ihtiyaç duymadığı
 Stop Instagram from saying this version is too old.	Instagram'ın bu sürümün çok eski olduğunu söylemesini engelle.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Yamalarken seçildi, bu yüzden Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
 Save your Instagram choices to a file, or bring them back.	Instagram seçimlerini bir dosyaya kaydet ya da geri getir.
-Your version, the source code and licenses.	Sürümün, kaynak kodu ve lisanslar.
 Open settings with a long press on your profile's menu	Profilinin menüsüne uzun basarak ayarları aç
 Hide the top bar on the Reels tab	Reels sekmesindeki üst çubuğu gizle
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Reels sekmesinin en üstündeki satırı, Reels başlığı, kamera düğmesi ve Instagram'ın oraya koyduğu diğer her şeyle birlikte kaldırır. Bir profilden, gönderiden veya sohbetten açtığın reels'ler bu satırı korur. Kamera Ana sayfadan açılmaya devam eder.
@@ -1126,8 +1122,6 @@ Download history cleared.	İndirme geçmişi silindi.
 Couldn't clear the download history. Try again.	İndirme geçmişi silinemedi. Tekrar dene.
 Loading the picture...	Fotoğraf yükleniyor...
 # context: the settings row right above Support Instagram that opens a new bug report on GitHub
-Report a problem	Sorun bildir
-Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
 Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.
 # context: Layout list title; it picks the font Instagram's text draws in
@@ -1485,7 +1479,6 @@ A long press on the menu button, the three lines at the top right of your own pr
 Custom launch screen	Custom launch screen
 Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
 How you open settings and arrange their layout.	How you open settings and arrange their layout.
-Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
 Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
 Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
 No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.

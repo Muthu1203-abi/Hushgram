@@ -133,6 +133,7 @@ public final class ChatLocks {
             if (open != null) {
                 last = open;
                 lastName = null;
+                HiddenChats.opened(open.account, open.id);
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, OPENED, t);

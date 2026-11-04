@@ -21,11 +21,13 @@ package app.hushgram.extension.instagram.stories;
 public enum StoryRingColor {
     INSTAGRAM(0, 0),
     BLUE(0xFF2F8CFF, 0xFF3D5AFE),
+    CYAN(0xFF008F9D, 0xFF007C91),
     TEAL(0xFF009E9E, 0xFF00897B),
     PURPLE(0xFF9B5CFF, 0xFFB14BE0),
     RED(0xFFFF3B30, 0xFFE0010D),
     ORANGE(0xFFF26B0F, 0xFFE0461F),
-    GOLD(0xFFC58500, 0xFFB86E00);
+    GOLD(0xFFC58500, 0xFFB86E00),
+    YELLOW(0xFFA77A00, 0xFF957000);
 
     /** The least a shade stands out against white and against black, as a contrast ratio to one. */
     static final double LEAST_CONTRAST = 3.0;

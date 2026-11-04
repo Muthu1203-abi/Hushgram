@@ -578,7 +578,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "aSecondFingerIsNoFirstTap[28]", "aSecondFingerIsNoFirstTap[37]",
                 "aCancelledSecondTapOpensNothing[28]", "aCancelledSecondTapOpensNothing[37]",
                 "offOrPausedEveryTapGoesToInstagram[28]", "offOrPausedEveryTapGoesToInstagram[37]",
-                "aScreenWithoutMessagesButtonsHasNone[28]", "aScreenWithoutMessagesButtonsHasNone[37]"),
+                "aScreenWithoutMessagesButtonsHasNone[28]", "aScreenWithoutMessagesButtonsHasNone[37]",
+                "leavingAndReturningToInstagramRestoresTheRegularInbox[28]", "leavingAndReturningToInstagramRestoresTheRegularInbox[37]"),
             "app.hushgram.extension.instagram.settings.KeepTrayInFeedSettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
@@ -849,7 +850,9 @@ tasks.register("verifyAndroidBoundaries") {
                 "nothingHiddenOrNoRowChangedDrawsNothing[28]", "nothingHiddenOrNoRowChangedDrawsNothing[37]",
                 "pausedOrNotReadyDrawsNothing[28]", "pausedOrNotReadyDrawsNothing[37]",
                 "anInboxThatsGoneDrawsNothing[28]", "anInboxThatsGoneDrawsNothing[37]",
-                "eachInboxDrawsFromItsNewestListAndOneThatFailsLeavesTheOthers[28]", "eachInboxDrawsFromItsNewestListAndOneThatFailsLeavesTheOthers[37]"),
+                "eachInboxDrawsFromItsNewestListAndOneThatFailsLeavesTheOthers[28]", "eachInboxDrawsFromItsNewestListAndOneThatFailsLeavesTheOthers[37]",
+                "theHiddenUnreadDotNeedsAHiddenUnreadChatAndDoesNotInheritUnreadWhenHidden[28]", "theHiddenUnreadDotNeedsAHiddenUnreadChatAndDoesNotInheritUnreadWhenHidden[37]",
+                "openingAHiddenChatClearsItsDotAndALaterPushShowsItAgain[28]", "openingAHiddenChatClearsItsDotAndALaterPushShowsItAgain[37]"),
             "app.hushgram.extension.instagram.settings.TypingSettingsTest" to listOf(
                 "missingPatchHasNoTypingSwitch[28]", "missingPatchHasNoTypingSwitch[37]",
                 "typingAloneStillGetsMessages[28]", "typingAloneStillGetsMessages[37]",

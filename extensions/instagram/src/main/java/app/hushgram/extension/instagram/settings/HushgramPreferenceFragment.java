@@ -186,13 +186,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The repository as a link, and as a person reads it. */
     static final String SOURCE_URL = "https://github.com/SysAdminDoc/HushGram";
     static final String SOURCE_ADDRESS = SOURCE_URL.substring(SOURCE_URL.indexOf("://") + 3);
-    /** Where Support HushGram goes: the maintainer's Ko-fi page. */
-    static final String SUPPORT_URL = "https://ko-fi.com/X8K126YVER";
-    static final String SUPPORT_ADDRESS = SUPPORT_URL.substring(SUPPORT_URL.indexOf("://") + 3);
-    /** The key of Support HushGram, the settings home's last row. */
-    static final String SUPPORT_ROW_KEY = "action_support_hushgram";
-    /** The row right above Support HushGram that opens a filled-in bug report on GitHub. */
-    static final String REPORT_ROW_KEY = "action_report_problem";
     /** Lock these settings (#301), right under Pause HushGram. */
     static final String LOCK_ROW_KEY = "hushgram_settings_lock_row";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
@@ -268,8 +261,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private boolean lockHolds, showingLock;
     private final Handler lockRefresh = new Handler(Looper.getMainLooper());
     private final Runnable lockTick = this::showLock;
-    /** The About section, whose rows stay open while the settings are locked. */
-    @Nullable PreferenceCategory about;
     /** Ghost mode's switch, and the switches it turns, both set once the page is built. */
     @Nullable SwitchPreference ghostMode;
     List<BooleanSetting> ghostSwitches = new ArrayList<>();
@@ -282,10 +273,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private String searchQuery = "";
     @Nullable private SearchRow search;
     @Nullable private Row noSearchResults;
-    /** The home page's last row, which opens the Ko-fi page in a browser. */
-    @Nullable private Row support;
-    /** Report a problem, right above Support HushGram. */
-    @Nullable private Row report;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -579,36 +566,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PatchTimeCategory.add(this, screen, context, build);
         BackupCategory.add(this, screen, context, build);
         PauseCategory.add(this, screen, context, build);
-        AboutCategory.add(this, screen, context, build);
-
-        // Outside every category, like Support HushGram below it. Every row counts toward the
-        // switches it lists, the ones a folded category or a search keeps off the screen too.
-        Row bug = report = new Row(context);
-        bug.setKey(REPORT_ROW_KEY);
-        bug.setTitle(L10n.t("Report a problem"));
-        bug.setSummary(L10n.t("Opens a GitHub report with your versions and settings filled in. Add what happened."));
-        bug.setPersistent(false);
-        bug.setOrder(Integer.MAX_VALUE / 2 - 1);
-        bug.setOnPreferenceClickListener(p -> {
-            ReportProblemForm.open(p.getContext(), everyRow());
-            return true;
-        });
-        mark(bug, SettingsIcons.BUG);
-
-        // Outside every category, so no category section, count or saved setting changes. filterSettings
-        // puts it last on the home page and in a search it matches.
-        Row donate = support = new Row(context);
-        donate.setKey(SUPPORT_ROW_KEY);
-        // Its name alone, with no line under it.
-        donate.setTitle(L10n.t("Support Instagram"));
-        donate.setPersistent(false);
-        // Native Preference.compareTo subtracts orders, so leave room for negative header orders.
-        donate.setOrder(Integer.MAX_VALUE / 2);
-        donate.setOnPreferenceClickListener(p -> {
-            openSupport(p.getContext());
-            return true;
-        });
-        mark(donate, SettingsIcons.OPENING);
         for (int i = 0; i < screen.getPreferenceCount(); i++) {
             Preference section = screen.getPreference(i);
             if (!(section instanceof PreferenceCategory)) continue;
@@ -1312,21 +1269,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
         }
-        // Actions below the categories remain on the same page.
-        Row[] loose = {report, support};
-        String[] looseAliases = {" github bug issue", " ko-fi kofi donate coffee"};
-        for (int i = 0; i < loose.length; i++) {
-            Row row = loose[i];
-            if (row == null) continue;
-            String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
-            boolean match = true;
-            for (String term : terms) if (!text.contains(term)) { match = false; break; }
-            boolean shown = match;
-            if (terms.length > 0 && match) matches++;
-            if (shown) {
-                if (row.getParent() != screen) screen.addPreference(row);
-            } else if (row.getParent() == screen) screen.removePreference(row);
-        }
         // removePreference notifies even when absent. No-op changes mustn't rebind live Cancel.
         if (terms.length > 0 && matches == 0) {
             if (noSearchResults.getParent() != screen) screen.addPreference(noSearchResults);
@@ -1387,8 +1329,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * Whether the lock greys [row] out. The lock's own row, both exports, Debug logging, clearing
-     * the diagnostic data and the About rows stay open: none of them changes how Instagram acts.
+     * Whether the lock greys [row] out. The lock's own row, both exports, Debug logging and clearing
+     * the diagnostic data stay open: none of them changes how Instagram acts.
      */
     private boolean lockable(Preference row) {
         if (row == settingsLock || row == exportConfiguration || row == exportDiagnostics
@@ -1397,8 +1339,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (BaseSettings.DEBUG.key.equals(key)) return false;
         // Switching Pause off only brings every switch back, so it stays open while paused.
         if (BaseSettings.PAUSED.key.equals(key) && BaseSettings.PAUSED.savedValue()) return false;
-        List<Preference> aboutRows = about == null ? null : searchableRows.get(about);
-        return aboutRows == null || !aboutRows.contains(row);
+        return true;
     }
 
     @Nullable
@@ -1640,25 +1581,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         List<Preference> rows = new ArrayList<>();
         for (List<Preference> section : searchableRows.values()) rows.addAll(section);
         return rows;
-    }
-
-    /** The Ko-fi page, for a browser, in a task of its own so it never opens inside Instagram's. */
-    static Intent supportIntent() {
-        return new Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_URL))
-                .addCategory(Intent.CATEGORY_BROWSABLE)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    }
-
-    /** Opens the Ko-fi page, or says no app here can, as Source code and issues does. */
-    static void openSupport(Context context) {
-        try {
-            context.startActivity(supportIntent());
-        } catch (ActivityNotFoundException | SecurityException missing) {
-            // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
-            Logger.printInfo(() -> "No app opened the support link");
-            Utils.showToastLong(L10n.f("No app on this phone can open the link. The address is %1$s.",
-                    L10n.isolate(SUPPORT_ADDRESS)));
-        }
     }
 
     void showConfiguration() {
@@ -5293,6 +5215,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         switch (color) {
             case BLUE:
                 return L10n.t("Blue");
+            case CYAN:
+                return L10n.t("Cyan");
             case TEAL:
                 return L10n.t("Teal");
             case PURPLE:
@@ -5303,6 +5227,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Orange");
             case GOLD:
                 return L10n.t("Gold");
+            case YELLOW:
+                return L10n.t("Yellow");
             default:
                 return L10n.t("Instagram's colors");
         }

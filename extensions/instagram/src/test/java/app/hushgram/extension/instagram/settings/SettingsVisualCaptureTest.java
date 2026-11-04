@@ -196,7 +196,7 @@ public class SettingsVisualCaptureTest {
         open();
         capturePage("00-overview", true);
         List<Preference> categories = categories();
-        assertEquals("Every category, Pause and diagnostics included, can expand in place", 23, categories.size());
+        assertEquals("Every listed category, Pause and diagnostics included, can expand in place", 22, categories.size());
         int number = 1;
         for (Preference category : categories) {
             tap(category);
@@ -315,10 +315,6 @@ public class SettingsVisualCaptureTest {
         PauseForTests.resume();
         page.searchSettings("");
         settle();
-        openCategory("About");
-        capturePage("36-about", false);
-        clickInList(titled(page.getPreferenceScreen(), "Licenses"));
-        captureAlert("33-licenses");
     }
 
     @Test @Config(shadows = {CaptureMetadata.class, SettingsDialogBoundaryTest.BrokenPage.class})

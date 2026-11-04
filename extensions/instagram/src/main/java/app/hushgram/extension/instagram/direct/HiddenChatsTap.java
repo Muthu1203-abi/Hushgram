@@ -5,6 +5,8 @@
 package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
+import android.app.Application;
+import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -52,6 +54,9 @@ public final class HiddenChatsTap {
     static volatile Consumer<Activity> opener = HiddenChatsTap::open;
 
     private static WeakReference<Activity> tapActivity = new WeakReference<>(null);
+    private static Application watchedApplication;
+    private static Application.ActivityLifecycleCallbacks lifecycleCallbacks;
+    private static int startedActivities;
     /** When the last tap on Messages' button came up, or {@link Long#MIN_VALUE} when there is none to pair. */
     private static long tapUp = Long.MIN_VALUE;
     private static float tapX;
@@ -70,6 +75,7 @@ public final class HiddenChatsTap {
     public static boolean touch(Activity activity, MotionEvent event) {
         try {
             if (event == null || activity == null) return false;
+            watchAppLifecycle(activity);
             HiddenChats.watchHiddenUnreadDot(activity);
             return decide(activity, event.getActionMasked(), event.getX(), event.getY(), event.getEventTime());
         } catch (Throwable failure) {
@@ -159,6 +165,33 @@ public final class HiddenChatsTap {
         return Utils.settingsReady() && Settings.DOUBLE_TAP_HIDDEN_CHATS.get();
     }
 
+    /** Leaving Instagram clears the temporary hidden-only inbox before the next foreground visit. */
+    private static void watchAppLifecycle(Activity activity) {
+        Application app = activity.getApplication();
+        if (app == null || app == watchedApplication) return;
+        watchedApplication = app;
+        lifecycleCallbacks = new Application.ActivityLifecycleCallbacks() {
+            @Override public void onActivityStarted(Activity started) {
+                startedActivities++;
+            }
+
+            @Override public void onActivityStopped(Activity stopped) {
+                startedActivities = Math.max(0, startedActivities - 1);
+                if (startedActivities == 0 && !stopped.isChangingConfigurations()) {
+                    HiddenChats.showRegularInbox();
+                    forget();
+                }
+            }
+
+            @Override public void onActivityCreated(Activity activity, Bundle state) { }
+            @Override public void onActivityResumed(Activity activity) { }
+            @Override public void onActivityPaused(Activity activity) { }
+            @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
+            @Override public void onActivityDestroyed(Activity activity) { }
+        };
+        app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+    }
+
     private static int touchSlop(Activity activity) {
         return ViewConfiguration.get(activity).getScaledTouchSlop();
     }
@@ -212,5 +245,11 @@ public final class HiddenChatsTap {
         forget();
         buttons = HiddenChatsTap::onMessagesButton;
         opener = HiddenChatsTap::open;
+        if (watchedApplication != null && lifecycleCallbacks != null) {
+            watchedApplication.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
+        }
+        watchedApplication = null;
+        lifecycleCallbacks = null;
+        startedActivities = 0;
     }
 }

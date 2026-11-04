@@ -233,7 +233,7 @@ public class CategoryPagesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CATEGORY_PAGES.key));
     }
 
-    /** Everyday controls lead; Settings entry and the upkeep sections follow them, About last. */
+    /** Everyday controls lead; Settings entry and the upkeep sections follow them. */
     @Test public void settingsAccessAndUpkeepComeAfterTheEverydayControls() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         Settings.CATEGORY_PAGES.save(true);
@@ -246,7 +246,7 @@ public class CategoryPagesSettingsTest {
                     && categories.indexOf(everyday) < entry);
         }
         assertEquals(categories.toString(), List.of("Settings entry", "Set when you patched", "Settings backup",
-                "Pause and diagnostics", "About"), categories.subList(entry, categories.size()));
+                "Pause and diagnostics"), categories.subList(entry, categories.size()));
         assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
         assertEquals("hushgram_view_toggle", page.getPreferenceScreen().getPreference(1).getKey());
     }
@@ -447,7 +447,7 @@ public class CategoryPagesSettingsTest {
         openDialog();
         touchMode(page.getView(), false);
         List<String> categories = shown(Preference.class);
-        assertEquals(23, categories.size());
+        assertEquals(22, categories.size());
         HushgramPreferenceFragment.Heading header = categoryRow(categories.get(categories.size() / 2));
         ListView list = page.getView().findViewById(android.R.id.list);
         list.setSelectionFromTop(positionOf(header), -8);

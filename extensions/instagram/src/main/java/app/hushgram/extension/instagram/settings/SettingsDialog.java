@@ -186,7 +186,7 @@ public final class SettingsDialog extends DialogFragment {
 
         TextView title = new TextView(getContext());
         heading = title;
-        title.setText("Instagram");
+        title.setText("Muthu");
         ShimmerTitle.wear(title);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);

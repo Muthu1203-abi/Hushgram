@@ -12,7 +12,6 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。這些是在套用修補程式時設定的，暫停也無法停用。若要排查其中一項，請重新套用修補程式，並排除該項後方括號內的修補程式。
 A diagnostic report is already being saved.	已有診斷報告正在儲存。
 A file named %1$s in %2$s paused Instagram.	%2$s 中名為 %1$s 的檔案使 Instagram 暫停。
-About	關於
 Add the source to saved photos	在儲存的照片中加入來源資訊
 Ads and privacy	廣告與隱私
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	要求 Android 以螢幕最高的更新率、相同的解析度執行 Instagram。部分手機會為應用程式設定自己的上限，省電模式也仍可能調低更新率。
@@ -80,7 +79,6 @@ Settings locked	設定已鎖定
 Lock turned off	已停用鎖定
 These settings are locked. Ask to unlock first.	這些設定已鎖定，請先請求解鎖。
 Full report saved to %1$s	已將完整報告儲存至 %1$s
-GPL-3.0, with the notices of the projects this is built on	GPL-3.0，以及本專案所採用專案的聲明
 Gray out stories you've watched	將已看過的限時動態顯示為灰色
 Hide ads	隱藏廣告
 How far a photo or video you're saving has got, with a button to cancel it	顯示照片或影片的儲存進度，並提供取消按鈕
@@ -123,7 +121,6 @@ Saving... You can cancel from Downloads in Instagram settings.	儲存中…您�
 Set when you patched	套用修補程式時設定
 Settings couldn't open	無法開啟設定
 Settings couldn't refresh completely. Reopen settings and try again.	設定未能完整重新整理，請重新開啟設定後再試一次。
-Source code and issues	原始碼與問題回報
 Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an ad would have been.	隱藏贊助貼文、Reels、限時動態和留言中的廣告，原本顯示廣告的位置不會留下空白。
 Stays in while paused	暫停時仍生效
 Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	移除複製或分享連結中的追蹤標記，並略過 Instagram 的點擊追蹤器開啟個人簡介連結。連結仍會開啟相同的貼文、Reel 或個人檔案。
@@ -138,7 +135,6 @@ There's no diagnostic data to clear.	沒有可清除的診斷資料。
 There's no diagnostic data to put back.	沒有可還原的診斷資料。
 Try again, or go back to Instagram.	請再試一次，或返回 Instagram。
 Updates	更新
-Version	版本
 Version %1$s for Instagram %2$s	版本 %1$s，適用於 Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	匿名觀看時，已看過的限時動態會變成灰色並移到橫列末端，僅在這支手機上生效。Instagram 仍不會得知您已觀看。
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	將發文帳號、貼文日期及貼文連結寫入儲存照片的詳細資料，也就是相簿或 exiftool 可讀取的 EXIF。僅適用於 JPEG 照片，且只會寫入儲存時可取得的資訊。照片本身不會改變。
@@ -372,6 +368,7 @@ Ring color	光圈顏色
 Instagram's colors	Instagram 預設顏色
 # context: two more colors in the Ring color list, beside Purple, Red and Orange
 Blue	藍色
+Cyan	青色
 Gold	金色
 Hide the Repost button	隱藏轉發按鈕
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	移除貼文與 Reels 的轉發按鈕及次數，避免誤將內容轉發給追蹤者。仍可透過分享將貼文或 Reel 傳送給他人。
@@ -808,6 +805,7 @@ Red	紅色
 Orange	橘色
 Green	綠色
 Teal	藍綠色
+Yellow	黃色
 # context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	下載影片封面
@@ -893,7 +891,6 @@ Tab long presses keep Instagram's own action. Choose one to pick the playback qu
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	長按 %1$s 會選擇播放畫質，取代該分頁原本的操作。一般點擊與其他分頁不受影響。需啟用「預設播放畫質」。若同一分頁也用來開啟 Instagram，會優先開啟 Instagram。
 Playback quality: %1$s. The next video you open uses it.	播放畫質：%1$s。下一部開啟的影片會使用此畫質。
 Couldn't save the playback quality. Open Instagram settings to set it.	無法儲存播放畫質，請開啟 Instagram 設定進行設定。
-Support Instagram	支持 Instagram
 Hide the Home tab	隱藏首頁分頁
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	從分頁列移除首頁。原本開啟首頁的位置會改為開啟「啟動分頁」，因此請選擇分頁列上首頁以外的分頁，否則首頁仍會保留。請重新啟動 Instagram 以套用變更。
 Hide the Search tab	隱藏搜尋分頁
@@ -1023,7 +1020,6 @@ Stop background work Instagram doesn't need.	停止 Instagram 不必要的背景
 Stop Instagram from saying this version is too old.	不再讓 Instagram 顯示版本過舊的提示。
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	這些項目在套用修補程式時決定，暫停時仍會啟用。若要變更，請重新套用修補程式。
 Save your Instagram choices to a file, or bring them back.	將 Instagram 設定儲存為檔案，或從檔案還原。
-Your version, the source code and licenses.	查看版本、原始碼與授權條款。
 Open settings with a long press on your profile's menu	長按個人檔案選單開啟設定
 Hide the top bar on the Reels tab	隱藏 Reels 分頁頂端列
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	移除 Reels 分頁頂端的整列內容，包括 Reels 標題、相機按鈕與 Instagram 放在該處的其他項目。從個人檔案、貼文或聊天開啟的 Reels 仍會保留頂端列。相機仍可從首頁開啟。
@@ -1120,8 +1116,6 @@ Download history cleared.	已清除下載記錄。
 Couldn't clear the download history. Try again.	無法清除下載記錄，請再試一次。
 Loading the picture...	正在載入圖片…
 # context: the settings row right above Support Instagram that opens a new bug report on GitHub
-Report a problem	回報問題
-Opens a GitHub report with your versions and settings filled in. Add what happened.	開啟已填入版本與設定的 GitHub 問題回報，請補充發生的情況。
 Hide the reply bar on reels from chats	隱藏從聊天開啟的 Reels 回覆列
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	隱藏從聊天開啟的 Reel 下方的回覆框、心情回應與加號按鈕。聊天本身的訊息輸入框仍會保留。
 # context: Layout list title; it picks the font Instagram's text draws in
@@ -1488,7 +1482,6 @@ A long press on the menu button, the three lines at the top right of your own pr
 Custom launch screen	Custom launch screen
 Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
 How you open settings and arrange their layout.	How you open settings and arrange their layout.
-Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
 Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
 Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
 No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.
