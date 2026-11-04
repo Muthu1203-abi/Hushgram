@@ -551,6 +551,10 @@ public class Settings extends BaseSettings {
     public static final StringSetting HIDDEN_CHATS =
             new StringSetting("hushgram_hidden_chats", "", false, false);
 
+    /** Hidden chat IDs dismissed from the unread dot until Instagram confirms they were read. */
+    public static final StringSetting HIDDEN_CHAT_UNREAD_DISMISSED =
+            new StringSetting("hushgram_hidden_chat_unread_dismissed", "", false, false);
+
     /**
      * The chats pinned to the top of the Messages inbox on this phone
      * ({@link app.hushgram.extension.instagram.direct.PinnedChats}, #345), in the same lines as
@@ -598,7 +602,8 @@ public class Settings extends BaseSettings {
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS, HIDDEN_CHATS_BIOMETRIC_LOCK,
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS, HIDDEN_CHAT_UNREAD_DISMISSED,
+                HIDDEN_CHATS_BIOMETRIC_LOCK,
                 UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 

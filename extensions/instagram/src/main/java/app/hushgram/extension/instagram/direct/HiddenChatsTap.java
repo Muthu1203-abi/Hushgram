@@ -95,6 +95,13 @@ public final class HiddenChatsTap {
                 downTime = time;
                 downX = x;
                 downY = y;
+                // A swipe can leave Messages without touching the tab bar. If Instagram has
+                // already selected another tab, clear the temporary view before a swipe back
+                // starts; the previous ACTION_UP also checks after Instagram handles it.
+                if (HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
+                    HiddenChats.showRegularInbox();
+                    forget();
+                }
                 if (onOtherTab(activity, x, y)) {
                     HiddenChats.showRegularInbox();
                     forget();
@@ -128,6 +135,7 @@ public final class HiddenChatsTap {
                     }
                     return true;
                 }
+                resetAfterTabSwipe(activity);
                 if (onButton && !moved && time - downTime < ViewConfiguration.getLongPressTimeout()) {
                     tapActivity = new WeakReference<>(activity);
                     tapUp = time;
@@ -211,6 +219,35 @@ public final class HiddenChatsTap {
         // Some Instagram builds give the remaining tabs different resource names. A tap in the
         // tab bar that isn't on Messages still means the person is leaving the hidden inbox.
         return on(activity, TAB_BAR, x, y);
+    }
+
+    /** Checks the selected tab after Instagram has handled a horizontal swipe between pages. */
+    private static void resetAfterTabSwipe(Activity activity) {
+        if (!HiddenChats.isShowingHiddenOnlyInbox()) return;
+        View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
+        if (decor == null) return;
+        decor.post(() -> {
+            try {
+                if (!activity.isFinishing() && !activity.isDestroyed()
+                        && HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
+                    HiddenChats.showRegularInbox();
+                    forget();
+                }
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden inbox tab swipe", failure);
+            }
+        });
+    }
+
+    /** True when Instagram marks a visible non-Messages tab as selected. */
+    private static boolean anotherTabSelected(Activity activity) {
+        for (String tab : OTHER_TABS) {
+            int id = activity.getResources().getIdentifier(tab, "id", activity.getPackageName());
+            if (id == 0) continue;
+            View button = activity.findViewById(id);
+            if (button != null && button.isShown() && button.isSelected()) return true;
+        }
+        return false;
     }
 
     private static boolean on(Activity activity, String name, float x, float y) {

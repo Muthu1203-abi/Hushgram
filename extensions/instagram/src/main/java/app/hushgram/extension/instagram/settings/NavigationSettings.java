@@ -8,14 +8,15 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.RectF;
 import android.os.Build;
 import android.graphics.drawable.Drawable;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.ImageView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -155,46 +156,100 @@ public final class NavigationSettings {
                 return;
             }
             if (outline == null) {
-                outline = new GhostOutline(view.getResources().getDisplayMetrics().density);
+                outline = new GhostOutline(view);
                 ghostOutlines.put(view, outline);
                 view.addOnLayoutChangeListener(outline);
                 view.getOverlay().add(outline.drawable);
             }
-            outline.size(view.getWidth(), view.getHeight());
+            outline.size(view);
             outline.drawable.invalidateSelf();
         }
     }
 
     private static final class GhostOutline implements View.OnLayoutChangeListener {
         final OutlineDrawable drawable;
-        GhostOutline(float density) { drawable = new OutlineDrawable(density); }
-        void size(int width, int height) { drawable.setBounds(0, 0, width, height); }
+        GhostOutline(View tab) { drawable = new OutlineDrawable(tab); }
+        void size(View tab) { drawable.setBounds(0, 0, tab.getWidth(), tab.getHeight()); }
         @Override public void onLayoutChange(View view, int left, int top, int right, int bottom,
                 int oldLeft, int oldTop, int oldRight, int oldBottom) {
-            size(right - left, bottom - top);
+            size(view);
+            drawable.invalidateSelf();
         }
     }
 
     private static final class OutlineDrawable extends Drawable {
+        private final View tab;
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF bounds = new RectF();
-        private final float inset;
-        private final float radius;
-        OutlineDrawable(float density) {
-            inset = 2f * density;
-            radius = 9f * density;
+        private final float density;
+        OutlineDrawable(View tab) {
+            this.tab = tab;
+            density = tab.getResources().getDisplayMetrics().density;
+            boolean night = (tab.getResources().getConfiguration().uiMode
+                    & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                    == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+            int glow = night ? 0x66D7F1FF : 0x5556CBE8;
+            fill.setStyle(Paint.Style.FILL);
+            fill.setColor(night ? 0x18D7F1FF : 0x1247C4E0);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(2f * density);
-            paint.setColor(Color.rgb(239, 54, 69));
+            paint.setStrokeWidth(1.35f * density);
+            paint.setColor(night ? 0xB8E7F6FF : 0xA84ABFD9);
+            paint.setShadowLayer(5f * density, 0f, 0f, glow);
         }
         @Override public void draw(Canvas canvas) {
-            bounds.set(getBounds());
-            bounds.inset(inset, inset);
+            ImageView icon = iconIn(tab);
+            int[] tabAt = new int[2];
+            tab.getLocationInWindow(tabAt);
+            if (icon != null) {
+                int[] iconAt = new int[2];
+                icon.getLocationInWindow(iconAt);
+                bounds.set(iconAt[0] - tabAt[0], iconAt[1] - tabAt[1],
+                        iconAt[0] - tabAt[0] + icon.getWidth(), iconAt[1] - tabAt[1] + icon.getHeight());
+            } else {
+                float side = Math.max(0f, Math.min(28f * density,
+                        Math.min(tab.getWidth(), tab.getHeight()) - 2f * density));
+                float left = (tab.getWidth() - side) / 2f;
+                float top = (tab.getHeight() - side) / 2f;
+                bounds.set(left, top, left + side, top + side);
+            }
+            bounds.inset(-3f * density, -3f * density);
+            float radius = Math.min(bounds.width(), bounds.height()) / 2f;
+            canvas.drawRoundRect(bounds, radius, radius, fill);
             canvas.drawRoundRect(bounds, radius, radius, paint);
         }
         @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
         @Override public void setColorFilter(android.graphics.ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+
+        private static ImageView iconIn(View root) {
+            if (root instanceof ImageView) {
+                ImageView image = (ImageView) root;
+                if (image.isShown() && image.getDrawable() != null) return image;
+            }
+            if (!(root instanceof ViewGroup)) return null;
+            ImageView best = null;
+            double bestScore = Double.MAX_VALUE;
+            ViewGroup group = (ViewGroup) root;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ImageView candidate = iconIn(group.getChildAt(i));
+                if (candidate == null) continue;
+                if (candidate.getWidth() < 16f * density || candidate.getHeight() < 16f * density) continue;
+                int[] at = new int[2];
+                candidate.getLocationInWindow(at);
+                int[] rootAt = new int[2];
+                root.getLocationInWindow(rootAt);
+                double dx = at[0] - rootAt[0] + candidate.getWidth() / 2d - root.getWidth() / 2d;
+                double dy = at[1] - rootAt[1] + candidate.getHeight() / 2d - root.getHeight() / 2d;
+                double score = dx * dx + dy * dy
+                        + Math.abs(candidate.getWidth() - candidate.getHeight()) * 4d;
+                if (score < bestScore) {
+                    best = candidate;
+                    bestScore = score;
+                }
+            }
+            return best;
+        }
     }
 
     /**

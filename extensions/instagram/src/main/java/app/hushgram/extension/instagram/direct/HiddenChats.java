@@ -39,6 +39,8 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * The chats "Lock your messages" hides, one at a time.
@@ -125,6 +127,8 @@ public final class HiddenChats {
     private static final Map<String, Set<String>> unreadByAccount = new HashMap<>();
     /** Unread ids already present when a chat was hidden, or cleared when it was opened. */
     private static final Map<String, Set<String>> dismissedUnreadByAccount = new HashMap<>();
+    /** Whether dismissed IDs have been restored from the phone's private settings. */
+    private static boolean dismissedUnreadLoaded;
     private static volatile WeakReference<Activity> lastActivity = new WeakReference<>(null);
 
     private static final String[] HIDE_MENU_BUTTONS = {"HIDE_FROM_PRIMARY", "HIDE_FROM_MESSAGES"};
@@ -228,6 +232,7 @@ public final class HiddenChats {
     /** An unread snapshot includes only chats Instagram considers unread; keep its ids for this account. */
     private static void rememberUnread(String account, List<Object> summaries) {
         if (account == null || account.isEmpty()) return;
+        loadDismissedUnread();
         Set<String> unread = new HashSet<>();
         if (summaries != null) {
             for (Object summary : summaries) {
@@ -243,6 +248,7 @@ public final class HiddenChats {
                 // reports the chat as read, a later incoming message can notify normally again.
                 dismissed.retainAll(unread);
                 if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
+                saveDismissedUnreadLocked();
             }
         }
         refreshHiddenUnreadDot();
@@ -251,6 +257,7 @@ public final class HiddenChats {
     /** Keeps unread hidden chat ids noticed on a dropped push until Instagram's next unread snapshot. */
     private static void rememberHiddenPush(Collection<String> pushIds, String account, Set<String> hidden) {
         if (account == null || account.isEmpty()) return;
+        loadDismissedUnread();
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>());
             for (String id : pushIds) {
@@ -263,11 +270,13 @@ public final class HiddenChats {
                     }
                 }
             }
+            saveDismissedUnreadLocked();
         }
         refreshHiddenUnreadDot();
     }
 
     static boolean hasHiddenUnread() {
+        loadDismissedUnread();
         String account = ChatAccounts.active();
         if (account == null || account.isEmpty()) return false;
         Set<String> hidden = idsFor(account);
@@ -559,6 +568,11 @@ public final class HiddenChats {
         if (!hiddenOnlyInbox) return;
         hiddenOnlyInbox = false;
         changed();
+    }
+
+    /** Whether a temporary hidden-only inbox is active, clearing it if its setting is no longer valid. */
+    static boolean isShowingHiddenOnlyInbox() {
+        return hiddenOnly();
     }
 
     /** Private-inbox mode is valid only for the signed-in account and while its switch is active. */
@@ -966,7 +980,11 @@ public final class HiddenChats {
         if (saved) {
             synchronized (unreadByAccount) {
                 Set<String> dismissed = dismissedUnreadByAccount.get(account);
-                if (dismissed != null) dismissed.remove(id);
+                if (dismissed != null) {
+                    dismissed.remove(id);
+                    if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
+                    saveDismissedUnreadLocked();
+                }
             }
             changedSoon();
             refreshHiddenUnreadDot();
@@ -1019,11 +1037,54 @@ public final class HiddenChats {
     }
 
     private static void dismissUnread(String account, String id) {
+        loadDismissedUnread();
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.get(account);
             if (unread != null && unread.contains(id)) {
                 dismissedUnreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>()).add(id);
+                saveDismissedUnreadLocked();
             }
+        }
+    }
+
+    /** Restores per-account read acknowledgements so stale unread snapshots stay dismissed after restart. */
+    private static void loadDismissedUnread() {
+        synchronized (unreadByAccount) {
+            if (dismissedUnreadLoaded) return;
+            dismissedUnreadLoaded = true;
+            try {
+                JSONObject saved = new JSONObject(Settings.HIDDEN_CHAT_UNREAD_DISMISSED.savedValue());
+                java.util.Iterator<String> accounts = saved.keys();
+                while (accounts.hasNext()) {
+                    String account = accounts.next();
+                    JSONArray ids = saved.optJSONArray(account);
+                    if (ids == null) continue;
+                    Set<String> kept = new HashSet<>();
+                    for (int i = 0; i < ids.length(); i++) {
+                        String id = ids.optString(i, "");
+                        if (!id.isEmpty()) kept.add(id);
+                    }
+                    if (!kept.isEmpty()) dismissedUnreadByAccount.put(account, kept);
+                }
+            } catch (Throwable ignored) {
+                dismissedUnreadByAccount.clear();
+            }
+        }
+    }
+
+    /** Caller holds unreadByAccount. The value is device-local and excluded from settings exports. */
+    private static void saveDismissedUnreadLocked() {
+        try {
+            JSONObject saved = new JSONObject();
+            for (Map.Entry<String, Set<String>> entry : dismissedUnreadByAccount.entrySet()) {
+                if (entry.getValue().isEmpty()) continue;
+                JSONArray ids = new JSONArray();
+                for (String id : entry.getValue()) ids.put(id);
+                saved.put(entry.getKey(), ids);
+            }
+            Settings.HIDDEN_CHAT_UNREAD_DISMISSED.save(saved.toString());
+        } catch (Throwable ignored) {
+            // The in-memory state still works for this process if storage is unavailable.
         }
     }
 
@@ -1041,6 +1102,7 @@ public final class HiddenChats {
         synchronized (unreadByAccount) {
             unreadByAccount.clear();
             dismissedUnreadByAccount.clear();
+            dismissedUnreadLoaded = false;
         }
         synchronized (drawn) {
             drawn.clear();

@@ -273,10 +273,10 @@ public final class SettingsDialog extends DialogFragment {
         if (bar != null) bar.setVisibility(owed ? View.VISIBLE : View.GONE);
     }
 
-    /** Shows the search title, and HushGram again for null. */
+    /** Shows the search title, and the branded settings title again for null. */
     void showTitle(@androidx.annotation.Nullable CharSequence title) {
         TextView bar = heading;
-        if (bar != null) bar.setText(title == null ? "Instagram" : title);
+        if (bar != null) bar.setText(title == null ? "Muthu" : title);
     }
 
     /** Clears a search before Back closes the dialog. Expanding a section adds no Back level. */
