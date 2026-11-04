@@ -73,9 +73,9 @@ final class LayoutCategory {
                 layout.addPreference(mark(hint, SettingsIcons.MOON));
             }
             if (build.contains(PatchFamily.LAUNCH_SCREEN)) {
-                layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),
-                        L10n.t("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram "
-                                + "starts, on Android 13 and newer. It shows from the next start.")));
+                layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("Custom launch screen"),
+                        L10n.t("Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 "
+                                + "and newer. It shows from the next start.")));
             }
             if (build.contains(PatchFamily.REFRESH_RATE)) {
                 layout.addPreference(onFlip(toggle(context, Settings.HIGHEST_REFRESH_RATE, L10n.t("Use the highest refresh rate"),

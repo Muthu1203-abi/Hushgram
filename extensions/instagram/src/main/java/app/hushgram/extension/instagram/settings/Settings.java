@@ -591,10 +591,14 @@ public class Settings extends BaseSettings {
     /** When the wait after too many wrong PINs ends, in wall clock milliseconds. Left out of a backup. */
     public static final LongSetting LOCK_PIN_WAIT_UNTIL = new LongSetting("hushgram_lock_pin_wait_until", 0L, false, false);
 
+    /** Whether the hidden inbox requires biometric authentication every time it is opened. */
+    public static final BooleanSetting HIDDEN_CHATS_BIOMETRIC_LOCK =
+            new BooleanSetting("hushgram_hidden_chats_biometric_lock", FALSE, false, false);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS,
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS, HIDDEN_CHATS_BIOMETRIC_LOCK,
                 UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 
@@ -1279,8 +1283,8 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #GLASS_TAB_BAR}: the liquid glass look (#65). The pill and its highlight are fully round,
-     * Search sits in a glass circle of its own beside the pill, and with {@link #GLASS_TAB_BAR_HIDE_ON_SCROLL}
-     * off, scrolling a list down shrinks the bar to the tab you're on and Search
+     * Every tab, including Search, stays inside one pill, and with {@link #GLASS_TAB_BAR_HIDE_ON_SCROLL}
+     * off, scrolling a list down shrinks the bar to the tab you're on
      * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Read as the bar is built, so a change asks
      * for a restart. Off to start.
      */
@@ -2229,6 +2233,10 @@ public class Settings extends BaseSettings {
      */
     public static final StringSetting GHOST_MODE_PICKS =
             new StringSetting("hushgram_ghost_mode_picks", "");
+
+    /** Per-account Ghost mode master choice, kept on this phone and out of settings backups. */
+    public static final StringSetting GHOST_MODE_ACCOUNT_STATES =
+            new StringSetting("hushgram_ghost_mode_account_states", "", false, false);
 
     /**
      * A Search button on Home's header that opens Instagram's own Search tab, or with Hide the Search tab

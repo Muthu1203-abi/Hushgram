@@ -70,7 +70,7 @@ public final class ConfigurationBackup {
 
     /** The suggested document name, with optional local time in safe, locale-independent digits. */
     static String fileName(Date when, boolean dated) {
-        return "HushGram-settings" + (dated
+        return "Instagram-settings" + (dated
                 ? "-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(when) : "") + ".json";
     }
 
@@ -250,7 +250,7 @@ public final class ConfigurationBackup {
                     values.put(setting.key, new JSONObject().put("type", type(value))
                             .put("value", value instanceof Enum ? ((Enum<?>) value).name() : value));
                 }
-                byte[] bytes = new JSONObject().put("project", "HushGram").put("schema", 1)
+                byte[] bytes = new JSONObject().put("project", "Instagram").put("schema", 1)
                         .put("settings", values).toString(2).getBytes(StandardCharsets.UTF_8);
                 if (bytes.length > MAX_BYTES || values.length() > MAX_ENTRIES) throw invalid();
                 return bytes;
@@ -293,7 +293,8 @@ public final class ConfigurationBackup {
         int held = 0;
         try {
             JSONObject root = SettingsJson.parseObject(bytes, LIMITS);
-            if (root.length() != 3 || !"HushGram".equals(root.get("project"))
+            Object project = root.get("project");
+            if (root.length() != 3 || !("Instagram".equals(project) || "HushGram".equals(project))
                     || !(root.get("schema") instanceof Integer) || root.getInt("schema") != 1
                     || !(root.get("settings") instanceof JSONObject)) throw invalid();
             JSONObject values = root.getJSONObject("settings");

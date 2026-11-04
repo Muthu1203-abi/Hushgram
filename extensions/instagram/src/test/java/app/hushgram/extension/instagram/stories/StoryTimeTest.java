@@ -271,7 +271,7 @@ public class StoryTimeTest {
         assertEquals("noch 45 Min.", text(StoryTimeMode.TIME_LEFT, posted, posted + duration(23, 15, 0)));
     }
 
-    /** Whatever the mode, the label is Instagram's while the switch is off, HushGram is paused or the settings aren't ready. */
+    /** Whatever the mode, the label is Instagram's while the switch is off, Instagram is paused or the settings aren't ready. */
     @Test
     public void everyModeKeepsInstagramsLabelOffPausedAndUnready() {
         long posted = postedOnOctober2(0);

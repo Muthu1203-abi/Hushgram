@@ -819,7 +819,7 @@ public class DownloadSettingsTest {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             Preference row = pageIn(controller).findPreference(Settings.SAVE_TREE.key);
-            assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+            assertEquals(L10n.f("Instagram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
                     L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
         } finally {
             SaveTree.forget(context);
@@ -837,7 +837,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = pageIn(controller);
             Preference row = page.findPreference(Settings.SAVE_TREE.key);
-            assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+            assertEquals(L10n.f("Instagram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
                     L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
             assertTrue("Use Movies and Pictures can't be tapped for a deleted folder",
                     page.findPreference(HushgramPreferenceFragment.GALLERY_FOLDERS).isEnabled());

@@ -192,7 +192,7 @@ public final class SettingsEntry {
      */
     static void relabelIfStale(Context context) {
         try {
-            if (!L10n.t(context, "HushGram settings").equals(publishedLabel)) publishShortcut(context);
+            if (!L10n.t(context, "Instagram settings").equals(publishedLabel)) publishShortcut(context);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not check the shortcut's label", ex);
         }
@@ -209,7 +209,7 @@ public final class SettingsEntry {
             if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
-            String longLabel = L10n.t(app, "HushGram settings");
+            String longLabel = L10n.t(app, "Instagram settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
             if (!Settings.SETTINGS_SHORTCUT.get()) {
@@ -253,7 +253,7 @@ public final class SettingsEntry {
             final int rank = existing.getRank();
             if (rank == 0) return;
             CharSequence label = existing.getLongLabel();
-            push(manager, shortcut(app, label != null ? label : L10n.t(app, "HushGram settings")));
+            push(manager, shortcut(app, label != null ? label : L10n.t(app, "Instagram settings")));
             Logger.printInfo(() -> "Settings entry: launcher shortcut moved back in front from rank " + rank);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not put the shortcut back in front", ex);
@@ -310,7 +310,7 @@ public final class SettingsEntry {
                 .putExtra(EXTRA_OPEN_SETTINGS, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return new ShortcutInfo.Builder(app, SHORTCUT_ID)
-                .setShortLabel("HushGram")
+                .setShortLabel("Instagram")
                 .setLongLabel(longLabel)
                 .setIcon(Icon.createWithAdaptiveBitmap(shortcutIcon()))
                 .setIntent(intent)
@@ -441,8 +441,8 @@ public final class SettingsEntry {
     static void sayWhyPaused() {
         try {
             if (HushgramPause.reason() != HushgramPause.Reason.CRASH_LOOP || !pauseSaid.compareAndSet(false, true)) return;
-            Utils.showToastLong(L10n.t("HushGram paused itself because Instagram kept crashing as it started. "
-                    + "Its switches stay off until you turn it back on in HushGram settings."));
+            Utils.showToastLong(L10n.t("Instagram paused itself because Instagram kept crashing as it started. "
+                    + "Its switches stay off until you turn it back on in Instagram settings."));
         } catch (Throwable failure) {
             Logger.printException(() -> "Settings entry: could not say why HushGram is paused", failure);
         }

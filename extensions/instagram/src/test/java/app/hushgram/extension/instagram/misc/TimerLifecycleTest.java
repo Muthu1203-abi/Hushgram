@@ -46,7 +46,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * The glass bar, its scroll hide and the Saved tab keep no timer or listener running once there's
- * nothing for it to do: with the switch off, while HushGram is paused, when the screen goes away and
+ * nothing for it to do: with the switch off, while Instagram is paused, when the screen goes away and
  * once what it waited for has happened (#129). The glass bar's wait on Reels (#170) is held to the same.
  */
 @RunWith(RobolectricTestRunner.class)

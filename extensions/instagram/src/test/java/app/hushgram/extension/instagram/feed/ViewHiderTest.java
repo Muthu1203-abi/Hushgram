@@ -298,7 +298,7 @@ public class ViewHiderTest {
         assertEquals(0, hider.sessionsForTests());
     }
 
-    /** HushGram settings are a dialog over the screen, so a switch flipped there can't wait for a resume. */
+    /** Instagram settings are a dialog over the screen, so a switch flipped there can't wait for a resume. */
     @Test
     public void aSwitchFlippedUnderSettingsTakesHoldWithoutAResume() {
         TextView target = view(targetId, "emoji");

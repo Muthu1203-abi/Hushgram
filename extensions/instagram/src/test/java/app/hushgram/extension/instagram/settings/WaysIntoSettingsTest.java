@@ -160,7 +160,7 @@ public class WaysIntoSettingsTest {
         // A tab long press was the only way in, and turning it off leaves the row as the way back.
         Settings.NAVIGATION_SETTINGS_TARGET.save(NavigationTarget.OFF);
         page.updateUIAvailability();
-        assertEquals("No other way into HushGram is on, so the row stays in Instagram's menu.",
+        assertEquals("No other way into Instagram is on, so the row stays in Instagram's menu.",
                 String.valueOf(hide.getSummary()));
         Activity activity = controller.get();
         assertTrue("nothing else opens HushGram, yet the row went",
@@ -178,7 +178,7 @@ public class WaysIntoSettingsTest {
         SwitchPreference shortcut = switchRow(Settings.SETTINGS_SHORTCUT.key);
         SwitchPreference hide = switchRow(Settings.HIDE_MENU_ROW.key);
         assertTrue("a shortcut the launcher never shows was kept on as the last way in", shortcut.isEnabled());
-        assertEquals("No other way into HushGram is on, so the row stays in Instagram's menu.",
+        assertEquals("No other way into Instagram is on, so the row stays in Instagram's menu.",
                 String.valueOf(hide.getSummary()));
         assertTrue("the row went with only a shortcut nobody sees left",
                 SettingsEntry.withSettingsRow(SettingsScreenRowTest.mainScreen(), new FrameLayout(controller.get()))

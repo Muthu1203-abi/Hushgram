@@ -184,7 +184,7 @@ public class FontSettingsTest {
         finish();
         assertEquals(FontChoice.INSTAGRAM, Settings.FONT.savedValue());
         assertEquals(FontChoice.INSTAGRAM.name(), row.getValue());
-        assertEquals("That file isn't a font HushGram can use. Your font hasn't changed.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a font Instagram can use. Your font hasn't changed.", ShadowToast.getTextOfLatestToast());
         assertFalse(FontsForTests.kept().exists());
 
         row.getOnPreferenceChangeListener().onPreferenceChange(row, FontChoice.FILE.name());
@@ -244,7 +244,7 @@ public class FontSettingsTest {
         finish();
         assertArrayEquals(before, Files.readAllBytes(FontsForTests.kept().toPath()));
         assertEquals(FontChoice.FILE, Settings.FONT.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Your font hasn't changed.",
+        assertEquals("That file isn't a font Instagram can use. Your font hasn't changed.",
                 ShadowToast.getTextOfLatestToast());
         assertOnlyLiveFontRemains();
     }

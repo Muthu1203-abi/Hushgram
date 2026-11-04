@@ -199,7 +199,7 @@ public class ActiveSavesTest {
 
     /** Only the saves channel switched off: no notification, and the page lists the save as before. */
     @Test public void withOnlyTheSavesChannelOffTheSaveIsStillListed() {
-        notifications().createNotificationChannel(new NotificationChannel("hushgram_saves", "HushGram saves",
+        notifications().createNotificationChannel(new NotificationChannel("hushgram_saves", "Instagram saves",
                 NotificationManager.IMPORTANCE_NONE));
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), false);
         show();

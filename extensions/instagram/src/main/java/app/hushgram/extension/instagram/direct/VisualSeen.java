@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.direct;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -18,7 +19,7 @@ public final class VisualSeen {
     public static boolean hold() {
         try {
             HookStatus.invoked(FamilyNames.DM_MEDIA_SEEN);
-            boolean held = Utils.settingsReady() && Settings.VIEW_DM_MEDIA_ANONYMOUSLY.get();
+            boolean held = Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_DM_MEDIA_ANONYMOUSLY);
             if (held) Logger.printDebug(() -> "DM photos and videos: opened receipt held back");
             return held;
         } catch (Throwable failure) {

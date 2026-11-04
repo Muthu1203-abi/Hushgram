@@ -259,7 +259,7 @@ public class CategoryPagesSettingsTest {
                 "Pause and diagnostics")));
         assertEquals("nothing opens by itself while HushGram runs normally", List.of(), shown(PreferenceCategory.class));
         assertNull(page.getPreferenceScreen().findPreference(BaseSettings.DEBUG.key));
-        assertTrue(categoryRow("Pause and diagnostics").getSummary().toString().contains("Pause HushGram"));
+        assertTrue(categoryRow("Pause and diagnostics").getSummary().toString().contains("Pause Instagram"));
         assertTrue(categoryRow("Ads and privacy").getSummary().toString().contains("Hide ads"));
         // Rows off the screen are still the page's own, for syncing and saved choices.
         assertNotNull(page.findPreference(Settings.HIDE_ADS.key));
@@ -383,7 +383,7 @@ public class CategoryPagesSettingsTest {
         assertNotNull(page.getPreferenceScreen().findPreference("hushgram_settings_search"));
         assertNotNull(input);
         assertSame(input, page.getView().findViewWithTag("hushgram-settings-search"));
-        assertEquals("HushGram", toolbarTitle());
+        assertEquals("Instagram", toolbarTitle());
         assertTrue(input.isShown());
         assertEquals("Search settings", input.getContentDescription());
         touchMode(input, true);
@@ -403,7 +403,7 @@ public class CategoryPagesSettingsTest {
         assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
         assertSame(input, page.getView().findViewWithTag("hushgram-settings-search"));
         assertTrue(input.hasFocus());
-        assertEquals("HushGram", toolbarTitle());
+        assertEquals("Instagram", toolbarTitle());
     }
 
     @Test public void backClearsSearchWithoutCollapsingTheExpandedSections() throws Exception {
@@ -426,7 +426,7 @@ public class CategoryPagesSettingsTest {
         input = page.getView().findViewWithTag("hushgram-settings-search");
         assertNotNull(input);
         assertEquals("", input.getText().toString());
-        assertEquals("HushGram", toolbarTitle());
+        assertEquals("Instagram", toolbarTitle());
         assertFalse("the next Back closes settings", page.closeCategory());
         assertTrue(categoryRow("Feed").expanded);
         assertTrue(categoryRow("Notifications").expanded);
@@ -466,7 +466,7 @@ public class CategoryPagesSettingsTest {
                     list.getItemAtPosition(list.getFirstVisiblePosition()));
             assertEquals(top, list.getChildAt(0).getTop() - list.getPaddingTop());
             assertEquals(categories, shown(Preference.class));
-            assertEquals("HushGram", toolbarTitle());
+            assertEquals("Instagram", toolbarTitle());
         }
     }
 
@@ -614,7 +614,7 @@ public class CategoryPagesSettingsTest {
         assertEquals(List.of("Feed", "Reels"), shown(PreferenceCategory.class));
         assertTrue(categoryRow("Feed").expanded);
         assertTrue(categoryRow("Reels").expanded);
-        assertEquals("HushGram", toolbarTitle());
+        assertEquals("Instagram", toolbarTitle());
         list = page.getView().findViewById(android.R.id.list);
         assertEquals(position, list.getFirstVisiblePosition());
         assertEquals(top, list.getChildAt(0).getTop() - list.getPaddingTop());
@@ -634,7 +634,7 @@ public class CategoryPagesSettingsTest {
         assertFalse(input.isSaveEnabled());
         assertFalse(page.closeCategory());
         assertTrue(shown(Preference.class).contains("Reels"));
-        assertEquals("HushGram", toolbarTitle());
+        assertEquals("Instagram", toolbarTitle());
     }
 
     @Test public void recreationAlsoKeepsOverviewAndFlatListScroll() throws Exception {

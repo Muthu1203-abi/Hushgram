@@ -119,7 +119,7 @@ internal const val OPEN = "$CHAT_REELS->open(Ljava/lang/Object;Landroid/view/Vie
 val swipeChatReelsPatch = bytecodePatch(
     name = "Swipe through a chat's reels",
     description = "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before " +
-        "any suggested reels, and can stop after them. Both start off. Turn them on in HushGram settings > Messages.",
+        "any suggested reels, and can stop after them. Both start off. Turn them on in Instagram settings > Messages.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)

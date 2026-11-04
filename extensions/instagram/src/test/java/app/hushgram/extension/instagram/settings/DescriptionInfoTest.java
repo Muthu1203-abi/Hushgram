@@ -61,7 +61,7 @@ public class DescriptionInfoTest {
 
     private SwitchPreference row() {
         SwitchPreference row = HushgramPreferenceFragment.toggle(controller.get(), Settings.HIDE_MENU_ROW,
-                "Hide the HushGram row", DESCRIPTION);
+                "Hide the settings row", DESCRIPTION);
         row.setPersistent(false);
         return row;
     }
@@ -117,7 +117,7 @@ public class DescriptionInfoTest {
         assertNotNull("a tap on the i shows the description", shown);
         assertTrue(shown.isShowing());
         assertEquals(DESCRIPTION, shadowOf(shown).getMessage().toString());
-        assertEquals("Hide the HushGram row", shadowOf(shown).getTitle().toString());
+        assertEquals("Hide the settings row", shadowOf(shown).getTitle().toString());
     }
 
     @Test public void theMarkGrowsWithALargerFont() {

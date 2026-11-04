@@ -1,4 +1,4 @@
-# Indonesian for HushGram: the English key, a tab, the translation. One row per string.
+# Indonesian for Instagram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 %1$d of them because storage is low.	%1$d di antaranya karena penyimpanan hampir penuh.
 %1$s of %2$s	%1$s dari %2$s
@@ -6,7 +6,7 @@
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
 A diagnostic report is already being saved.	Sudah ada laporan diagnostik yang sedang disimpan.
-A file named %1$s in %2$s paused HushGram.	File bernama %1$s di %2$s menjeda HushGram.
+A file named %1$s in %2$s paused Instagram.	File bernama %1$s di %2$s menjeda Instagram.
 About	Tentang
 Add the source to saved photos	Tambahkan sumber ke foto tersimpan
 Ads and privacy	Iklan dan privasi
@@ -14,7 +14,7 @@ Asks Android to run Instagram at your screen's fastest refresh rate, at the same
 Back	Kembali
 Before you sign in	Sebelum Anda masuk
 Cancel	Batal
-Chat saved in Downloads/HushGram.	Obrolan disimpan di Download/HushGram.
+Chat saved in Downloads/Instagram.	Obrolan disimpan di Download/Instagram.
 Chat saved in the app's Download folder.	Obrolan disimpan di folder Download aplikasi.
 Clear diagnostic data	Hapus data diagnostik
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Salin laporan singkat atau simpan laporan lengkap ke %1$s. Tautan, ID, cookie, dan data masuk tidak disertakan. Periksa apakah ada teks pribadi lain sebelum membagikannya.
@@ -25,7 +25,7 @@ Couldn't find this chat's messages.	Pesan obrolan tak ditemukan.
 Couldn't put back the diagnostic data. Try again.	Data diagnostik tidak dapat dikembalikan. Coba lagi.
 Couldn't save the chat.	Obrolan tidak tersimpan.
 Couldn't start the report export. Try again shortly.	Ekspor laporan tidak dapat dimulai. Coba lagi dalam beberapa saat.
-Couldn't turn HushGram back on. Try again.	HushGram tidak dapat diaktifkan lagi. Coba lagi.
+Couldn't turn Instagram back on. Try again.	Instagram tidak dapat diaktifkan lagi. Coba lagi.
 Debug logging	Pencatatan debug
 Diagnostic data cleared. Tap again to put it back.	Data diagnostik dihapus. Ketuk lagi untuk mengembalikannya.
 Diagnostic data put back.	Data diagnostik dikembalikan.
@@ -46,7 +46,7 @@ Loading older messages.	Memuat pesan lama.
 Loading older messages. %1$d message so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
 Loading older messages. %1$d messages so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
 Lock these settings	Kunci pengaturan ini
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Tekan lama nama obrolan lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan.
+Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, Instagram folder, one line per message.	Tekan lama nama obrolan lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder Instagram, satu baris per pesan.
 Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Tekan lama nama obrolan lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
 Mark a chat seen when you reply	Tandai obrolan sudah dilihat saat kamu membalas
 No messages found to save.	Tidak ada pesan untuk disimpan.
@@ -79,16 +79,13 @@ GPL-3.0, with the notices of the projects this is built on	GPL-3.0, beserta pemb
 Gray out stories you've watched	Abu-abukan cerita yang sudah ditonton
 Hide ads	Sembunyikan iklan
 How far a photo or video you're saving has got, with a button to cancel it	Progres foto atau video yang sedang Anda simpan, dengan tombol untuk membatalkannya
-HushGram %1$s on Instagram %2$s	HushGram %1$s di Instagram %2$s
-HushGram is on	HushGram aktif
-HushGram is paused	HushGram dijeda
-HushGram pauses when Instagram restarts.	HushGram dijeda saat Instagram dimulai ulang.
-HushGram saves	Penyimpanan HushGram
-HushGram settings	Pengaturan HushGram
-HushGram settings couldn't open	Pengaturan HushGram tidak dapat dibuka
-HushGram settings are locked	Pengaturan HushGram terkunci
-HushGram turns back on when Instagram restarts.	HushGram aktif lagi saat Instagram dimulai ulang.
-Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram berhenti mendadak atau macet dalam satu menit setelah dibuka, tiga kali berturut-turut, jadi HushGram menjeda dirinya sendiri.
+Instagram is on	Instagram aktif
+Instagram is paused	Instagram dijeda
+Instagram saves	Penyimpanan Instagram
+Instagram settings	Pengaturan Instagram
+Instagram settings couldn't open	Pengaturan Instagram tidak dapat dibuka
+Instagram settings are locked	Pengaturan Instagram terkunci
+Instagram crashed or froze within a minute of starting three times in a row, so Instagram paused itself.	Instagram berhenti mendadak atau macet dalam satu menit setelah dibuka, tiga kali berturut-turut, jadi Instagram menjeda dirinya sendiri.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram berhenti menampilkan layar yang menyatakan versi ini terlalu lama. Build yang ditambal tidak memperbarui dirinya sendiri, jadi ini membuatnya tetap bisa dipakai.
 Instagram's own checks of who signed the app keep passing on this patched build.	Pemeriksaan Instagram sendiri tentang siapa yang menandatangani aplikasi tetap lolos pada build yang di-patch ini.
 Joining the picture and sound	Menggabungkan gambar dan suara
@@ -99,7 +96,7 @@ No app on this phone can open the link. The address is %1$s.	Tidak ada aplikasi 
 Not saved: that isn't an Instagram photo or video	Tidak disimpan: itu bukan foto atau video Instagram
 Not saved: the file is over 512 MB	Tidak disimpan: file lebih dari 512 MB
 OK	Oke
-Pause HushGram	Jeda HushGram
+Pause Instagram	Jeda Instagram
 Pause and diagnostics	Jeda dan diagnostik
 Instagram accepts this build	Instagram menerima build ini
 Record patch activity and show errors for a bug report. Leave off during normal use.	Catat aktivitas patch dan tampilkan kesalahan untuk laporan bug. Matikan saat penggunaan biasa.
@@ -117,7 +114,7 @@ Saved. Restart Instagram to apply this change.	Tersimpan. Mulai ulang Instagram 
 Saving a photo	Menyimpan foto
 Saving a video	Menyimpan video
 Saving...	Menyimpan...
-Saving... You can cancel from Downloads in HushGram settings.	Menyimpan... Kamu bisa membatalkan dari Unduhan di pengaturan HushGram.
+Saving... You can cancel from Downloads in Instagram settings.	Menyimpan... Kamu bisa membatalkan dari Unduhan di pengaturan Instagram.
 Set when you patched	Diatur saat Anda menambal
 Settings couldn't open	Pengaturan tidak dapat dibuka
 Settings couldn't refresh completely. Reopen settings and try again.	Pengaturan tidak dapat dimuat ulang sepenuhnya. Buka kembali pengaturan lalu coba lagi.
@@ -127,10 +124,10 @@ Stays in while paused	Tetap aktif saat dijeda
 Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Menghapus tag pelacak dari tautan yang kamu salin atau bagikan, dan membuka tautan di bio tanpa pelacak klik Instagram. Tautan tetap membuka postingan, reel, atau profil yang sama.
 Tap to hide this.	Ketuk untuk menyembunyikan ini.
 Couldn't hide this notice. Try again.	Pemberitahuan ini tidak dapat disembunyikan. Coba lagi.
-Tap to turn it back on.	Ketuk untuk mengaktifkan HushGram lagi.
+Tap to turn it back on.	Ketuk untuk mengaktifkan Instagram lagi.
 The diagnostic report couldn't be saved yet. Try again in a moment.	Laporan diagnostik belum dapat disimpan. Coba lagi dalam beberapa saat.
 The diagnostic report couldn't be saved. Try again.	Laporan diagnostik tidak dapat disimpan. Coba lagi.
-The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	File %1$s tidak dapat dihapus. Hapus file itu dari %2$s untuk mengaktifkan HushGram lagi.
+The file %1$s couldn't be removed. Delete it from %2$s to turn Instagram back on.	File %1$s tidak dapat dihapus. Hapus file itu dari %2$s untuk mengaktifkan Instagram lagi.
 The setting couldn't finish updating. Its saved value is shown.	Pengaturan ini tidak dapat selesai diperbarui. Nilai yang tersimpan ditampilkan.
 There's no diagnostic data to clear.	Tidak ada data diagnostik yang dapat dihapus.
 There's no diagnostic data to put back.	Tidak ada data diagnostik yang dapat dikembalikan.
@@ -141,7 +138,7 @@ Version %1$s for Instagram %2$s	Versi %1$s untuk Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Saat kamu melihat secara anonim, cerita yang sudah kamu tonton berubah abu-abu dan pindah ke ujung baris, hanya di ponsel ini. Instagram tetap tidak diberi tahu bahwa kamu menontonnya.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Menulis akun yang memosting, tanggal postingan, dan tautan ke postingan ke dalam detail foto tersimpan, yaitu EXIF yang dibaca galeri atau exiftool. Hanya foto JPEG, dan hanya yang diketahui saat menyimpan. Gambarnya sendiri tidak berubah.
 You	Kamu
-You paused HushGram.	Anda menjeda HushGram.
+You paused Instagram.	Anda menjeda Instagram.
 the re-signed build fix	perbaikan build yang ditandatangani ulang
 Don't send reel watch history	Jangan kirim riwayat tontonan reel
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Instagram tidak lagi diberi tahu reel mana yang kamu tonton dan sampai mana. Instagram memakainya untuk memilih Reels kamu. Reel yang sudah ditonton bisa muncul lagi.
@@ -354,7 +351,7 @@ Pure black dark mode isn't in this build	Mode gelap hitam pekat tidak ada di bui
 To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	Agar mode gelap hitam pekat, bukan abu-abu gelap, yang bisa menghemat baterai di layar OLED, pilih Mode gelap hitam pekat di Morphe Manager saat Anda menambal Instagram berikutnya.
 the pure black dark mode	mode gelap hitam pekat
 No Play Store updates	Tanpa pembaruan Play Store
-Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play tidak akan menawarkan pembaruan Meta untuk build ini. Untuk kembali ke Instagram biasa, copot dulu yang ini, yang menghapus data Instagram di ponsel ini. Build HushGram berikutnya juga perlu Change version code, kalau tidak tidak bisa dipasang di atas yang ini.
+Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later Instagram builds need Change version code too, or they won't install over this one.	Google Play tidak akan menawarkan pembaruan Meta untuk build ini. Untuk kembali ke Instagram biasa, copot dulu yang ini, yang menghapus data Instagram di ponsel ini. Build Instagram berikutnya juga perlu Change version code, kalau tidak tidak bisa dipasang di atas yang ini.
 the raised version code	kode versi yang dinaikkan
 Sharing	Berbagi
 Hide group buttons	Sembunyikan tombol grup
@@ -418,23 +415,23 @@ Updating remembered positions...	Memperbarui posisi tersimpan...
 Undo cleared positions	Pulihkan posisi yang dihapus
 Clear remembered positions	Hapus posisi tersimpan
 Undo is available until %1$s.	Pembatalan tersedia hingga %1$s.
-HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.	HushGram mengingat di mana kamu berhenti pada hingga 200 video selama 30 hari. Ketuk untuk menghapusnya dari perangkat ini.
+Instagram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.	Instagram mengingat di mana kamu berhenti pada hingga 200 video selama 30 hari. Ketuk untuk menghapusnya dari perangkat ini.
 Remembered playback positions restored.	Posisi pemutaran tersimpan dipulihkan.
 Undo has expired.	Waktu untuk memulihkan telah habis.
 You cleared the remembered playback positions.	Kamu menghapus posisi pemutaran tersimpan.
 Couldn't update the remembered playback positions.	Tidak dapat memperbarui posisi pemutaran tersimpan.
 Settings backup	Cadangan pengaturan
-Export HushGram settings	Ekspor pengaturan HushGram
+Export Instagram settings	Ekspor pengaturan Instagram
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Pilih file untuk pengaturan patch yang terpasang. Akun dan riwayat tetap di perangkat ini.
-Import HushGram settings	Impor pengaturan HushGram
+Import Instagram settings	Impor pengaturan Instagram
 Choose a settings file. All valid choices apply together, and ones this version doesn't know are skipped. The Undo row shows how long you can undo.	Pilih file pengaturan. Semua pilihan yang valid diterapkan bersama, dan yang tidak dikenal versi ini dilewati. Baris Urungkan menunjukkan berapa lama kamu bisa mengurungkan.
 Undo settings import	Batalkan impor pengaturan
 Undo is available until %1$s. Restarting Instagram discards Undo.	Pembatalan tersedia hingga %1$s. Memulai ulang Instagram menghapus opsi pembatalan.
 No settings import to undo.	Tidak ada impor pengaturan yang dapat dibatalkan.
 This phone has no file picker. Your settings haven't changed.	Ponsel ini tidak punya pemilih file. Pengaturan kamu tidak berubah.
 Couldn't use that settings file. Your settings haven't changed.	File pengaturan tersebut tidak dapat digunakan. Pengaturan Anda tidak berubah.
-HushGram settings exported.	Pengaturan HushGram diekspor.
-Couldn't export HushGram settings. Try another file.	Pengaturan HushGram tidak dapat diekspor. Coba file lain.
+Instagram settings exported.	Pengaturan Instagram diekspor.
+Couldn't export Instagram settings. Try another file.	Pengaturan Instagram tidak dapat diekspor. Coba file lain.
 Settings restored.	Pengaturan dipulihkan.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d pengaturan diimpor. %2$d dilewati karena tidak dikenal versi ini.
 Imported %1$d settings.	%1$d pengaturan diimpor.
@@ -489,7 +486,7 @@ Preparing diagnostic report...	Menyiapkan laporan diagnostik...
 Saving diagnostic report...	Menyimpan laporan diagnostik...
 Diagnostic report saved.	Laporan diagnostik disimpan.
 Choose a file for the settings export.	Pilih file untuk mengekspor pengaturan.
-Exporting HushGram settings...	Mengekspor pengaturan HushGram...
+Exporting Instagram settings...	Mengekspor pengaturan Instagram...
 Settings export canceled.	Ekspor pengaturan dibatalkan.
 Round handle on the seek bar	Tampilkan pegangan penggeser Reel
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Menambahkan gagang bundar putih pada bilah geser yang bisa kamu seret. Iklan tetap memakai bilahnya sendiri.
@@ -513,8 +510,6 @@ Creator tools	Alat kreator
 Home feed picker	Pemilih beranda
 Custom tab	Tab khusus
 Off	Nonaktif
-Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk membuka HushGram sebagai gantinya.
-Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Tekan lama %1$s untuk membuka HushGram menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lainnya tetap sama. Hanya tab yang ditampilkan akunmu yang dapat digunakan.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	Geser ke samping tidak lagi memindahkan Anda antara Beranda, Reels, dan tab utama lainnya. Ketuk bilah tab sebagai gantinya. Kamera ditangani oleh Hentikan geser untuk membuat.
 Ask for larger photos	Minta foto yang lebih besar
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Sengaja mengosongkan Beranda, jadi kamu melihat baris cerita dan tidak ada apa pun di bawahnya. Profil, Jelajahi, dan Reels tetap menampilkan postingan. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
@@ -551,8 +546,6 @@ New message	Pesan baru
 Notifications	Notifikasi
 Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	Memasukkan setiap notifikasi dari Instagram ke satu grup yang menunjukkan jumlah isinya, agar tidak memenuhi panel notifikasi Anda. Mengetuk salah satunya tetap membukanya.
 Right away	Langsung
-Set a screen lock on your phone so HushGram can lock Instagram.	Atur kunci layar di ponsel Anda agar HushGram bisa mengunci Instagram.
-Set a screen lock on your phone so HushGram can lock your messages.	Atur kunci layar di ponsel Anda agar HushGram bisa mengunci pesan Anda.
 Hides the cards between posts that ask you to rate what you saw.	Menyembunyikan kartu di antara postingan yang meminta kamu menilai apa yang kamu lihat.
 Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	Menyembunyikan baris produk untuk dibeli dan belanja langsung yang ditaruh Instagram di antara postingan, serta ubin toko di Jelajahi. Postingan dengan produk yang ditandai tidak menampilkan tas belanja.
 Unlock	Buka kunci
@@ -562,7 +555,7 @@ Your inbox and chats stay covered until your fingerprint, face or screen lock sa
 Your messages are locked	Pesan Anda terkunci
 Allow screenshots	Izinkan tangkapan layar
 Couldn't change every Ghost mode switch. Check them below.	Tidak semua sakelar Mode hantu bisa diubah. Periksa di bawah.
-Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Tidak semua sakelar Mode hantu bisa diubah. Periksa di pengaturan HushGram.
+Couldn't change every Ghost mode switch. Open Instagram settings to check them.	Tidak semua sakelar Mode hantu bisa diubah. Periksa di pengaturan Instagram.
 Don't report screenshots	Jangan laporkan tangkapan layar
 Ghost mode	Mode hantu
 Ghost mode is off, and so is each of its switches.	Mode hantu nonaktif, begitu pula setiap sakelarnya.
@@ -573,7 +566,6 @@ Lives you watch don't put you on the host's viewer list, so they aren't told you
 Mark as seen button on lives	Tombol Tandai sudah dilihat di siaran langsung
 Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.	Menambahkan tombol mata di bagian atas siaran langsung saat kamu menonton secara anonim. Ketuk tombol itu agar kamu muncul di daftar penonton siaran tersebut. Siaran langsung lainnya tetap tersembunyi.
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Tangkapan layar dan rekaman layar berfungsi di mana pun Instagram memblokirnya, seperti foto dan video sementara. Aktifkan juga Jangan laporkan tangkapan layar jika pengirim tidak boleh tahu.
-Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Menyalakan atau mematikan sekaligus sakelar yang merahasiakan aktivitas Anda, seperti Lihat cerita secara anonim dan Sembunyikan bahwa Anda sedang mengetik. Masing-masing tetap punya sakelarnya sendiri.
 View live anonymously	Tonton siaran langsung secara anonim
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Foto dan video yang dikirim sekali lihat atau bisa diputar ulang tetap ada di chat sehingga bisa kamu buka lagi. Buka chat lagi untuk memperbarui yang sudah dimuat.
 Swipe through a chat's reels	Geser melalui reel di chat
@@ -645,14 +637,11 @@ Descriptions behind an info button	Deskripsi di balik tombol info
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Menampilkan setiap sakelar dengan namanya saja. Ketuk i di samping nama untuk membaca fungsinya.
 Expanded	Diperluas
 Collapsed	Diciutkan
-Hide the HushGram row in Instagram's menu	Sembunyikan baris HushGram di menu Instagram
 Settings shortcut on the app icon	Pintasan pengaturan di ikon aplikasi
 Open settings from the logo	Buka pengaturan dari logo
-Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Menaruh Pengaturan HushGram di menu yang muncul saat ikon Instagram ditekan lama. Jika dimatikan, pintasan itu hilang dari menu tersebut.
+Puts Instagram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Menaruh Pengaturan Instagram di menu yang muncul saat ikon Instagram ditekan lama. Jika dimatikan, pintasan itu hilang dari menu tersebut.
 A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Menekan lama logo Instagram di bagian atas Beranda membuka pengaturan ini. Jika dimatikan, tekan lama itu kembali menjadi milik Instagram.
 The last way into these settings stays on.	Cara terakhir untuk membuka pengaturan ini tetap menyala.
-No other way into HushGram is on, so the row stays in Instagram's menu.	Tidak ada cara lain untuk membuka HushGram yang menyala, jadi barisnya tetap ada di menu Instagram.
-Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Selama cara lain ke sini membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Jika semua cara lain dimatikan, barisnya kembali.
 Stop loading stories and highlights	Berhenti memuat cerita dan sorotan
 Takes the Comment button and the comment count off the posts in your feed.	Menghapus tombol Komentar dan jumlah komentar dari postingan di feed Anda.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
@@ -767,8 +756,8 @@ Bio copied	Bio disalin
 Copy bio	Salin bio
 Copy username and bio	Salin nama pengguna dan bio
 Profile extras button	Tombol tambahan profil
-Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	Menaruh tombol di samping tiga titik pada profil yang membuka tindakan profil HushGram. Baris di menu tiga titik tetap ada.
-HushGram profile actions	Tindakan profil HushGram
+Puts a button next to the three dots on profiles that opens Instagram's profile actions. The rows in the three-dot menu stay too.	Menaruh tombol di samping tiga titik pada profil yang membuka tindakan profil Instagram. Baris di menu tiga titik tetap ada.
+Instagram profile actions	Tindakan profil Instagram
 Nothing to do for this profile	Tidak ada aksi untuk profil ini
 Couldn't copy the bio	Tidak dapat menyalin bio
 Couldn't open the picture	Tidak dapat membuka foto
@@ -821,9 +810,7 @@ Green	Hijau
 Teal	Hijau kebiruan
 Material You	Material You
 Material You needs Android 12 or newer, so Instagram's blue stays.	Material You butuh Android 12 atau yang lebih baru, jadi biru Instagram tetap dipakai.
-# context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
-HushGram launch screen	Layar pembuka HushGram
-Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Menampilkan logo HushGram, bukan logo Instagram, di layar yang kamu lihat saat Instagram dimulai, di Android 13 dan yang lebih baru. Logo ini muncul mulai dari pembukaan berikutnya.
+# context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Unduh sampul video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Menambahkan Unduh sampul ke menu postingan feed berisi video, dan ke carousel yang sedang menampilkan video. Ini menyimpan gambar diam yang tampil sebelum video diputar, dalam ukuran terbesarnya.
@@ -854,7 +841,7 @@ Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted
 Slide across the tabs	Geser di antara tab
 Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. It works with or without Glass tab bar. Restart Instagram after changing it.	Letakkan jari di bilah tab lalu geser ke samping. Sorotan mengikuti jarimu, dan saat dilepas tab di bawahnya terbuka. Ketuk dan tekan lama pada tab tetap seperti biasa. Bisa dipakai dengan atau tanpa Bilah tab kaca. Mulai ulang Instagram setelah mengubahnya.
 Liquid glass look	Tampilan kaca cair
-Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Membulatkan pil dan sorotannya, lalu menaruh Cari di lingkaran kaca sendiri. Menggulir daftar ke bawah mengecilkan bilah menjadi tab yang sedang dibuka dan Cari, kecuali Sembunyikan bilah tab saat menggulir aktif. Mulai ulang Instagram setelah mengubahnya.
+Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling a list down shrinks the bar to the tab you're on, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling a list down shrinks the bar to the tab you're on, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Menggambar bilah tab Instagram sebagai pil kaca bulat yang melayang dengan sorotan pada tab yang sedang dibuka. Mulai ulang Instagram setelah mengubahnya.
 Glass tab bar	Bilah tab kaca
 Haptics on the tab bar	Getaran pada bilah tab
@@ -889,10 +876,10 @@ Open a chat in Instagram, then come back here to lock it.	Buka obrolan di Instag
 Chat %1$s	Obrolan %1$s
 # context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
 Hidden chats	Chat tersembunyi
-Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Sembunyikan chat satu per satu. Chat yang disembunyikan hilang dari kotak masuk dan notifikasinya tidak muncul sampai kamu menampilkannya lagi di sini.
+Hide single chats. A hidden chat leaves your inbox, unread badge counts, and notifications until you show it here again. Long-press a chat in Messages and choose Hide chat to add it.	Sembunyikan chat satu per satu. Chat tersembunyi hilang dari kotak masuk dan hitungan lencana pesan belum dibaca; notifikasinya tidak muncul sampai ditampilkan lagi. Tekan lama chat di Pesan lalu pilih Sembunyikan chat untuk menambahkannya.
 Double-tap Messages for hidden chats	Ketuk dua kali Pesan untuk chat tersembunyi
 Two quick taps on the Messages button switch between your hidden chats and the regular inbox. While a lock is on, it asks for it first. One tap opens Messages as usual.	Dua ketukan cepat pada tombol Pesan beralih antara chat tersembunyi dan kotak masuk biasa. Saat kunci aktif, kunci itu diminta lebih dulu. Satu ketukan membuka Pesan seperti biasa.
-Open a chat in Instagram, then come back here to hide it.	Buka chat di Instagram, lalu kembali ke sini untuk menyembunyikannya.
+Long-press a chat in Messages and choose Hide chat to add it here.	Tekan lama chat di Pesan lalu pilih Sembunyikan chat untuk menambahkannya di sini.
 Pinned chats	Chat yang disematkan
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Menjaga chat pilihanmu tetap di atas kotak masuk. Sematan hanya tersimpan di ponsel ini, dan chat lain tetap mengikuti urutan Instagram.
 Open a chat in Instagram, then come back here to pin it.	Buka chat di Instagram, lalu kembali ke sini untuk menyematkannya.
@@ -900,12 +887,15 @@ Open a chat in Instagram, then come back here to pin it.	Buka chat di Instagram,
 %1$s is unpinned	%1$s tidak disematkan lagi
 %1$s is hidden	%1$s disembunyikan
 %1$s is shown again	%1$s ditampilkan lagi
+Chat hidden	Chat disembunyikan
+Chat shown again	Chat ditampilkan lagi
+Hidden inbox	Kotak masuk tersembunyi
 Pick the playback quality with a tab long press	Pilih kualitas pemutaran dengan menekan lama tab
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk memilih kualitas pemutaran sebagai gantinya.
-Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka HushGram, itu yang didahulukan.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka Instagram, itu yang didahulukan.
 Playback quality: %1$s. The next video you open uses it.	Kualitas pemutaran: %1$s. Video berikutnya yang kamu buka memakainya.
-Couldn't save the playback quality. Open HushGram settings to set it.	Kualitas pemutaran tidak bisa disimpan. Buka pengaturan HushGram untuk mengaturnya.
-Support HushGram	Dukung HushGram
+Couldn't save the playback quality. Open Instagram settings to set it.	Kualitas pemutaran tidak bisa disimpan. Buka pengaturan Instagram untuk mengaturnya.
+Support Instagram	Dukung Instagram
 Hide the Home tab	Sembunyikan tab Beranda
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Menghapus Beranda dari bilah tab. Tab awal kamu terbuka di mana pun Beranda biasanya terbuka, jadi pilih tab awal selain Beranda yang ada di bilah, atau Beranda tetap ada. Mulai ulang Instagram untuk melihat perubahannya.
 Hide the Search tab	Sembunyikan tab Cari
@@ -1018,8 +1008,7 @@ Full screen Messages	Pesan layar penuh
 Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Menyembunyikan bilah status dan bilah navigasi saat pesanmu atau sebuah chat ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar. Tombol Kembali dan keyboard tetap berfungsi seperti biasa.
 Hide Notes on profile pictures	Sembunyikan Catatan di foto profil
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Menghapus gelembung Catatan dari foto profil, termasuk milik Anda. Catatan di Pesan tetap seperti semula.
-# context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram and lay out settings.	Cara membuka HushGram dan menata pengaturan.
+# context: the line that opens a category's page in Instagram settings, under the page title
 Hide ads and share less with Instagram.	Sembunyikan iklan dan kurangi berbagi dengan Instagram.
 Choose what Home shows and how it behaves.	Pilih apa yang ditampilkan Beranda dan bagaimana perilakunya.
 Control where Meta AI appears.	Atur tempat Meta AI muncul.
@@ -1039,10 +1028,9 @@ Save photos, videos and more, and choose where they go.	Simpan foto, video, dan 
 Stop background work Instagram doesn't need.	Hentikan kerja latar belakang yang tidak dibutuhkan Instagram.
 Stop Instagram from saying this version is too old.	Cegah Instagram menyebut versi ini terlalu lama.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Dipilih saat kamu menambal, jadi Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.
-Save your HushGram choices to a file, or bring them back.	Simpan pilihan HushGram kamu ke file, atau pulihkan kembali.
+Save your Instagram choices to a file, or bring them back.	Simpan pilihan Instagram kamu ke file, atau pulihkan kembali.
 Your version, the source code and licenses.	Versimu, kode sumber, dan lisensi.
 Open settings with a long press on your profile's menu	Buka pengaturan dengan menekan lama menu profilmu
-A long press on the menu button, the three lines at the top right of your own profile, opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same.	Menekan lama tombol menu, tiga garis di kanan atas profilmu sendiri, membuka HushGram. Mengetuknya tetap membuka menu Instagram, dan profil lain tetap sama.
 Hide the top bar on the Reels tab	Sembunyikan bilah atas di tab Reels
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Menghapus baris di bagian atas tab Reels, berisi judul Reels, tombol kamera, dan apa pun yang ditaruh Instagram di sana. Reels yang kamu buka dari profil, postingan, atau chat tetap memilikinya. Kamera tetap bisa dibuka dari Beranda.
 Hide the Create button on reels	Sembunyikan tombol Buat di reel
@@ -1064,19 +1052,19 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Menghapus tombol Simpan dari deretan tombol di samping reel, beserta angka di bawahnya. Postingan di feed-mu tetap punya tombolnya.
 Keep clear mode on	Tetap aktifkan mode bersih
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Aktifkan mode bersih Instagram di sebuah reel dan reels berikutnya juga terbuka dalam mode itu. Keluar sendiri dari mode bersih dan reels berikutnya menampilkan tombolnya lagi.
-# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is Instagram's switch of that name
 Start every reel in clear mode	Mulai setiap reel dalam mode bersih
 Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Reels terbuka dalam mode bersih sejak yang pertama, tanpa ketukan. Keluar sendiri dan reels berikutnya menampilkan tombolnya lagi. Instagram memblokir tangkapan layar dalam mode bersih kecuali Izinkan tangkapan layar aktif.
 Unlock with	Buka kunci dengan
 Phone lock	Kunci ponsel
-HushGram PIN	PIN HushGram
+Instagram PIN	PIN Instagram
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	PIN yang kamu atur di sini membuka kunci pesanmu, menggantikan kunci layar. PIN tidak bisa dipulihkan, hanya bisa dihapus dengan menghapus penyimpanan Instagram.
 Your fingerprint, face or screen lock unlocks your messages.	Sidik jari, wajah, atau kunci layar ponselmu membuka kunci pesanmu.
 Fingerprint or face only	Hanya sidik jari atau wajah
 Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	Hanya sidik jari atau wajahmu yang membuka kunci pesanmu. Jika ponsel belum menyiapkan keduanya, kunci layarmu yang membukanya.
 Add a fingerprint or face in your phone's settings first.	Tambahkan sidik jari atau wajah di pengaturan ponselmu dulu.
 This phone has no fingerprint or face unlock to use.	Ponsel ini tidak punya buka kunci sidik jari atau wajah yang bisa dipakai.
-Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.	Ponselmu belum mengizinkan HushGram memakai sidik jari atau wajahmu sekarang. Periksa pengaturan sidik jari dan wajahnya.
+Your phone won't let Instagram use your fingerprint or face right now. Check its fingerprint and face settings.	Ponselmu belum mengizinkan Instagram memakai sidik jari atau wajahmu sekarang. Periksa pengaturan sidik jari dan wajahnya.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	Atur atau ubah PIN 4 sampai 8 angka. PIN tetap di ponsel ini dan tidak ikut dalam cadangan.
 PIN saved.	PIN disimpan.
 PIN	PIN
@@ -1090,7 +1078,7 @@ Set a PIN	Atur PIN
 Use 4 to 8 digits.	Pakai 4 sampai 8 angka.
 The PINs don't match.	PIN tidak sama.
 Couldn't save the PIN.	PIN tidak bisa disimpan.
-The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN tidak bisa dipulihkan. Untuk menghapusnya, hapus penyimpanan Instagram di pengaturan aplikasi Android. Kamu akan keluar dari akun dan pengaturan HushGram kembali ke awal. Cadangan pengaturan yang tersimpan mengembalikan sisanya, tapi tidak dengan PIN.
+The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets Instagram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN tidak bisa dipulihkan. Untuk menghapusnya, hapus penyimpanan Instagram di pengaturan aplikasi Android. Kamu akan keluar dari akun dan pengaturan Instagram kembali ke awal. Cadangan pengaturan yang tersimpan mengembalikan sisanya, tapi tidak dengan PIN.
 Open app info	Buka info aplikasi
 Hide 'Are you interested?' bubbles	Sembunyikan pertanyaan 'Apakah kamu tertarik'
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Menyembunyikan gelembung di bawah postingan yang bertanya 'Apakah kamu tertarik dengan postingan ini?' dengan tombol Tidak tertarik dan Tertarik. Tidak ada yang dijawab untukmu.
@@ -1119,8 +1107,8 @@ Peek at the next carousel page	Intip halaman carousel berikutnya
 A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	Halaman postingan carousel sedikit menjorok dari tepi, dengan awal halaman berikutnya terlihat di kanan.
 Large	Besar
 Small	Kecil
-# context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	HushGram menjeda dirinya sendiri karena Instagram terus berhenti mendadak saat dibuka. Sakelarnya tetap nonaktif sampai Anda mengaktifkannya lagi di Pengaturan HushGram.
+# context: a toast shown once when safe mode has paused Instagram on its own after crashes at start
+Instagram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in Instagram settings.	Instagram menjeda dirinya sendiri karena Instagram terus berhenti mendadak saat dibuka. Sakelarnya tetap nonaktif sampai Anda mengaktifkannya lagi di Pengaturan Instagram.
 # context: a toast when a save couldn't reach Instagram's servers or the connection dropped
 Download failed. Check your connection and try again.	Unduhan gagal. Periksa koneksi lalu coba lagi.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
@@ -1137,7 +1125,7 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	Riwayat unduhan dihapus.
 Couldn't clear the download history. Try again.	Tidak bisa menghapus riwayat unduhan. Coba lagi.
 Loading the picture...	Memuat gambar...
-# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+# context: the settings row right above Support Instagram that opens a new bug report on GitHub
 Report a problem	Laporkan masalah
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Membuka laporan GitHub yang sudah berisi versi dan pengaturanmu. Tambahkan apa yang terjadi.
 Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari chat
@@ -1153,10 +1141,10 @@ Instagram's own font. You can also pick your phone's font or a .ttf or .otf file
 Instagram's text uses your phone's font. Restart Instagram to see a change.	Teks Instagram memakai font ponselmu. Mulai ulang Instagram untuk melihat perubahan.
 Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Teks Instagram memakai file font yang kamu pilih. Pilih lagi untuk mengganti file. Mulai ulang Instagram untuk melihat perubahan.
 # context: toasts after a font file is picked in the Font list
-That file isn't a font HushGram can use. Your font hasn't changed.	File itu bukan font yang bisa dipakai HushGram. Fontmu tidak berubah.
+That file isn't a font Instagram can use. Your font hasn't changed.	File itu bukan font yang bisa dipakai Instagram. Fontmu tidak berubah.
 Font saved. Restart Instagram to see it.	Font disimpan. Mulai ulang Instagram untuk melihatnya.
 # context: toast when Instagram starts and the picked font file won't load
-Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	File fontmu tidak bisa dimuat, jadi font Instagram yang ditampilkan. Pilih lagi di Pengaturan HushGram > Tata letak.
+Couldn't load your font file, so Instagram's font shows. Pick it again in Instagram settings > Layout.	File fontmu tidak bisa dimuat, jadi font Instagram yang ditampilkan. Pilih lagi di Pengaturan Instagram > Tata letak.
 # context: Reels switch title; it leaves out reels that carry Instagram's own AI label
 Hide AI-labeled reels	Sembunyikan reel berlabel AI
 # context: the line under the Hide AI-labeled reels switch
@@ -1248,7 +1236,7 @@ Ghost mode needs at least one switch to turn.	Mode hantu perlu setidaknya satu s
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Nyalakan atau matikan Mode hantu dengan menekan lama tab
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk menyalakan atau mematikan Mode hantu sebagai gantinya.
-Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Tekan lama %1$s untuk menyalakan atau mematikan Mode hantu menggantikan tindakan biasa tab itu, dan pesan singkat memberi tahu hasilnya. Ketukan biasa dan tab lain tetap sama. Jika tab yang sama membuka HushGram atau memilih kualitas pemutaran, itu yang didahulukan.
+Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens Instagram or picks the playback quality, that comes first.	Tekan lama %1$s untuk menyalakan atau mematikan Mode hantu menggantikan tindakan biasa tab itu, dan pesan singkat memberi tahu hasilnya. Ketukan biasa dan tab lain tetap sama. Jika tab yang sama membuka Instagram atau memilih kualitas pemutaran, itu yang didahulukan.
 Buttons on the share sheet	Tombol di lembar bagikan
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Semua tombol di bawah daftar orang pada lembar bagikan ditampilkan. Hapus centang yang tidak kamu pakai.
 Left off the share sheet: %1$s.	Disembunyikan dari lembar bagikan: %1$s.
@@ -1330,7 +1318,7 @@ Add .ttf or .otf files from your phone. Uncheck one to take it out.	Tambahkan fi
 No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Belum ada font yang ditambahkan. Tambahkan file .ttf atau .otf dan font itu muncul di editor teks cerita bersama font Instagram.
 Add a font file	Tambahkan file font
 Removed from your story fonts	Dihapus dari font ceritamu
-That file isn't a font HushGram can use. Nothing was added.	File itu bukan font yang bisa dipakai HushGram. Tidak ada yang ditambahkan.
+That file isn't a font Instagram can use. Nothing was added.	File itu bukan font yang bisa dipakai Instagram. Tidak ada yang ditambahkan.
 Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s ditambahkan. Pilih di editor teks cerita bersama font Instagram.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo dan judul di awal
@@ -1338,7 +1326,7 @@ Puts Instagram's logo and every bar's title at the start of the bar, where Insta
 # context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
 Emoji font in story text	Font emoji di teks cerita
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Emoji yang kamu ketik di teks cerita digambar dari file font emoji yang kamu pilih. Saat dinyalakan, kamu akan diminta memilih file. Jika mati, emoji Instagram kembali.
-That file isn't a font HushGram can use. Story emoji haven't changed.	File itu bukan font yang bisa dipakai HushGram. Emoji cerita tidak berubah.
+That file isn't a font Instagram can use. Story emoji haven't changed.	File itu bukan font yang bisa dipakai Instagram. Emoji cerita tidak berubah.
 Emoji font saved. Emoji in story text draw in it.	Font emoji disimpan. Emoji di teks cerita kini memakai font itu.
 Rows in Instagram's settings	Baris di pengaturan Instagram
 Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Semua baris di Pengaturan dan aktivitas Instagram ditampilkan. Hapus centang yang tidak kamu pakai.
@@ -1346,7 +1334,7 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d rows are left off Instagram's Settings and activity.	%1$d baris dihapus dari Pengaturan dan aktivitas Instagram.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Buka Pengaturan dan aktivitas di Instagram sekali, lalu kembali ke sini. Barisnya akan muncul di daftar ini untuk dihapus centangnya.
 Date in backup file names	Tanggal pada nama file cadangan
-Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	Tambahkan tanggal dan waktu saat ini saat mengekspor pengaturan. Jika mati, nama tetap HushGram-settings.json.
+Add the current date and time when exporting settings. Off keeps Instagram-settings.json.	Tambahkan tanggal dan waktu saat ini saat mengekspor pengaturan. Jika mati, nama tetap Instagram-settings.json.
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s adalah kode singkat postingan. Cerita dan postingan yang tidak diketahui mengosongkannya. Jika dipakai, templat ini juga menamai foto.
 Videos and photos use %1$s. Unknown codes are left out.	Video dan foto memakai %1$s. Kode yang tidak diketahui dihilangkan.
 Tab bar layout	Tata letak bilah tab
@@ -1359,11 +1347,11 @@ Instagram picks the tab bar for your account, and it can switch between the two 
 Group or mute Instagram's notifications, and take suggestions off the Notifications page.	Kelompokkan atau bisukan notifikasi Instagram, dan hapus saran dari halaman Notifikasi.
 Take suggestions and Featured off the Notifications page.	Hapus saran dan Unggulan dari halaman Notifikasi.
 Version warnings	Peringatan versi
-Pause HushGram, lock these settings, or make a report when something breaks.	Jeda HushGram, kunci pengaturan ini, atau buat laporan saat ada yang rusak.
+Pause Instagram, lock these settings, or make a report when something breaks.	Jeda Instagram, kunci pengaturan ini, atau buat laporan saat ada yang rusak.
 Choose a folder	Pilih folder
 Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, and every photo and video goes there.	Simpanan masuk ke Movies dan Pictures. Pilih folder mana saja sebagai gantinya, termasuk folder tersembunyi, dan setiap foto serta video akan masuk ke sana.
 Photos and videos go to %1$s. Tap to pick another folder.	Foto dan video masuk ke %1$s. Ketuk untuk memilih folder lain.
-HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram tidak bisa lagi menjangkau %1$s, jadi simpanan masuk ke Movies dan Pictures. Pilih foldernya lagi.
+Instagram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	Instagram tidak bisa lagi menjangkau %1$s, jadi simpanan masuk ke Movies dan Pictures. Pilih foldernya lagi.
 Use Movies and Pictures	Gunakan Movies dan Pictures
 Stop using the folder you picked. Saves go back to Movies and Pictures.	Berhenti memakai folder yang kamu pilih. Simpanan kembali masuk ke Movies dan Pictures.
 Couldn't use that folder. Saves still go where they did.	Folder itu tidak bisa dipakai. Simpanan tetap masuk ke tempat sebelumnya.
@@ -1387,7 +1375,7 @@ Stops the notification types you tick, even ones Instagram's own notification se
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram belum menyiapkan jenis notifikasinya di ponsel ini. Buka Instagram sekali, lalu kembali ke sini.
 Unmute all	Batal bisukan semua
 Settings button on Home's header	Tombol Pengaturan di header Beranda
-Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.	Menambahkan roda gigi di bagian atas Beranda yang membuka pengaturan HushGram. Mulai ulang Instagram untuk melihat perubahannya.
+Adds a gear at the top of Home that opens Instagram settings. Restart Instagram to see the change.	Menambahkan roda gigi di bagian atas Beranda yang membuka pengaturan Instagram. Mulai ulang Instagram untuk melihat perubahannya.
 Download button on stories	Tombol Unduh di cerita
 Puts a Download button at the top of a story, beside the three dots. One tap saves the photo or video in front, the same as Download in the menu.	Menaruh tombol Unduh di bagian atas cerita, di samping tiga titik. Satu ketukan menyimpan foto atau video yang sedang tampil, sama seperti Unduh di menu.
 Start reels muted	Mulai reel tanpa suara
@@ -1493,3 +1481,68 @@ The screens asking you to sync your contacts and turn on location services stop 
 Stop videos looping	Jangan ulangi video
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Video di feed dan reel berhenti di bingkai terakhirnya, tidak diputar lagi. Reel tetap diulang selama gulir otomatis aktif, agar bisa lanjut ke berikutnya.
+A long press on the menu button, the three lines at the top right of your own profile, opens these settings. A tap still opens Instagram's menu, and other profiles stay the same.	A long press on the menu button, the three lines at the top right of your own profile, opens these settings. A tap still opens Instagram's menu, and other profiles stay the same.
+Custom launch screen	Custom launch screen
+Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
+How you open settings and arrange their layout.	How you open settings and arrange their layout.
+Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
+Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
+Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
+No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.
+Set a screen lock on your phone so message locking can work.	Set a screen lock on your phone so message locking can work.
+Set a screen lock on your phone to use app locking.	Set a screen lock on your phone to use app locking.
+Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.
+Tab long presses keep Instagram's own action. Choose one to open settings instead.	Tab long presses keep Instagram's own action. Choose one to open settings instead.
+The changes take effect when Instagram restarts.	The changes take effect when Instagram restarts.
+The pause takes effect when Instagram restarts.	The pause takes effect when Instagram restarts.
+%1$d hours|few	%1$d hours|few
+%1$d hours|many	%1$d hours|many
+%1$d hours|two	%1$d hours|two
+%1$d hours|zero	%1$d hours|zero
+%1$d mentions|few	%1$d mentions|few
+%1$d mentions|many	%1$d mentions|many
+%1$d mentions|two	%1$d mentions|two
+%1$d mentions|zero	%1$d mentions|zero
+%1$d notification types are muted.|few	%1$d notification types are muted.|few
+%1$d notification types are muted.|many	%1$d notification types are muted.|many
+%1$d notification types are muted.|two	%1$d notification types are muted.|two
+%1$d notification types are muted.|zero	%1$d notification types are muted.|zero
+%1$d rows are left off Instagram's Settings and activity.|few	%1$d rows are left off Instagram's Settings and activity.|few
+%1$d rows are left off Instagram's Settings and activity.|many	%1$d rows are left off Instagram's Settings and activity.|many
+%1$d rows are left off Instagram's Settings and activity.|two	%1$d rows are left off Instagram's Settings and activity.|two
+%1$d rows are left off Instagram's Settings and activity.|zero	%1$d rows are left off Instagram's Settings and activity.|zero
+%1$d saves stopped. Reopen the media and save again.|few	%1$d saves stopped. Reopen the media and save again.|few
+%1$d saves stopped. Reopen the media and save again.|many	%1$d saves stopped. Reopen the media and save again.|many
+%1$d saves stopped. Reopen the media and save again.|two	%1$d saves stopped. Reopen the media and save again.|two
+%1$d saves stopped. Reopen the media and save again.|zero	%1$d saves stopped. Reopen the media and save again.|zero
+%1$d saves were interrupted|few	%1$d saves were interrupted|few
+%1$d saves were interrupted|many	%1$d saves were interrupted|many
+%1$d saves were interrupted|two	%1$d saves were interrupted|two
+%1$d saves were interrupted|zero	%1$d saves were interrupted|zero
+%1$d words|few	%1$d words|few
+%1$d words|many	%1$d words|many
+%1$d words|two	%1$d words|two
+%1$d words|zero	%1$d words|zero
+%1$dm left|few	%1$dm left|few
+%1$dm left|many	%1$dm left|many
+%1$dm left|two	%1$dm left|two
+%1$dm left|zero	%1$dm left|zero
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|few	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|few
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|many	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|many
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|two	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|two
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|zero	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|zero
+%d notifications|few	%d notifications|few
+%d notifications|many	%d notifications|many
+%d notifications|two	%d notifications|two
+%d notifications|zero	%d notifications|zero
+Loading older messages. %1$d messages so far.|few	Loading older messages. %1$d messages so far.|few
+Loading older messages. %1$d messages so far.|many	Loading older messages. %1$d messages so far.|many
+Loading older messages. %1$d messages so far.|two	Loading older messages. %1$d messages so far.|two
+Loading older messages. %1$d messages so far.|zero	Loading older messages. %1$d messages so far.|zero
+Couldn't save Ghost mode for this account.	Couldn't save Ghost mode for this account.
+Fingerprint or face unlock couldn't start. Hidden Chats stayed locked.	Fingerprint or face unlock couldn't start. Hidden Chats stayed locked.
+Lock Hidden Chats with biometrics	Lock Hidden Chats with biometrics
+Opening Hidden Chats asks for fingerprint or face only. A phone PIN or password won't open it. Needs Android 11 or newer with biometrics set up.	Opening Hidden Chats asks for fingerprint or face only. A phone PIN or password won't open it. Needs Android 11 or newer with biometrics set up.
+Set up a fingerprint or face unlock on Android 11 or newer to open Hidden Chats.	Set up a fingerprint or face unlock on Android 11 or newer to open Hidden Chats.
+Turns the switches that keep what you do to yourself on or off for this Instagram account, like View stories anonymously and Hide that you're typing. Each account remembers its own choice.	Turns the switches that keep what you do to yourself on or off for this Instagram account, like View stories anonymously and Hide that you're typing. Each account remembers its own choice.
+Unlock Hidden Chats	Unlock Hidden Chats

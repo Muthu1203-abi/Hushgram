@@ -305,7 +305,7 @@ public class SettingsVisualCaptureTest {
         ghost.getOnPreferenceChangeListener().onPreferenceChange(ghost, false);
         tap(titled(page.getPreferenceScreen(), "Ads and privacy"));
         settle();
-        page.searchSettings("Pause HushGram");
+        page.searchSettings("Pause Instagram");
         settle();
         capturePage("31-pause-and-diagnostics", true);
         BaseSettings.PAUSED.save(true);

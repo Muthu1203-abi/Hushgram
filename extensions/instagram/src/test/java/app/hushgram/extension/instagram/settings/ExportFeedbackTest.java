@@ -74,10 +74,10 @@ public class ExportFeedbackTest {
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
             assertTrue(output.size() > 0);
-            assertEquals("HushGram settings exported.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Instagram settings exported.", page.findPreference(CONFIGURATION).getSummary());
             host.get().getFragmentManager().beginTransaction().remove(page).commitNow();
             page = DownloadSettingsTest.pageIn(host);
-            assertEquals("HushGram settings exported.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Instagram settings exported.", page.findPreference(CONFIGURATION).getSummary());
         }
     }
 
@@ -105,7 +105,7 @@ public class ExportFeedbackTest {
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
             String summary = page.findPreference(CONFIGURATION).getSummary().toString();
-            assertEquals("Couldn't export HushGram settings. Try another file.", summary);
+            assertEquals("Couldn't export Instagram settings. Try another file.", summary);
             assertFalse(summary.contains("private-token"));
             assertTrue(page.findPreference(CONFIGURATION).isEnabled());
         }
@@ -123,9 +123,9 @@ public class ExportFeedbackTest {
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
             assertFalse("the export stayed busy", ExportStatus.CONFIGURATION.active());
-            assertEquals("Couldn't export HushGram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Couldn't export Instagram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
             assertTrue(page.findPreference(CONFIGURATION).isEnabled());
-            assertEquals("Couldn't export HushGram settings. Try another file.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Couldn't export Instagram settings. Try another file.", ShadowToast.getTextOfLatestToast());
         }
     }
 
@@ -161,11 +161,11 @@ public class ExportFeedbackTest {
             host.get().getFragmentManager().beginTransaction().remove(page).commitNow();
             page = DownloadSettingsTest.pageIn(host);
             assertFalse("reopening allowed a second export", page.findPreference(CONFIGURATION).isEnabled());
-            assertEquals("Exporting HushGram settings...", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Exporting Instagram settings...", page.findPreference(CONFIGURATION).getSummary());
             release.countDown();
             finish();
             assertTrue(output.size() > 0);
-            assertEquals("HushGram settings exported.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Instagram settings exported.", page.findPreference(CONFIGURATION).getSummary());
             assertTrue(page.findPreference(CONFIGURATION).isEnabled());
         } finally { release.countDown(); }
     }
@@ -272,13 +272,13 @@ public class ExportFeedbackTest {
             Intent result = new Intent().setData(DOCUMENT);
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, result);
             finish();
-            assertEquals("Couldn't export HushGram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Couldn't export Instagram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
             ByteArrayOutputStream later = new ByteArrayOutputStream();
             shadowOf(host.get().getContentResolver()).registerOutputStream(DOCUMENT, later);
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, result);
             finish();
             assertEquals(0, later.size());
-            assertEquals("Couldn't export HushGram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Couldn't export Instagram settings. Try another file.", page.findPreference(CONFIGURATION).getSummary());
         }
     }
 
@@ -331,7 +331,7 @@ public class ExportFeedbackTest {
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
             assertTrue(output.size() > 0);
-            assertEquals("HushGram settings exported.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Instagram settings exported.", page.findPreference(CONFIGURATION).getSummary());
         }
     }
 

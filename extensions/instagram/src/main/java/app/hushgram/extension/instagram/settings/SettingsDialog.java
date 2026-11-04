@@ -186,7 +186,7 @@ public final class SettingsDialog extends DialogFragment {
 
         TextView title = new TextView(getContext());
         heading = title;
-        title.setText("HushGram");
+        title.setText("Instagram");
         ShimmerTitle.wear(title);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
@@ -276,7 +276,7 @@ public final class SettingsDialog extends DialogFragment {
     /** Shows the search title, and HushGram again for null. */
     void showTitle(@androidx.annotation.Nullable CharSequence title) {
         TextView bar = heading;
-        if (bar != null) bar.setText(title == null ? "HushGram" : title);
+        if (bar != null) bar.setText(title == null ? "Instagram" : title);
     }
 
     /** Clears a search before Back closes the dialog. Expanding a section adds no Back level. */

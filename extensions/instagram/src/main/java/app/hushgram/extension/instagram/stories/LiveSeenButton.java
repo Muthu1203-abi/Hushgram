@@ -19,6 +19,7 @@ import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -95,7 +96,7 @@ public final class LiveSeenButton {
 
     /** Whether the button shows: lives watched anonymously and its own switch on. Both read off while paused. */
     static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.VIEW_LIVE_ANONYMOUSLY.get() && Settings.MARK_LIVE_SEEN.get();
+        return Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_LIVE_ANONYMOUSLY) && Settings.MARK_LIVE_SEEN.get();
     }
 
     static void resetForTests() {

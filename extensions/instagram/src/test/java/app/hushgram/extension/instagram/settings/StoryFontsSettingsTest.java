@@ -151,7 +151,7 @@ public class StoryFontsSettingsTest {
         finish();
         assertEquals(List.of(existing), StoryFonts.names(RuntimeEnvironment.getApplication()));
         assertFalse(Settings.STORY_FONTS.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Nothing was added.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a font Instagram can use. Nothing was added.", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void anEmojiFontCloseFailureKeepsThePreviousFile() throws Exception {
@@ -162,7 +162,7 @@ public class StoryFontsSettingsTest {
         finish();
         assertArrayEquals(FONT, Files.readAllBytes(emojiFile().toPath()));
         assertFalse(Settings.STORY_EMOJI.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Story emoji haven't changed.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a font Instagram can use. Story emoji haven't changed.", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void aStoryFontResultAfterTheSettingsRelockAddsNothing() throws Exception {

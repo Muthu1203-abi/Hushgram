@@ -77,7 +77,7 @@ val chatHistoryPatch = bytecodePatch(
     name = "Chat history tools",
     description = "Long press a chat's name to jump to its first message or to a date, or to save the chat as a " +
         "text file. The chat loads its older messages on its own, with a count and a Cancel button. Both start off. " +
-        "Turn them on in HushGram settings > Messages.",
+        "Turn them on in Instagram settings > Messages.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)

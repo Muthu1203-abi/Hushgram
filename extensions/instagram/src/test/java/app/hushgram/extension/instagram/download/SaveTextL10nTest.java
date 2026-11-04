@@ -135,13 +135,13 @@ public class SaveTextL10nTest {
     @Test
     @Config(qualifiers = "de")
     public void aChannelNamedInAnotherLanguageIsRenamed() {
-        NotificationChannel old = new NotificationChannel(SaveControl.CHANNEL, "HushGram saves",
+        NotificationChannel old = new NotificationChannel(SaveControl.CHANNEL, "Instagram saves",
                 NotificationManager.IMPORTANCE_LOW);
         notifications().createNotificationChannel(old);
 
         SaveControl.begin(context, false).end();
         NotificationChannel renamed = notifications().getNotificationChannel(SaveControl.CHANNEL);
-        assertEquals(L10nTablesForTests.of("de").get("HushGram saves"), String.valueOf(renamed.getName()));
+        assertEquals(L10nTablesForTests.of("de").get("Instagram saves"), String.valueOf(renamed.getName()));
         assertEquals(NotificationManager.IMPORTANCE_LOW, renamed.getImportance());
     }
 

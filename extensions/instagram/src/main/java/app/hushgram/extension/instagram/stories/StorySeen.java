@@ -13,6 +13,7 @@ import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
@@ -232,7 +233,7 @@ public final class StorySeen {
 
     /** Whether views are held back: the switch on, HushGram not paused and the settings read. */
     static boolean anonymous() {
-        return Utils.settingsReady() && Settings.VIEW_STORIES_ANONYMOUSLY.get();
+        return Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_STORIES_ANONYMOUSLY);
     }
 
     /**

@@ -55,8 +55,8 @@ internal fun BytecodePatchContext.declaredInHierarchy(
  */
 @Suppress("unused")
 val settingsPatch = bytecodePatch(
-    name = "HushGram settings",
-    description = "Adds a HushGram settings page to Instagram. Open it by long-pressing the Instagram logo at the top " +
+    name = "Instagram settings",
+    description = "Adds a Instagram settings page to Instagram. Open it by long-pressing the Instagram logo at the top " +
         "of your feed or Instagram's icon, or from the top of Settings and activity. Turn features on or off there, " +
         "pause HushGram and save diagnostics. Works as soon as you patch it in, with no switch.",
     default = true,

@@ -1,4 +1,4 @@
-# Turkish for HushGram: the English key, a tab, the translation. One row per string.
+# Turkish for Instagram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 %1$d of them because storage is low.	Bunların %1$d tanesi depolama alanı azaldığı için.
 %1$s of %2$s	%1$s / %2$s
@@ -6,7 +6,7 @@
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Yamaladığında ayarlandığı için Duraklatma bunu kapatamaz. Bunu elemek için yeniden yamala ve o yamayı dışarıda bırak.
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Yamaladığında ayarlandıkları için Duraklatma bunları kapatamaz. Birini elemek için yeniden yamala ve onun ardından parantez içinde yazan yamayı dışarıda bırak.
 A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydediliyor.
-A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya HushGram'u duraklattı.
+A file named %1$s in %2$s paused Instagram.	%2$s içindeki %1$s adlı bir dosya Instagram'u duraklattı.
 About	Hakkında
 Add the source to saved photos	Kayıtlı fotoğraflara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
@@ -14,7 +14,7 @@ Asks Android to run Instagram at your screen's fastest refresh rate, at the same
 Back	Geri
 Before you sign in	Giriş yapmadan önce
 Cancel	İptal
-Chat saved in Downloads/HushGram.	Sohbet İndirilenler/HushGram'a kaydedildi.
+Chat saved in Downloads/Instagram.	Sohbet İndirilenler/Instagram'a kaydedildi.
 Chat saved in the app's Download folder.	Sohbet uygulamanın İndirilenler klasörüne kaydedildi.
 Clear diagnostic data	Tanılama verilerini temizle
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Kısa bir rapor kopyala veya tam raporu %1$s konumuna kaydet. Bağlantılar, kimlikler, çerezler ve oturum açma bilgileri dahil edilmez. Paylaşmadan önce başka özel metin olup olmadığına bak.
@@ -25,7 +25,7 @@ Couldn't find this chat's messages.	Sohbet mesajları bulunamadı.
 Couldn't put back the diagnostic data. Try again.	Tanılama verileri geri getirilemedi. Tekrar dene.
 Couldn't save the chat.	Sohbet kaydedilemedi.
 Couldn't start the report export. Try again shortly.	Rapor dışa aktarımı başlatılamadı. Birazdan tekrar dene.
-Couldn't turn HushGram back on. Try again.	HushGram yeniden açılamadı. Tekrar dene.
+Couldn't turn Instagram back on. Try again.	Instagram yeniden açılamadı. Tekrar dene.
 Debug logging	Hata ayıklama günlüğü
 Diagnostic data cleared. Tap again to put it back.	Tanılama verileri temizlendi. Geri getirmek için tekrar dokun.
 Diagnostic data put back.	Tanılama verileri geri getirildi.
@@ -46,7 +46,7 @@ Loading older messages.	Eski mesajlar yükleniyor.
 Loading older messages. %1$d message so far.	Eski mesajlar yükleniyor. Şimdilik %1$d mesaj.
 Loading older messages. %1$d messages so far.	Eski mesajlar yükleniyor. Şimdilik %1$d mesaj.
 Lock these settings	Bu ayarları kilitle
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Bir sohbetin adına uzun bas ve Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır.
+Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, Instagram folder, one line per message.	Bir sohbetin adına uzun bas ve Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki Instagram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır.
 Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Bir sohbetin adına uzun bas ve İlk mesaja atla veya Bir tarihe atla seçeneğini seç. Sohbet eski mesajlarını kendisi yükler, bir sayaç ve İptal düğmesi gösterir.
 Mark a chat seen when you reply	Yanıt verdiğinde sohbeti görüldü olarak işaretle
 No messages found to save.	Kaydedilecek mesaj yok.
@@ -79,16 +79,13 @@ GPL-3.0, with the notices of the projects this is built on	GPL-3.0, üzerine kur
 Gray out stories you've watched	İzlediğin hikayeleri gri göster
 Hide ads	Reklamları gizle
 How far a photo or video you're saving has got, with a button to cancel it	Kaydettiğin fotoğraf veya videonun ilerleme durumu ve iptal etmek için bir düğme
-HushGram %1$s on Instagram %2$s	Instagram %2$s üzerinde HushGram %1$s
-HushGram is on	HushGram açık
-HushGram is paused	HushGram duraklatıldı
-HushGram pauses when Instagram restarts.	HushGram, Instagram yeniden başladığında duraklatılır.
-HushGram saves	HushGram kaydetme işlemleri
-HushGram settings	HushGram ayarları
-HushGram settings couldn't open	HushGram ayarları açılamadı
-HushGram settings are locked	HushGram ayarları kilitli
-HushGram turns back on when Instagram restarts.	HushGram, Instagram yeniden başladığında tekrar açılır.
-Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram açıldıktan sonraki bir dakika içinde üst üste üç kez çöktü veya dondu, bu yüzden HushGram kendini duraklattı.
+Instagram is on	Instagram açık
+Instagram is paused	Instagram duraklatıldı
+Instagram saves	Instagram kaydetme işlemleri
+Instagram settings	Instagram ayarları
+Instagram settings couldn't open	Instagram ayarları açılamadı
+Instagram settings are locked	Instagram ayarları kilitli
+Instagram crashed or froze within a minute of starting three times in a row, so Instagram paused itself.	Instagram açıldıktan sonraki bir dakika içinde üst üste üç kez çöktü veya dondu, bu yüzden Instagram kendini duraklattı.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram bu sürümün çok eski olduğunu söyleyen ekranı artık göstermez. Yamalanmış bir sürüm kendi kendine güncellenmez, bu yüzden bu onu kullanılabilir tutar.
 Instagram's own checks of who signed the app keep passing on this patched build.	Instagram'ın uygulamayı kimin imzaladığına bakan kendi kontrolleri bu yamalı sürümde de geçmeye devam eder.
 Joining the picture and sound	Görüntü ve ses birleştiriliyor
@@ -99,7 +96,7 @@ No app on this phone can open the link. The address is %1$s.	Bu telefondaki hiç
 Not saved: that isn't an Instagram photo or video	Kaydedilmedi: Bu bir Instagram fotoğrafı veya videosu değil
 Not saved: the file is over 512 MB	Kaydedilmedi: Dosya 512 MB'tan büyük
 OK	Tamam
-Pause HushGram	HushGram'u duraklat
+Pause Instagram	Instagram'u duraklat
 Pause and diagnostics	Duraklatma ve tanılama
 Instagram accepts this build	Instagram bu sürümü kabul eder
 Record patch activity and show errors for a bug report. Leave off during normal use.	Hata raporu için yama etkinliğini kaydeder ve hataları gösterir. Normal kullanımda kapalı bırakın.
@@ -117,7 +114,7 @@ Saved. Restart Instagram to apply this change.	Kaydedildi. Bu değişikliği uyg
 Saving a photo	Fotoğraf kaydediliyor
 Saving a video	Video kaydediliyor
 Saving...	Kaydediliyor...
-Saving... You can cancel from Downloads in HushGram settings.	Kaydediliyor... HushGram ayarlarındaki İndirmeler bölümünden iptal edebilirsin.
+Saving... You can cancel from Downloads in Instagram settings.	Kaydediliyor... Instagram ayarlarındaki İndirmeler bölümünden iptal edebilirsin.
 Set when you patched	Yamaladığında ayarlananlar
 Settings couldn't open	Ayarlar açılamadı
 Settings couldn't refresh completely. Reopen settings and try again.	Ayarlar tamamen yenilenemedi. Ayarları yeniden açıp tekrar dene.
@@ -130,7 +127,7 @@ Couldn't hide this notice. Try again.	Bu bildirim gizlenemedi. Tekrar dene.
 Tap to turn it back on.	Yeniden açmak için dokun.
 The diagnostic report couldn't be saved yet. Try again in a moment.	Tanılama raporu henüz kaydedilemedi. Birazdan tekrar dene.
 The diagnostic report couldn't be saved. Try again.	Tanılama raporu kaydedilemedi. Tekrar dene.
-The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	%1$s dosyası kaldırılamadı. HushGram'u yeniden açmak için onu %2$s içinden sil.
+The file %1$s couldn't be removed. Delete it from %2$s to turn Instagram back on.	%1$s dosyası kaldırılamadı. Instagram'u yeniden açmak için onu %2$s içinden sil.
 The setting couldn't finish updating. Its saved value is shown.	Ayarın güncellenmesi tamamlanamadı. Kayıtlı değeri gösteriliyor.
 There's no diagnostic data to clear.	Temizlenecek tanılama verisi yok.
 There's no diagnostic data to put back.	Geri getirilecek tanılama verisi yok.
@@ -141,7 +138,7 @@ Version %1$s for Instagram %2$s	Instagram %2$s için %1$s sürümü
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Anonim izlerken izlediğin bir hikaye griye döner ve sıranın sonuna geçer, yalnızca bu telefonda. Instagram yine de onu izlediğini öğrenmez.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Gönderiyi paylaşan hesabı, gönderi tarihini ve gönderiye bir bağlantıyı, kaydedilen bir fotoğrafın ayrıntılarına, yani bir galeri ya da exiftool'un okuduğu EXIF'e yazar. Yalnızca JPEG fotoğraflar ve yalnızca kaydın bildiği kadar. Resmin kendisi değişmez.
 You	Sen
-You paused HushGram.	HushGram'u duraklattın.
+You paused Instagram.	Instagram'u duraklattın.
 the re-signed build fix	yeniden imzalanmış sürüm düzeltmesi
 Don't send reel watch history	Reel izleme geçmişini gönderme
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Instagram'a hangi reels'leri izlediğini ve ne kadarını izlediğini söylemez. Instagram bunu Reels'ini seçmek için kullanır. İzlediğin reels'ler geri gelebilir.
@@ -354,7 +351,7 @@ Pure black dark mode isn't in this build	Saf siyah karanlık mod bu derlemede yo
 To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	Karanlık modu koyu gri yerine saf siyah yapmak için (OLED ekranda pil tasarrufu sağlayabilir) Instagram'ı bir sonraki yamalayışında Morphe Manager'da Saf siyah karanlık mod'u seç.
 the pure black dark mode	saf siyah karanlık mod
 No Play Store updates	Play Store güncellemesi yok
-Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play bu sürümün üzerine Meta güncellemeleri sunmaz. Normal Instagram'a dönmek için önce bunu kaldır. Bu işlem Instagram'ın bu telefondaki verilerini siler. Sonraki HushGram sürümlerinin de Change version code'a ihtiyacı var, yoksa bunun üzerine kurulmazlar.
+Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later Instagram builds need Change version code too, or they won't install over this one.	Google Play bu sürümün üzerine Meta güncellemeleri sunmaz. Normal Instagram'a dönmek için önce bunu kaldır. Bu işlem Instagram'ın bu telefondaki verilerini siler. Sonraki Instagram sürümlerinin de Change version code'a ihtiyacı var, yoksa bunun üzerine kurulmazlar.
 the raised version code	yükseltilmiş sürüm kodu
 Sharing	Paylaşım
 Hide group buttons	Grup düğmelerini gizle
@@ -418,23 +415,23 @@ Updating remembered positions...	Kaydedilen konumlar güncelleniyor...
 Undo cleared positions	Silinen konumları geri yükle
 Clear remembered positions	Kaydedilen konumları sil
 Undo is available until %1$s.	%1$s saatine kadar geri alabilirsiniz.
-HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.	HushGram, en fazla 200 videoda nerede kaldığını 30 gün boyunca hatırlar. Bu cihazdan silmek için dokun.
+Instagram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.	Instagram, en fazla 200 videoda nerede kaldığını 30 gün boyunca hatırlar. Bu cihazdan silmek için dokun.
 Remembered playback positions restored.	Kaydedilen oynatma konumları geri yüklendi.
 Undo has expired.	Geri yükleme süresi doldu.
 You cleared the remembered playback positions.	Kaydedilen oynatma konumlarını sildiniz.
 Couldn't update the remembered playback positions.	Kaydedilen oynatma konumları güncellenemedi.
 Settings backup	Ayar yedeği
-Export HushGram settings	HushGram ayarlarını dışa aktar
+Export Instagram settings	Instagram ayarlarını dışa aktar
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Yüklü yamaların ayarları için bir dosya seçin. Hesaplar ve geçmiş bu cihazda kalır.
-Import HushGram settings	HushGram ayarlarını içe aktar
+Import Instagram settings	Instagram ayarlarını içe aktar
 Choose a settings file. All valid choices apply together, and ones this version doesn't know are skipped. The Undo row shows how long you can undo.	Bir ayar dosyası seç. Geçerli tüm seçimler birlikte uygulanır, bu sürümün tanımadıkları atlanır. Geri Al satırı, ne kadar süre geri alabileceğini gösterir.
 Undo settings import	Ayarları içe aktarmayı geri al
 Undo is available until %1$s. Restarting Instagram discards Undo.	%1$s saatine kadar geri alabilirsiniz. Instagram yeniden başlatıldığında geri alma seçeneği silinir.
 No settings import to undo.	Geri alınacak ayar içe aktarma işlemi yok.
 This phone has no file picker. Your settings haven't changed.	Bu telefonda dosya seçici yok. Ayarların değişmedi.
 Couldn't use that settings file. Your settings haven't changed.	Bu ayar dosyası kullanılamadı. Ayarlarınız değişmedi.
-HushGram settings exported.	HushGram ayarları dışa aktarıldı.
-Couldn't export HushGram settings. Try another file.	HushGram ayarları dışa aktarılamadı. Başka bir dosya deneyin.
+Instagram settings exported.	Instagram ayarları dışa aktarıldı.
+Couldn't export Instagram settings. Try another file.	Instagram ayarları dışa aktarılamadı. Başka bir dosya deneyin.
 Settings restored.	Ayarlar geri yüklendi.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d ayar içe aktarıldı. Bu sürümün tanımadığı %2$d tanesi atlandı.
 Imported %1$d settings.	%1$d ayar içe aktarıldı.
@@ -489,7 +486,7 @@ Preparing diagnostic report...	Tanılama raporu hazırlanıyor...
 Saving diagnostic report...	Tanılama raporu kaydediliyor...
 Diagnostic report saved.	Tanılama raporu kaydedildi.
 Choose a file for the settings export.	Ayarları dışa aktarmak için bir dosya seçin.
-Exporting HushGram settings...	HushGram ayarları dışa aktarılıyor...
+Exporting Instagram settings...	Instagram ayarları dışa aktarılıyor...
 Settings export canceled.	Ayar dışa aktarma işlemi iptal edildi.
 Round handle on the seek bar	Reel ilerleme tutamacını göster
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Arama çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
@@ -513,8 +510,6 @@ Creator tools	İçerik üretici araçları
 Home feed picker	Ana Sayfa seçici
 Custom tab	Özel sekme
 Off	Kapalı
-Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine HushGram açmak için bir sekme seç.
-Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Sekmenin normal işlemi yerine HushGram açmak için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Yalnızca hesabının gösterdiği sekmeler kullanılabilir.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	Yana kaydırmak artık Ana Sayfa, Reels ve diğer ana sekmeler arasında geçiş yapmaz. Bunun yerine sekme çubuğuna dokun. Kamerayı Oluşturmak için kaydırmayı durdur kapsar.
 Ask for larger photos	Daha büyük fotoğraflar iste
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Ana Sayfa'yı bilerek boşaltır, böylece hikâye satırını görürsün ve altında hiçbir şey olmaz. Profiller, Keşfet ve Reels gönderi göstermeye devam eder. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
@@ -551,8 +546,6 @@ New message	Yeni mesaj
 Notifications	Bildirimler
 Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	Instagram'ın her bildirimini kaç tane içerdiğini gösteren tek bir gruba koyar, böylece bildirim panelini doldurmazlar. Birine dokunmak yine onu açar.
 Right away	Hemen
-Set a screen lock on your phone so HushGram can lock Instagram.	HushGram'ın Instagram'ı kilitleyebilmesi için telefonunda bir ekran kilidi ayarla.
-Set a screen lock on your phone so HushGram can lock your messages.	HushGram'ın mesajlarını kilitleyebilmesi için telefonunda bir ekran kilidi ayarla.
 Hides the cards between posts that ask you to rate what you saw.	Gönderiler arasında gördüklerini puanlamanı isteyen kartları gizler.
 Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	Instagram'ın gönderiler arasına koyduğu alışveriş ürünü satırlarını ve canlı alışverişi, ayrıca Keşfet'teki mağaza kutucuklarını gizler. Ürün etiketli gönderilerde alışveriş çantası görünmez.
 Unlock	Kilidi aç
@@ -562,7 +555,7 @@ Your inbox and chats stay covered until your fingerprint, face or screen lock sa
 Your messages are locked	Mesajların kilitli
 Allow screenshots	Ekran görüntülerine izin ver
 Couldn't change every Ghost mode switch. Check them below.	Hayalet modu anahtarlarının hepsi değiştirilemedi. Aşağıdan kontrol et.
-Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Hayalet modu anahtarlarının hepsi değiştirilemedi. HushGram ayarlarından kontrol et.
+Couldn't change every Ghost mode switch. Open Instagram settings to check them.	Hayalet modu anahtarlarının hepsi değiştirilemedi. Instagram ayarlarından kontrol et.
 Don't report screenshots	Ekran görüntülerini bildirme
 Ghost mode	Hayalet modu
 Ghost mode is off, and so is each of its switches.	Hayalet modu kapalı, anahtarlarının her biri de kapalı.
@@ -573,7 +566,6 @@ Lives you watch don't put you on the host's viewer list, so they aren't told you
 Mark as seen button on lives	Canlı yayınlarda görüldü olarak işaretle düğmesi
 Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.	Anonim izlerken canlı yayının üstüne bir göz düğmesi ekler. O canlı yayının izleyici listesinde görünmek için düğmeye dokun. Diğer canlı yayınlar gizli kalır.
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Ekran görüntüleri ve ekran kayıtları, kaybolan fotoğraf ve videolar gibi Instagram'ın engellediği her yerde çalışır. Gönderen bunu duymamalıysa Ekran görüntülerini bildirme'yi de aç.
-Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Yaptıklarını kendine saklayan anahtarları, Hikayeleri anonim olarak izle ve Yazdığını gizle gibi, tek seferde açar veya kapatır. Her biri kendi anahtarını korur.
 View live anonymously	Canlı yayınları anonim izle
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Tek seferlik veya tekrar oynatılabilir gönderilen fotoğraflar ve videolar sohbette kalır, böylece tekrar açabilirsin. Önceden yüklenenleri güncellemek için sohbeti yeniden aç.
 Swipe through a chat's reels	Bir sohbetin reels videolarında kaydır
@@ -645,14 +637,11 @@ Descriptions behind an info button	Açıklamalar bilgi düğmesinin arkasında
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Her anahtarı yalnızca adıyla gösterir. Ne yaptığını okumak için adın yanındaki i'ye dokun.
 Expanded	Genişletildi
 Collapsed	Daraltıldı
-Hide the HushGram row in Instagram's menu	Instagram menüsündeki HushGram satırını gizle
 Settings shortcut on the app icon	Uygulama simgesinde ayarlar kısayolu
 Open settings from the logo	Ayarları logodan aç
-Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Instagram simgesine basılı tutunca açılan menüye HushGram ayarlarını koyar. Kapalıyken bu menüden çıkar.
+Puts Instagram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Instagram simgesine basılı tutunca açılan menüye Instagram ayarlarını koyar. Kapalıyken bu menüden çıkar.
 A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Ana sayfanın üstündeki Instagram logosuna basılı tutmak bu ayarları açar. Kapalıyken basılı tutma yeniden Instagram'a ait olur.
 The last way into these settings stays on.	Bu ayarlara giden son yol açık kalır.
-No other way into HushGram is on, so the row stays in Instagram's menu.	HushGram'ı açan başka bir yol açık değil, bu yüzden satır Instagram'ın menüsünde kalır.
-Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Buraya gelen başka bir yol HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Diğer bütün yollar kapalıyken satır geri gelir.
 Stop loading stories and highlights	Hikayeleri ve öne çıkanları yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
@@ -767,8 +756,8 @@ Bio copied	Biyografi kopyalandı
 Copy bio	Biyografiyi kopyala
 Copy username and bio	Kullanıcı adını ve biyografiyi kopyala
 Profile extras button	Profil ekstra düğmesi
-Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	Profillerde üç noktanın yanına HushGram'ın profil eylemlerini açan bir düğme koyar. Üç nokta menüsündeki satırlar da kalır.
-HushGram profile actions	HushGram profil eylemleri
+Puts a button next to the three dots on profiles that opens Instagram's profile actions. The rows in the three-dot menu stay too.	Profillerde üç noktanın yanına Instagram'ın profil eylemlerini açan bir düğme koyar. Üç nokta menüsündeki satırlar da kalır.
+Instagram profile actions	Instagram profil eylemleri
 Nothing to do for this profile	Yapılacak bir şey yok
 Couldn't copy the bio	Biyografi kopyalanamadı
 Couldn't open the picture	Fotoğraf açılamadı
@@ -821,9 +810,7 @@ Green	Yeşil
 Teal	Camgöbeği
 Material You	Material You
 Material You needs Android 12 or newer, so Instagram's blue stays.	Material You için Android 12 veya daha yenisi gerekiyor, bu yüzden Instagram mavisi kalıyor.
-# context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
-HushGram launch screen	HushGram açılış ekranı
-Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Instagram açılırken gördüğün ekranda Instagram'ın logosu yerine HushGram'ın logosunu gösterir. Android 13 ve sonrasında çalışır. Bir sonraki açılıştan itibaren görünür.
+# context: Layout switch; it puts Instagram's logo on the screen Android shows while Instagram starts
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Video kapaklarını indir
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Videolu bir akış gönderisinin ve video gösteren bir karuselin menüsüne Kapağı indir ekler. Video oynatılmadan önce görünen hareketsiz görüntüyü en büyük boyutunda kaydeder.
@@ -854,7 +841,7 @@ Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted
 Slide across the tabs	Sekmeler arasında kaydır
 Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. It works with or without Glass tab bar. Restart Instagram after changing it.	Parmağını sekme çubuğuna koyup yana kaydır. Bir vurgu parmağını takip eder ve bıraktığında altındaki sekme açılır. Sekmeye dokunmak ve basılı tutmak eskisi gibi çalışır. Cam sekme çubuğu açık da kapalı da çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Liquid glass look	Sıvı cam görünümü
-Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Çubuğu ve vurgusunu tamamen yuvarlar, Ara'yı kendi cam dairesine koyar. Bir listeyi aşağı kaydırınca çubuk, bulunduğun sekme ile Ara'ya küçülür. Kaydırırken sekme çubuğunu gizle açıksa küçülmez. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling a list down shrinks the bar to the tab you're on, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling a list down shrinks the bar to the tab you're on, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Glass tab bar	Cam sekme çubuğu
 Haptics on the tab bar	Sekme çubuğunda titreşim
@@ -889,10 +876,10 @@ Open a chat in Instagram, then come back here to lock it.	Instagram'da bir sohbe
 Chat %1$s	Sohbet %1$s
 # context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
 Hidden chats	Gizli sohbetler
-Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Sohbetleri tek tek gizleyin. Gizlenen sohbet gelen kutunuzdan kalkar ve burada yeniden gösterene kadar bildirimleri gelmez.
+Hide single chats. A hidden chat leaves your inbox, unread badge counts, and notifications until you show it here again. Long-press a chat in Messages and choose Hide chat to add it.	Sohbetleri tek tek gizleyin. Gizlenen sohbet gelen kutunuzdan ve okunmamış mesaj rozeti sayısından çıkar; burada yeniden gösterene kadar bildirimleri görünmez. Mesajlar’da bir sohbete uzun basıp Sohbeti gizle’yi seçerek ekleyin.
 Double-tap Messages for hidden chats	Gizli sohbetler için Mesajlar'a çift dokun
 Two quick taps on the Messages button switch between your hidden chats and the regular inbox. While a lock is on, it asks for it first. One tap opens Messages as usual.	Mesajlar düğmesine hızlıca iki kez dokunmak gizli sohbetlerin ile normal gelen kutusu arasında geçiş yapar. Bir kilit açıksa önce kilidi ister. Tek dokunuş Mesajlar’ı her zamanki gibi açar.
-Open a chat in Instagram, then come back here to hide it.	Instagram'da bir sohbet açın, sonra gizlemek için buraya dönün.
+Long-press a chat in Messages and choose Hide chat to add it here.	Buraya eklemek için Mesajlar’da bir sohbete uzun basıp Sohbeti gizle’yi seçin.
 Pinned chats	Sabitlenen sohbetler
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Seçtiğin sohbetleri gelen kutusunun en üstünde tutar. Sabitlemeler yalnızca bu telefonda kalır, diğer sohbetler Instagram'ın sırasını korur.
 Open a chat in Instagram, then come back here to pin it.	Instagram'da bir sohbet aç, sonra sabitlemek için buraya dön.
@@ -900,12 +887,15 @@ Open a chat in Instagram, then come back here to pin it.	Instagram'da bir sohbet
 %1$s is unpinned	%1$s sabitlemesi kaldırıldı
 %1$s is hidden	%1$s gizlendi
 %1$s is shown again	%1$s yeniden gösteriliyor
+Chat hidden	Sohbet gizlendi
+Chat shown again	Sohbet yeniden gösterildi
+Hidden inbox	Gizli gelen kutusu
 Pick the playback quality with a tab long press	Sekmeye uzun basarak oynatma kalitesini seç
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine oynatma kalitesini seçmek için bir sekme seç.
-Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Sekmenin normal işlemi yerine oynatma kalitesini seçmek için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Varsayılan oynatma kalitesi açık olmalı. Aynı sekme HushGram'ı açıyorsa o öncelikli olur.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens Instagram, that comes first.	Sekmenin normal işlemi yerine oynatma kalitesini seçmek için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Varsayılan oynatma kalitesi açık olmalı. Aynı sekme Instagram'ı açıyorsa o öncelikli olur.
 Playback quality: %1$s. The next video you open uses it.	Oynatma kalitesi: %1$s. Açacağın sonraki video bunu kullanır.
-Couldn't save the playback quality. Open HushGram settings to set it.	Oynatma kalitesi kaydedilemedi. Ayarlamak için HushGram ayarlarını aç.
-Support HushGram	HushGram'ı destekle
+Couldn't save the playback quality. Open Instagram settings to set it.	Oynatma kalitesi kaydedilemedi. Ayarlamak için Instagram ayarlarını aç.
+Support Instagram	Instagram'ı destekle
 Hide the Home tab	Ana Sayfa sekmesini gizle
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Ana Sayfa'yı sekme çubuğundan kaldırır. Ana Sayfa'nın açılacağı her yerde Başlangıç sekmesi açılır, bu yüzden çubukta olan ve Ana Sayfa olmayan bir Başlangıç sekmesi seç, yoksa Ana Sayfa kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide the Search tab	Ara sekmesini gizle
@@ -1018,8 +1008,7 @@ Full screen Messages	Tam ekran Mesajlar
 Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Mesajların veya bir sohbet görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
 Hide Notes on profile pictures	Profil fotoğraflarındaki Notları gizle
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Notlar balonunu profil fotoğraflarından kaldırır, seninki dahil. Mesajlar'daki Notlar olduğu gibi kalır.
-# context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram and lay out settings.	HushGram'ı açma ve ayarları düzenleme.
+# context: the line that opens a category's page in Instagram settings, under the page title
 Hide ads and share less with Instagram.	Reklamları gizle ve Instagram ile daha az bilgi paylaş.
 Choose what Home shows and how it behaves.	Ana Sayfa'nın ne gösterdiğini ve nasıl davrandığını seç.
 Control where Meta AI appears.	Meta AI'ın nerede görüneceğini seç.
@@ -1039,10 +1028,9 @@ Save photos, videos and more, and choose where they go.	Fotoğraf, video ve daha
 Stop background work Instagram doesn't need.	Instagram'ın ihtiyaç duymadığı arka plan işlerini durdur.
 Stop Instagram from saying this version is too old.	Instagram'ın bu sürümün çok eski olduğunu söylemesini engelle.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Yamalarken seçildi, bu yüzden Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
-Save your HushGram choices to a file, or bring them back.	HushGram seçimlerini bir dosyaya kaydet ya da geri getir.
+Save your Instagram choices to a file, or bring them back.	Instagram seçimlerini bir dosyaya kaydet ya da geri getir.
 Your version, the source code and licenses.	Sürümün, kaynak kodu ve lisanslar.
 Open settings with a long press on your profile's menu	Profilinin menüsüne uzun basarak ayarları aç
-A long press on the menu button, the three lines at the top right of your own profile, opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same.	Kendi profilinin sağ üstündeki üç çizgili menü düğmesine uzun basmak HushGram'ı açar. Dokunmak yine Instagram'ın menüsünü açar ve diğer profiller aynı kalır.
 Hide the top bar on the Reels tab	Reels sekmesindeki üst çubuğu gizle
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Reels sekmesinin en üstündeki satırı, Reels başlığı, kamera düğmesi ve Instagram'ın oraya koyduğu diğer her şeyle birlikte kaldırır. Bir profilden, gönderiden veya sohbetten açtığın reels'ler bu satırı korur. Kamera Ana sayfadan açılmaya devam eder.
 Hide the Create button on reels	Reels'te Oluştur düğmesini gizle
@@ -1064,19 +1052,19 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
 Keep clear mode on	Temiz mod açık kalsın
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Bir reel'de Instagram'ın temiz modunu aç, sonraki reels'ler de bu modda açılır. Temiz moddan kendin çıkarsan sonraki reels'ler düğmelerini yeniden gösterir.
-# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is Instagram's switch of that name
 Start every reel in clear mode	Her reel'i temiz modda başlat
 Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Reels'ler ilkinden itibaren dokunmadan temiz modda açılır. Temiz moddan kendin çıkarsan sonraki reels'ler düğmelerini yeniden gösterir. Ekran görüntülerine izin ver açık değilse Instagram temiz modda ekran görüntülerini engeller.
 Unlock with	Kilidi şununla aç
 Phone lock	Telefon kilidi
-HushGram PIN	HushGram PIN'i
+Instagram PIN	Instagram PIN'i
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	Burada belirlediğin PIN, ekran kilidi yerine mesajlarının kilidini açar. Geri alınamaz, ancak Instagram'ın depolamasını temizleyerek kaldırılır.
 Your fingerprint, face or screen lock unlocks your messages.	Telefonunun parmak izi, yüz veya ekran kilidi mesajlarının kilidini açar.
 Fingerprint or face only	Yalnızca parmak izi veya yüz
 Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	Mesajlarının kilidini yalnızca parmak izin veya yüzün açar. Telefonda hiçbiri ayarlı değilse ekran kilidin açar.
 Add a fingerprint or face in your phone's settings first.	Önce telefonunun ayarlarından bir parmak izi veya yüz ekle.
 This phone has no fingerprint or face unlock to use.	Bu telefonda kullanılabilecek bir parmak izi veya yüz kilidi yok.
-Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.	Telefonun şu an HushGram'ın parmak izini veya yüzünü kullanmasına izin vermiyor. Parmak izi ve yüz ayarlarına bak.
+Your phone won't let Instagram use your fingerprint or face right now. Check its fingerprint and face settings.	Telefonun şu an Instagram'ın parmak izini veya yüzünü kullanmasına izin vermiyor. Parmak izi ve yüz ayarlarına bak.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	4 ile 8 haneli PIN'i belirle veya değiştir. Bu telefonda kalır, yedeğe girmez.
 PIN saved.	PIN kaydedildi.
 PIN	PIN
@@ -1090,7 +1078,7 @@ Set a PIN	PIN belirle
 Use 4 to 8 digits.	4 ile 8 rakam kullan.
 The PINs don't match.	PIN'ler eşleşmiyor.
 Couldn't save the PIN.	PIN kaydedilemedi.
-The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN geri alınamaz. Kaldırmak için Android uygulama ayarlarında Instagram'ın depolamasını temizle. Bu, oturumunu kapatır ve HushGram ayarlarını sıfırlar. Kayıtlı bir ayar yedeği geri kalanı getirir, ama PIN'i getirmez.
+The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets Instagram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN geri alınamaz. Kaldırmak için Android uygulama ayarlarında Instagram'ın depolamasını temizle. Bu, oturumunu kapatır ve Instagram ayarlarını sıfırlar. Kayıtlı bir ayar yedeği geri kalanı getirir, ama PIN'i getirmez.
 Open app info	Uygulama bilgisini aç
 Hide 'Are you interested?' bubbles	'Bu gönderiyle ilgileniyor musun?' sorularını gizle
 Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	Bir gönderinin altında 'Bu gönderiyle ilgileniyor musun?' diye soran, İlgilenmiyorum ve İlgileniyorum düğmeleri olan balonu gizler. Senin yerine hiçbir şey yanıtlanmaz.
@@ -1119,8 +1107,8 @@ Peek at the next carousel page	Sonraki kaydırmalı sayfaya göz at
 A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	Kaydırmalı bir gönderinin sayfası kenarlardan biraz içeride durur ve sağda sonraki sayfanın başı görünür.
 Large	Büyük
 Small	Küçük
-# context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram açılırken sürekli çöktüğü için HushGram kendini duraklattı. HushGram ayarlarından yeniden açana kadar anahtarları kapalı kalır.
+# context: a toast shown once when safe mode has paused Instagram on its own after crashes at start
+Instagram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in Instagram settings.	Instagram açılırken sürekli çöktüğü için Instagram kendini duraklattı. Instagram ayarlarından yeniden açana kadar anahtarları kapalı kalır.
 # context: a toast when a save couldn't reach Instagram's servers or the connection dropped
 Download failed. Check your connection and try again.	İndirme başarısız oldu. Bağlantını kontrol edip tekrar dene.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
@@ -1137,7 +1125,7 @@ Forgets everything Skip what's already saved remembers, for all your accounts. Y
 Download history cleared.	İndirme geçmişi silindi.
 Couldn't clear the download history. Try again.	İndirme geçmişi silinemedi. Tekrar dene.
 Loading the picture...	Fotoğraf yükleniyor...
-# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+# context: the settings row right above Support Instagram that opens a new bug report on GitHub
 Report a problem	Sorun bildir
 Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
 Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
@@ -1153,10 +1141,10 @@ Instagram's own font. You can also pick your phone's font or a .ttf or .otf file
 Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram'daki yazılar telefonunun yazı tipini kullanır. Bir değişikliği görmek için Instagram'ı yeniden başlat.
 Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram'daki yazılar seçtiğin yazı tipi dosyasını kullanır. Dosyayı değiştirmek için yeniden seç. Bir değişikliği görmek için Instagram'ı yeniden başlat.
 # context: toasts after a font file is picked in the Font list
-That file isn't a font HushGram can use. Your font hasn't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Yazı tipin değişmedi.
+That file isn't a font Instagram can use. Your font hasn't changed.	Bu dosya Instagram'ın kullanabileceği bir yazı tipi değil. Yazı tipin değişmedi.
 Font saved. Restart Instagram to see it.	Yazı tipi kaydedildi. Görmek için Instagram'ı yeniden başlat.
 # context: toast when Instagram starts and the picked font file won't load
-Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Yazı tipi dosyan yüklenemedi, bu yüzden Instagram'ın yazı tipi gösteriliyor. HushGram ayarları > Düzen bölümünden yeniden seç.
+Couldn't load your font file, so Instagram's font shows. Pick it again in Instagram settings > Layout.	Yazı tipi dosyan yüklenemedi, bu yüzden Instagram'ın yazı tipi gösteriliyor. Instagram ayarları > Düzen bölümünden yeniden seç.
 # context: Reels switch title; it leaves out reels that carry Instagram's own AI label
 Hide AI-labeled reels	Yapay zeka etiketli reel'leri gizle
 # context: the line under the Hide AI-labeled reels switch
@@ -1248,7 +1236,7 @@ Ghost mode needs at least one switch to turn.	Hayalet modunun değiştireceği e
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Sekmeye uzun basarak Hayalet modunu aç veya kapat
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine Hayalet modunu açıp kapatmak için bir sekme seç.
-Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Sekmenin normal işlemi yerine Hayalet modunu açıp kapatmak için %1$s üzerine uzun bas, kısa bir bildirim hangi yöne gittiğini söyler. Normal dokunuşlar ve diğer sekmeler aynı kalır. Aynı sekme HushGram'ı açıyor ya da oynatma kalitesini seçiyorsa o öncelikli olur.
+Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens Instagram or picks the playback quality, that comes first.	Sekmenin normal işlemi yerine Hayalet modunu açıp kapatmak için %1$s üzerine uzun bas, kısa bir bildirim hangi yöne gittiğini söyler. Normal dokunuşlar ve diğer sekmeler aynı kalır. Aynı sekme Instagram'ı açıyor ya da oynatma kalitesini seçiyorsa o öncelikli olur.
 Buttons on the share sheet	Paylaşım sayfasındaki düğmeler
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Paylaşım sayfasında kişilerin altındaki tüm düğmeler görünür. Kullanmadıklarının işaretini kaldır.
 Left off the share sheet: %1$s.	Paylaşım sayfasından çıkarıldı: %1$s.
@@ -1330,7 +1318,7 @@ Add .ttf or .otf files from your phone. Uncheck one to take it out.	Telefonundan
 No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Henüz yazı tipi eklenmedi. Bir .ttf veya .otf dosyası ekle, hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte görünür.
 Add a font file	Yazı tipi dosyası ekle
 Removed from your story fonts	Hikaye yazı tiplerinden çıkarıldı
-That file isn't a font HushGram can use. Nothing was added.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hiçbir şey eklenmedi.
+That file isn't a font Instagram can use. Nothing was added.	Bu dosya Instagram'ın kullanabileceği bir yazı tipi değil. Hiçbir şey eklenmedi.
 Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s eklendi. Hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte onu seç.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo ve başlıklar başta
@@ -1338,7 +1326,7 @@ Puts Instagram's logo and every bar's title at the start of the bar, where Insta
 # context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
 Emoji font in story text	Hikâye metninde emoji yazı tipi
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Hikâye metnine yazdığın emojiler, seçtiğin bir emoji yazı tipi dosyasından çizilir. Açınca dosyayı sorar. Kapalıyken Instagram'ın emojileri geri gelir.
-That file isn't a font HushGram can use. Story emoji haven't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hikâye emojileri değişmedi.
+That file isn't a font Instagram can use. Story emoji haven't changed.	Bu dosya Instagram'ın kullanabileceği bir yazı tipi değil. Hikâye emojileri değişmedi.
 Emoji font saved. Emoji in story text draw in it.	Emoji yazı tipi kaydedildi. Hikâye metnindeki emojiler artık onunla çiziliyor.
 Rows in Instagram's settings	Instagram ayarlarındaki satırlar
 Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Instagram'ın Ayarlar ve hareketler ekranındaki tüm satırlar görünür. Kullanmadıklarının işaretini kaldır.
@@ -1346,7 +1334,7 @@ Every row of Instagram's Settings and activity shows. Untick the ones you don't 
 %1$d rows are left off Instagram's Settings and activity.	Instagram'ın Ayarlar ve hareketler ekranından %1$d satır kaldırıldı.
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Instagram'da Ayarlar ve hareketler ekranını bir kez aç, sonra buraya dön. O ekranın satırları işaretini kaldırman için bu listede görünür.
 Date in backup file names	Yedek dosyası adlarında tarih
-Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	Ayarları dışa aktarırken geçerli tarih ve saati ekler. Kapalıyken HushGram-settings.json korunur.
+Add the current date and time when exporting settings. Off keeps Instagram-settings.json.	Ayarları dışa aktarırken geçerli tarih ve saati ekler. Kapalıyken Instagram-settings.json korunur.
 %1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s gönderinin kısa kodudur. Hikâyelerde ve bilinmeyen gönderilerde boş bırakılır. Bu alan kullanıldığında şablon fotoğrafları da adlandırır.
 Videos and photos use %1$s. Unknown codes are left out.	Videolar ve fotoğraflar %1$s kullanır. Bilinmeyen kodlar atlanır.
 Tab bar layout	Sekme çubuğu düzeni
@@ -1359,11 +1347,11 @@ Instagram picks the tab bar for your account, and it can switch between the two 
 Group or mute Instagram's notifications, and take suggestions off the Notifications page.	Instagram bildirimlerini grupla ya da sessize al ve önerileri Bildirimler sayfasından kaldır.
 Take suggestions and Featured off the Notifications page.	Önerileri ve Öne Çıkanlar'ı Bildirimler sayfasından kaldır.
 Version warnings	Sürüm uyarıları
-Pause HushGram, lock these settings, or make a report when something breaks.	HushGram'u duraklat, bu ayarları kilitle veya bir sorun olduğunda rapor oluştur.
+Pause Instagram, lock these settings, or make a report when something breaks.	Instagram'u duraklat, bu ayarları kilitle veya bir sorun olduğunda rapor oluştur.
 Choose a folder	Klasör seç
 Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, and every photo and video goes there.	Kaydedilenler Movies ve Pictures klasörlerine gider. Bunun yerine gizli olanlar dahil herhangi bir klasör seç, her fotoğraf ve video oraya gitsin.
 Photos and videos go to %1$s. Tap to pick another folder.	Fotoğraflar ve videolar %1$s klasörüne gider. Başka bir klasör seçmek için dokun.
-HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram artık %1$s klasörüne erişemiyor, bu yüzden kaydedilenler Movies ve Pictures klasörlerine gidiyor. Klasörü yeniden seç.
+Instagram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	Instagram artık %1$s klasörüne erişemiyor, bu yüzden kaydedilenler Movies ve Pictures klasörlerine gidiyor. Klasörü yeniden seç.
 Use Movies and Pictures	Movies ve Pictures kullan
 Stop using the folder you picked. Saves go back to Movies and Pictures.	Seçtiğin klasörü kullanmayı bırak. Kaydedilenler yeniden Movies ve Pictures klasörlerine gider.
 Couldn't use that folder. Saves still go where they did.	Bu klasör kullanılamadı. Kaydedilenler eskisi gibi aynı yere gidiyor.
@@ -1387,7 +1375,7 @@ Stops the notification types you tick, even ones Instagram's own notification se
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram bu telefonda bildirim türlerini henüz ayarlamadı. Instagram'ı bir kez aç, sonra buraya dön.
 Unmute all	Tümünün sesini aç
 Settings button on Home's header	Ana sayfa üstünde Ayarlar düğmesi
-Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.	Ana sayfanın üstüne HushGram ayarlarını açan bir dişli ekler. Değişikliği görmek için Instagram'ı yeniden başlat.
+Adds a gear at the top of Home that opens Instagram settings. Restart Instagram to see the change.	Ana sayfanın üstüne Instagram ayarlarını açan bir dişli ekler. Değişikliği görmek için Instagram'ı yeniden başlat.
 Download button on stories	Hikayelerde indirme düğmesi
 Puts a Download button at the top of a story, beside the three dots. One tap saves the photo or video in front, the same as Download in the menu.	Bir hikayenin üstüne, üç noktanın yanına bir indirme düğmesi koyar. Tek dokunuş, menüdeki İndir gibi önündeki fotoğrafı veya videoyu kaydeder.
 Start reels muted	Reel'leri sessiz başlat
@@ -1493,3 +1481,68 @@ The screens asking you to sync your contacts and turn on location services stop 
 Stop videos looping	Videoları tekrarlama
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Akıştaki videolar ve reels videoları yeniden oynatılmak yerine son karelerinde durur. Otomatik kaydırma açıkken reels videoları bir sonrakine geçebilmesi için tekrarlanmaya devam eder.
+A long press on the menu button, the three lines at the top right of your own profile, opens these settings. A tap still opens Instagram's menu, and other profiles stay the same.	A long press on the menu button, the three lines at the top right of your own profile, opens these settings. A tap still opens Instagram's menu, and other profiles stay the same.
+Custom launch screen	Custom launch screen
+Hide the settings row in Instagram's menu	Hide the settings row in Instagram's menu
+How you open settings and arrange their layout.	How you open settings and arrange their layout.
+Instagram patch %1$s for app version %2$s	Instagram patch %1$s for app version %2$s
+Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.	Instagram's Settings and activity screen leaves out the settings row while another way to open these settings is on. With every other way off, the row comes back.
+Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Long press %1$s to open settings instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.
+No other settings shortcut is on, so the settings row stays in Instagram's menu.	No other settings shortcut is on, so the settings row stays in Instagram's menu.
+Set a screen lock on your phone so message locking can work.	Set a screen lock on your phone so message locking can work.
+Set a screen lock on your phone to use app locking.	Set a screen lock on your phone to use app locking.
+Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.
+Tab long presses keep Instagram's own action. Choose one to open settings instead.	Tab long presses keep Instagram's own action. Choose one to open settings instead.
+The changes take effect when Instagram restarts.	The changes take effect when Instagram restarts.
+The pause takes effect when Instagram restarts.	The pause takes effect when Instagram restarts.
+%1$d hours|few	%1$d hours|few
+%1$d hours|many	%1$d hours|many
+%1$d hours|two	%1$d hours|two
+%1$d hours|zero	%1$d hours|zero
+%1$d mentions|few	%1$d mentions|few
+%1$d mentions|many	%1$d mentions|many
+%1$d mentions|two	%1$d mentions|two
+%1$d mentions|zero	%1$d mentions|zero
+%1$d notification types are muted.|few	%1$d notification types are muted.|few
+%1$d notification types are muted.|many	%1$d notification types are muted.|many
+%1$d notification types are muted.|two	%1$d notification types are muted.|two
+%1$d notification types are muted.|zero	%1$d notification types are muted.|zero
+%1$d rows are left off Instagram's Settings and activity.|few	%1$d rows are left off Instagram's Settings and activity.|few
+%1$d rows are left off Instagram's Settings and activity.|many	%1$d rows are left off Instagram's Settings and activity.|many
+%1$d rows are left off Instagram's Settings and activity.|two	%1$d rows are left off Instagram's Settings and activity.|two
+%1$d rows are left off Instagram's Settings and activity.|zero	%1$d rows are left off Instagram's Settings and activity.|zero
+%1$d saves stopped. Reopen the media and save again.|few	%1$d saves stopped. Reopen the media and save again.|few
+%1$d saves stopped. Reopen the media and save again.|many	%1$d saves stopped. Reopen the media and save again.|many
+%1$d saves stopped. Reopen the media and save again.|two	%1$d saves stopped. Reopen the media and save again.|two
+%1$d saves stopped. Reopen the media and save again.|zero	%1$d saves stopped. Reopen the media and save again.|zero
+%1$d saves were interrupted|few	%1$d saves were interrupted|few
+%1$d saves were interrupted|many	%1$d saves were interrupted|many
+%1$d saves were interrupted|two	%1$d saves were interrupted|two
+%1$d saves were interrupted|zero	%1$d saves were interrupted|zero
+%1$d words|few	%1$d words|few
+%1$d words|many	%1$d words|many
+%1$d words|two	%1$d words|two
+%1$d words|zero	%1$d words|zero
+%1$dm left|few	%1$dm left|few
+%1$dm left|many	%1$dm left|many
+%1$dm left|two	%1$dm left|two
+%1$dm left|zero	%1$dm left|zero
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|few	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|few
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|many	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|many
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|two	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|two
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|zero	%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.|zero
+%d notifications|few	%d notifications|few
+%d notifications|many	%d notifications|many
+%d notifications|two	%d notifications|two
+%d notifications|zero	%d notifications|zero
+Loading older messages. %1$d messages so far.|few	Loading older messages. %1$d messages so far.|few
+Loading older messages. %1$d messages so far.|many	Loading older messages. %1$d messages so far.|many
+Loading older messages. %1$d messages so far.|two	Loading older messages. %1$d messages so far.|two
+Loading older messages. %1$d messages so far.|zero	Loading older messages. %1$d messages so far.|zero
+Couldn't save Ghost mode for this account.	Couldn't save Ghost mode for this account.
+Fingerprint or face unlock couldn't start. Hidden Chats stayed locked.	Fingerprint or face unlock couldn't start. Hidden Chats stayed locked.
+Lock Hidden Chats with biometrics	Lock Hidden Chats with biometrics
+Opening Hidden Chats asks for fingerprint or face only. A phone PIN or password won't open it. Needs Android 11 or newer with biometrics set up.	Opening Hidden Chats asks for fingerprint or face only. A phone PIN or password won't open it. Needs Android 11 or newer with biometrics set up.
+Set up a fingerprint or face unlock on Android 11 or newer to open Hidden Chats.	Set up a fingerprint or face unlock on Android 11 or newer to open Hidden Chats.
+Turns the switches that keep what you do to yourself on or off for this Instagram account, like View stories anonymously and Hide that you're typing. Each account remembers its own choice.	Turns the switches that keep what you do to yourself on or off for this Instagram account, like View stories anonymously and Hide that you're typing. Each account remembers its own choice.
+Unlock Hidden Chats	Unlock Hidden Chats

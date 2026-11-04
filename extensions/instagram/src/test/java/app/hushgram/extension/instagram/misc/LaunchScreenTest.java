@@ -37,7 +37,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** When HushGram launch screen tells Android which launch screen to show, and what it tells it. */
+/** When Custom launch screen tells Android which launch screen to show, and what it tells it. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 37)
 public class LaunchScreenTest {

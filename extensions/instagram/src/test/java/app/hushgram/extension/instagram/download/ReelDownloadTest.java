@@ -188,7 +188,7 @@ public class ReelDownloadTest {
         assertEquals(List.of(FamilyNames.REEL_DOWNLOAD + ": invoked 1, 0 found, 0 missing. "
                 + "Counted: no video versions 1, no manifest 1, has image candidates 1, saved as photo 1"), HookStatus.report());
         assertTrue("the save didn't say it started", ShadowToast.showedToast("Saving...")
-                || ShadowToast.showedToast("Saving... You can cancel from Downloads in HushGram settings."));
+                || ShadowToast.showedToast("Saving... You can cancel from Downloads in Instagram settings."));
     }
 
     /** A reel with a video saves the video, never the picture every video has as its cover. */

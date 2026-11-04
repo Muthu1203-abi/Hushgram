@@ -38,6 +38,10 @@ public final class HiddenChatsTap {
 
     /** The id name of Messages' button at the top of Home, on the bar layout that has one there. */
     static final String HEADER_INBOX = "action_bar_inbox_button";
+    private static final String TAB_BAR = "tab_bar";
+
+    /** Other main tabs: leaving Messages resets the temporary hidden-only inbox view. */
+    private static final String[] OTHER_TABS = {"feed_tab", "clips_tab", "search_tab", "profile_tab", "activity_tab", "create_tab"};
 
     /** Whether a point of [activity]'s window is on one of Messages' buttons. */
     interface Buttons {
@@ -66,6 +70,7 @@ public final class HiddenChatsTap {
     public static boolean touch(Activity activity, MotionEvent event) {
         try {
             if (event == null || activity == null) return false;
+            HiddenChats.watchHiddenUnreadDot(activity);
             return decide(activity, event.getActionMasked(), event.getX(), event.getY(), event.getEventTime());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chats tap", failure);
@@ -84,6 +89,10 @@ public final class HiddenChatsTap {
                 downTime = time;
                 downX = x;
                 downY = y;
+                if (onOtherTab(activity, x, y)) {
+                    HiddenChats.showRegularInbox();
+                    forget();
+                }
                 if (!switchedOn()) {
                     forget();
                     return false;
@@ -163,6 +172,14 @@ public final class HiddenChatsTap {
         return on(activity, DIRECT_TAB, x, y) || on(activity, HEADER_INBOX, x, y);
     }
 
+    private static boolean onOtherTab(Activity activity, float x, float y) {
+        if (on(activity, DIRECT_TAB, x, y)) return false;
+        for (String tab : OTHER_TABS) if (on(activity, tab, x, y)) return true;
+        // Some Instagram builds give the remaining tabs different resource names. A tap in the
+        // tab bar that isn't on Messages still means the person is leaving the hidden inbox.
+        return on(activity, TAB_BAR, x, y);
+    }
+
     private static boolean on(Activity activity, String name, float x, float y) {
         int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
         if (id == 0) return false;
@@ -178,7 +195,10 @@ public final class HiddenChatsTap {
         activity.getWindow().getDecorView().post(() -> {
             try {
                 if (activity.isFinishing() || activity.isDestroyed()) return;
-                MessagesLock.confirmHiddenThen(activity, () -> HiddenChats.toggleHiddenOnlyInbox());
+                MessagesLock.confirmHiddenThen(activity, () -> {
+                    HiddenChats.toggleHiddenOnlyInbox();
+                    HiddenChats.watchInboxIndicator(activity);
+                });
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chats tap", failure);
             }

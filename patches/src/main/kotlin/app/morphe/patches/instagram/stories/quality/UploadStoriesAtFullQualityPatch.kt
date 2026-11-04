@@ -68,7 +68,7 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
     name = "Upload stories at full quality",
     description = "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own " +
         "Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so " +
-        "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
+        "viewers see a small difference. Starts off. Turn it on in Instagram settings > Stories.",
     default = true,
 ) {
     category("Stories")

@@ -32,7 +32,7 @@ import org.w3c.dom.Element
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
-private const val PATCH = "HushGram launch screen"
+private const val PATCH = "Custom launch screen"
 
 /** The theme Instagram's launcher activities wear, whose Android 12 version names the launch screen's icon. */
 internal const val INSTAGRAM_LAUNCH_THEME = "Base.Theme.Launcher"
@@ -67,8 +67,8 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val BOXED_INT = "Ljava/lang/Integer;"
 
 /**
- * HushGram's mark, drawn from vectors so it's sharp on every screen: the pink to plum tile of the
- * app's icon with its white H and the ribbon through it. Android 12's launch screen shows an icon in
+ * The app's custom mark, drawn from vectors so it's sharp on every screen: a pink to plum tile with
+ * its white H and the ribbon through it. Android 12's launch screen shows an icon in
  * a 160dp square, masked to the middle two thirds, and Instagram's own glyph is 61.333dp across, so
  * the mark is 64dp, centered.
  */
@@ -289,9 +289,9 @@ private fun Method.where(): String = "$definingClass->$name"
  */
 @Suppress("unused")
 val launchScreenPatch = bytecodePatch(
-    name = "HushGram launch screen",
-    description = "Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on " +
-        "Android 13 and newer. Starts off. Turn it on in HushGram settings > Layout.",
+    name = "Custom launch screen",
+    description = "Shows the app's custom pink and plum mark instead of Instagram's logo on the startup screen, on " +
+        "Android 13 and newer. Starts off. Turn it on in Instagram settings > Layout.",
     default = true,
 ) {
     category("Interface")

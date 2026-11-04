@@ -398,7 +398,7 @@ public class SettingsLockPageTest {
                     new Intent().setData(document));
             Utils.awaitBackgroundTasksForTests();
             ShadowLooper.idleMainLooper();
-            assertEquals("HushGram", new JSONObject(output.toString(StandardCharsets.UTF_8.name())).getString("project"));
+            assertEquals("Instagram", new JSONObject(output.toString(StandardCharsets.UTF_8.name())).getString("project"));
             assertEquals(State.LOCKED, SettingsLock.state());
         }
     }

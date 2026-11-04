@@ -198,7 +198,7 @@ public class SettingsDialogBoundaryTest {
                 page.getView().findViewById(android.R.id.list).hasFocus());
         ShadowLooper.idleMainLooper();
         assertTrue("a screen reader must return to the page heading",
-                text(dialog.getView(), "HushGram").isAccessibilityFocused());
+                text(dialog.getView(), "Instagram").isAccessibilityFocused());
         assertNull(text(dialog.getView(), "Retry"));
         retry.performClick();
         assertSame(page, dialog.getChildFragmentManager().findFragmentById(SettingsDialog.CONTAINER_ID));
@@ -396,7 +396,7 @@ public class SettingsDialogBoundaryTest {
         ViewGroup header = (ViewGroup) root.getChildAt(0);
         View back = header.getChildAt(0);
         TextView title = (TextView) header.getChildAt(1);
-        assertEquals("HushGram", String.valueOf(title.getText()));
+        assertEquals("Instagram", String.valueOf(title.getText()));
         assertEquals(0, title.getLayout().getEllipsisCount(0));
         assertEquals(title.getText().length(), title.getLayout().getLineEnd(title.getLineCount() - 1));
         assertTrue(title.getHeight() >= title.getLayout().getHeight());

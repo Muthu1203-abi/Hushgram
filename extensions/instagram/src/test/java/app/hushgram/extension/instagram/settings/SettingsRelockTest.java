@@ -118,7 +118,7 @@ public class SettingsRelockTest {
             View content = dialog.getDialog().getWindow().getDecorView().findViewById(android.R.id.content);
             assertEquals("a screen reader could still read the settings",
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, content.getImportantForAccessibility());
-            assertTrue(texts(cover).contains("HushGram settings are locked"));
+            assertTrue(texts(cover).contains("Instagram settings are locked"));
 
             // A cancel keeps the cover and its Unlock button.
             unlockButton(cover).performClick();

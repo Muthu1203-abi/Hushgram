@@ -16,10 +16,12 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import android.content.Context;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
+import android.preference.SwitchPreference;
 
 import java.util.Set;
 
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.instagram.direct.MessagesLock;
 
 /** Builds the Messages category of HushGram settings. */
 final class MessagesCategory {
@@ -137,7 +139,7 @@ final class MessagesCategory {
                                 + "chat loads its older messages on its own, with a count and a Cancel button.")));
                 messages.addPreference(toggle(context, Settings.EXPORT_CHAT, L10n.t("Export a chat as text"),
                         L10n.t("Long press a chat's name and pick Export chat. The whole chat is saved as a text file "
-                                + "in Downloads, HushGram folder, one line per message.")));
+                                + "in Downloads, Instagram folder, one line per message.")));
             }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),
@@ -167,6 +169,12 @@ final class MessagesCategory {
                 messages.addPreference(changePinRow(context));
                 messages.addPreference(page.lockedChatsRow(context));
                 messages.addPreference(page.hiddenChatsRow(context));
+                SwitchPreference biometricLock = lockToggle(context, Settings.HIDDEN_CHATS_BIOMETRIC_LOCK,
+                        L10n.t("Lock Hidden Chats with biometrics"),
+                        L10n.t("Opening Hidden Chats asks for fingerprint or face only. A phone PIN or password won't open it. Needs Android 11 or newer with biometrics set up."));
+                boolean biometricReady = android.os.Build.VERSION.SDK_INT >= 30 && MessagesLock.biometricsReady(context);
+                if (!biometricReady && !Settings.HIDDEN_CHATS_BIOMETRIC_LOCK.savedValue()) biometricLock.setEnabled(false);
+                messages.addPreference(biometricLock);
                 messages.addPreference(toggle(context, Settings.DOUBLE_TAP_HIDDEN_CHATS,
                         L10n.t("Double-tap Messages for hidden chats"),
                         L10n.t("Two quick taps on the Messages button switch between your hidden chats and the "

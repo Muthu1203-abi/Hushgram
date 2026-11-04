@@ -25,7 +25,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Pause and diagnostics folds like every other category, and opens by itself, without a way to
- * fold it, while HushGram is paused, the settings are locked or a save was interrupted.
+ * fold it, while Instagram is paused, the settings are locked or a save was interrupted.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)

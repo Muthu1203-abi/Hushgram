@@ -64,7 +64,7 @@ private const val VIEW = "Landroid/view/View;"
 val feedSeekBarPatch = bytecodePatch(
     name = "Seek bar on feed videos",
     description = "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any " +
-        "point in it. Starts off. Turn it on in HushGram settings > Feed.",
+        "point in it. Starts off. Turn it on in Instagram settings > Feed.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)

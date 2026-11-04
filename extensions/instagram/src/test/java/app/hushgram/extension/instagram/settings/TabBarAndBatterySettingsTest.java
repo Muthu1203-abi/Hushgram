@@ -457,8 +457,8 @@ public class TabBarAndBatterySettingsTest {
         SwitchPreference liquid = (SwitchPreference) row(Settings.GLASS_TAB_BAR_LIQUID.key);
         assertNotNull(liquid);
         assertEquals("Liquid glass look", String.valueOf(liquid.getTitle()));
-        assertEquals("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list "
-                + "down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. "
+        assertEquals("Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling "
+                        + "a list down shrinks the bar to the tab you're on, unless Hide the tab bar as you scroll is on. "
                 + "Restart Instagram after changing it.", String.valueOf(liquid.getSummary()));
         assertFalse(liquid.isChecked());
         assertFalse(Settings.GLASS_TAB_BAR_LIQUID.defaultValue);

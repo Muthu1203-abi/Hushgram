@@ -7,7 +7,13 @@ package app.hushgram.extension.instagram.settings;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.os.Build;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewParent;
 
@@ -25,6 +31,7 @@ public final class NavigationSettings {
     private NavigationSettings() { }
     // Neither side retains a View or Activity. The live View owns its real listener, as before.
     private static final WeakHashMap<View, Binding> nativeBindings = new WeakHashMap<>();
+    private static final WeakHashMap<View, GhostOutline> ghostOutlines = new WeakHashMap<>();
 
     private static final class Binding {
         final String tab;
@@ -110,6 +117,84 @@ public final class NavigationSettings {
             nativeBindings.put(view, next);
         }
         view.setOnLongClickListener(new Press(next, original));
+        refreshGhostTabIndicator();
+    }
+
+    /** Keeps the chosen tab's outline in step with Ghost mode, without changing Instagram's background or ripple. */
+    public static void refreshGhostTabIndicator() {
+        try {
+            NavigationTarget target = Utils.settingsReady() ? Settings.GHOST_TAB_TARGET.get() : NavigationTarget.OFF;
+            boolean on = target != NavigationTarget.OFF && Utils.settingsReady()
+                    && !app.hushgram.extension.shared.settings.HushgramPause.isPaused()
+                    && GhostMode.on(GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild())));
+            List<Map.Entry<View, Binding>> bound;
+            synchronized (nativeBindings) {
+                bound = new ArrayList<>(nativeBindings.entrySet());
+            }
+            for (Map.Entry<View, Binding> entry : bound) {
+                View view = entry.getKey();
+                Binding binding = entry.getValue();
+                if (view == null || binding == null) continue;
+                boolean selected = on && target.name().equals(binding.tab);
+                setGhostOutline(view, selected);
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "Navigation settings: could not refresh the Ghost mode tab outline", t);
+        }
+    }
+
+    private static void setGhostOutline(View view, boolean enabled) {
+        synchronized (ghostOutlines) {
+            GhostOutline outline = ghostOutlines.get(view);
+            if (!enabled) {
+                if (outline != null) {
+                    view.getOverlay().remove(outline.drawable);
+                    view.removeOnLayoutChangeListener(outline);
+                    ghostOutlines.remove(view);
+                }
+                return;
+            }
+            if (outline == null) {
+                outline = new GhostOutline(view.getResources().getDisplayMetrics().density);
+                ghostOutlines.put(view, outline);
+                view.addOnLayoutChangeListener(outline);
+                view.getOverlay().add(outline.drawable);
+            }
+            outline.size(view.getWidth(), view.getHeight());
+            outline.drawable.invalidateSelf();
+        }
+    }
+
+    private static final class GhostOutline implements View.OnLayoutChangeListener {
+        final OutlineDrawable drawable;
+        GhostOutline(float density) { drawable = new OutlineDrawable(density); }
+        void size(int width, int height) { drawable.setBounds(0, 0, width, height); }
+        @Override public void onLayoutChange(View view, int left, int top, int right, int bottom,
+                int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            size(right - left, bottom - top);
+        }
+    }
+
+    private static final class OutlineDrawable extends Drawable {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF bounds = new RectF();
+        private final float inset;
+        private final float radius;
+        OutlineDrawable(float density) {
+            inset = 2f * density;
+            radius = 9f * density;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(2f * density);
+            paint.setColor(Color.rgb(239, 54, 69));
+        }
+        @Override public void draw(Canvas canvas) {
+            bounds.set(getBounds());
+            bounds.inset(inset, inset);
+            canvas.drawRoundRect(bounds, radius, radius, paint);
+        }
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
+        @Override public void setColorFilter(android.graphics.ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /**
@@ -139,6 +224,7 @@ public final class NavigationSettings {
                     if (original == null) view.setLongClickable(false);
                 }
             }
+            refreshGhostTabIndicator();
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);
         }

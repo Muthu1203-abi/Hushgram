@@ -29,7 +29,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Support HushGram: the settings home's last row, which opens the Ko-fi page in a browser. */
+/** Support Instagram: the settings home's last row, which opens the Ko-fi page in a browser. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -75,7 +75,7 @@ public class SupportRowSettingsTest {
     private void assertLastIsSupport() {
         Preference row = last();
         assertEquals("action_support_hushgram", row.getKey());
-        assertEquals("Support HushGram", String.valueOf(row.getTitle()));
+        assertEquals("Support Instagram", String.valueOf(row.getTitle()));
         assertNull("the row is its name alone", row.getSummary());
     }
 
@@ -138,7 +138,7 @@ public class SupportRowSettingsTest {
         Uri link = started.getData();
         assertEquals("/SysAdminDoc/HushGram/issues/new", link.getPath());
         assertEquals("bug_report.yml", link.getQueryParameter("template"));
-        assertTrue(link.getQueryParameter("versions"), link.getQueryParameter("versions").startsWith("HushGram "));
+        assertTrue(link.getQueryParameter("versions"), link.getQueryParameter("versions").startsWith("Instagram patch "));
         assertTrue(link.getQueryParameter("bug_description").startsWith("What happened:"));
         String switches = link.getQueryParameter("additional_context");
         assertTrue(switches, switches.startsWith("Switches on: ") && switches.contains("Hide ads"));

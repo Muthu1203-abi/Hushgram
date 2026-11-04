@@ -140,7 +140,7 @@ public class RefreshRateTest {
     }
 
     /**
-     * HushGram settings open over Instagram's screen, which never resumes when they close, so the
+     * Instagram settings open over Instagram's screen, which never resumes when they close, so the
      * flip itself reaches the activity under them (#401). Before, the request waited for a cold start.
      */
     @Test

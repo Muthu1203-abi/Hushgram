@@ -88,7 +88,7 @@ final class TabBarCategory {
                                     + "to see the change.")));
                 }
                 glass.addPreference(toggle(context, Settings.SETTINGS_BUTTON_ON_HOME, L10n.t("Settings button on Home's header"),
-                        L10n.t("Adds a gear at the top of Home that opens HushGram settings. Restart Instagram "
+                        L10n.t("Adds a gear at the top of Home that opens Instagram settings. Restart Instagram "
                                 + "to see the change.")));
                 glass.addPreference(toggle(context, Settings.CENTER_HOME_LOGO, L10n.t("Center the logo on Home's header"),
                         L10n.t("Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden "
@@ -119,8 +119,8 @@ final class TabBarCategory {
                         L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
                 glass.addPreference(glassBlurRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
-                        L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
-                                + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "
+                        L10n.t("Rounds the pill and its highlight, keeping Search with the other tabs in the same pill. Scrolling "
+                                + "a list down shrinks the bar to the tab you're on, unless Hide the tab bar as "
                                 + "you scroll is on. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_KEEP_SIZE, L10n.t("Keep the pill full size"),
                         L10n.t("Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart "

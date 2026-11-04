@@ -28,6 +28,7 @@ import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
@@ -182,7 +183,7 @@ public final class StorySeenButton {
 
     /** Whether the button shows: views held back and its own switch on. Both read off while paused. */
     static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.VIEW_STORIES_ANONYMOUSLY.get() && Settings.MARK_STORIES_SEEN.get();
+        return Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_STORIES_ANONYMOUSLY) && Settings.MARK_STORIES_SEEN.get();
     }
 
     /** What the button says it does, for TalkBack. */

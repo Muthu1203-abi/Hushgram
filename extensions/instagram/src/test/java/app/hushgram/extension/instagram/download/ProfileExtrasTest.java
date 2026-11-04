@@ -49,7 +49,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * The Profile extras button: first in the profile bar's right row after every bind, gone when the
- * switch is off, HushGram is paused or nothing is switched on, and a tap lists only the enabled
+ * switch is off, Instagram is paused or nothing is switched on, and a tap lists only the enabled
  * profile actions (#234).
  */
 @RunWith(RobolectricTestRunner.class)

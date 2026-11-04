@@ -34,7 +34,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** HushGram launch screen's switch: under Layout after the accent rows, off to start, backed up. */
+/** Custom launch screen's switch: under Layout after the accent rows, off to start, backed up. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -86,9 +86,8 @@ public class LaunchScreenSettingsTest {
         open(EnumSet.of(PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR, PatchFamily.LAUNCH_SCREEN));
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.LAUNCH_SCREEN.key);
         assertNotNull(row);
-        assertEquals("HushGram launch screen", row.getTitle().toString());
-        assertEquals("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, "
-                + "on Android 13 and newer. It shows from the next start.", row.getSummary().toString());
+        assertEquals("Custom launch screen", row.getTitle().toString());
+        assertEquals("Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.", row.getSummary().toString());
         PreferenceGroup layout = row.getParent();
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();

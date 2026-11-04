@@ -600,7 +600,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row donate = support = new Row(context);
         donate.setKey(SUPPORT_ROW_KEY);
         // Its name alone, with no line under it.
-        donate.setTitle(L10n.t("Support HushGram"));
+        donate.setTitle(L10n.t("Support Instagram"));
         donate.setPersistent(false);
         // Native Preference.compareTo subtracts orders, so leave room for negative header orders.
         donate.setOrder(Integer.MAX_VALUE / 2);
@@ -1161,15 +1161,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SwitchPreference row = new Toggle(context);
         row.setPersistent(false);
         row.setTitle(L10n.t("Ghost mode"));
-        row.setSummary(L10n.t("Turns the switches that keep what you do to yourself on or off in one go, like View "
-                + "stories anonymously and Hide that you're typing. Each one keeps its own switch."));
+        row.setSummary(L10n.t("Turns the switches that keep what you do to yourself on or off for this Instagram account, "
+                + "like View stories anonymously and Hide that you're typing. Each account remembers its own choice."));
         row.setOnPreferenceChangeListener((preference, value) -> {
             boolean on = Boolean.TRUE.equals(value);
             List<BooleanSetting> picked = GhostMode.picked(ghostSwitches);
-            for (BooleanSetting setting : picked) {
-                Preference own = findPreference(setting.key);
-                if (own instanceof TwoStatePreference && own.isPersistent()) ((TwoStatePreference) own).setChecked(on);
-                else setting.save(on);
+            if (!GhostMode.setForActiveAccount(on)) {
+                for (BooleanSetting setting : picked) {
+                    Preference own = findPreference(setting.key);
+                    if (own instanceof TwoStatePreference && own.isPersistent()) ((TwoStatePreference) own).setChecked(on);
+                    else setting.save(on);
+                }
             }
             showGhostMode();
             Utils.showToastShort(GhostMode.message(picked, on,
@@ -1437,7 +1439,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     private static String heldMessage() {
         return SettingsLock.locked() ? L10n.t("These settings are locked. Ask to unlock first.")
-                : L10n.t("HushGram settings are locked");
+                : L10n.t("Instagram settings are locked");
     }
 
     /** A deferred callback must save successfully before it presents a new value. */
@@ -2060,12 +2062,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Utils.showToastLong(L10n.t("Couldn't download the emoji. Try again."));
         } else if (result.verdict == FontVerdict.INVALID) {
             Utils.showToastLong(result.request == PICK_FONT
-                    ? L10n.t("That file isn't a font HushGram can use. Your font hasn't changed.")
+                    ? L10n.t("That file isn't a font Instagram can use. Your font hasn't changed.")
                     : result.request == PICK_STORY_FONT
-                    ? L10n.t("That file isn't a font HushGram can use. Nothing was added.")
+                    ? L10n.t("That file isn't a font Instagram can use. Nothing was added.")
                     : result.request == PICK_EMOJI
                     ? L10n.t("No color emoji in that file. Nothing changed.")
-                    : L10n.t("That file isn't a font HushGram can use. Story emoji haven't changed."));
+                    : L10n.t("That file isn't a font Instagram can use. Story emoji haven't changed."));
         } else if (result.request == PICK_EMOJI) {
             Utils.showToastLong(L10n.t("Emoji saved. Restart Instagram to see them."));
         } else if (result.request == PICK_FONT) {
@@ -2084,10 +2086,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     void exportConfiguration(Uri uri) {
         String token = configurationExportToken;
-        if (!ExportStatus.CONFIGURATION.start(token, L10n.t("Exporting HushGram settings..."))) return;
+        if (!ExportStatus.CONFIGURATION.start(token, L10n.t("Exporting Instagram settings..."))) return;
         Context context = getContext();
         if (context == null) {
-            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."));
+            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."));
             return;
         }
         Context application = context.getApplicationContext();
@@ -2100,16 +2102,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (output == null) throw new java.io.IOException();
                     output.write(bytes);
                 }
-                ExportStatus.CONFIGURATION.finish(token, L10n.t("HushGram settings exported."));
-                Utils.showToastLong(L10n.t("HushGram settings exported."));
+                ExportStatus.CONFIGURATION.finish(token, L10n.t("Instagram settings exported."));
+                Utils.showToastLong(L10n.t("Instagram settings exported."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration export failed");
-                ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."));
-                Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
+                ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."));
+                Utils.showToastLong(L10n.t("Couldn't export Instagram settings. Try another file."));
             } finally {
                 // An Error past the catch still ends the export, or every settings action stays busy until a restart.
-                if (ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."))) {
-                    Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
+                if (ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."))) {
+                    Utils.showToastLong(L10n.t("Couldn't export Instagram settings. Try another file."));
                 }
             }
         })) {
@@ -2235,7 +2237,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 ? L10n.f("Undo is available until %1$s.",
                 DateFormat.getTimeInstance(DateFormat.MEDIUM, L10n.locale(row.getContext())).format(
                         new Date(System.currentTimeMillis() + Math.max(0, deadline - SystemClock.elapsedRealtime()))))
-                : L10n.t("HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them "
+                : L10n.t("Instagram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them "
                         + "from this device."));
         row.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override public boolean onPreferenceClick(Preference preference) {
@@ -2530,12 +2532,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 paused ? palette.summary : palette.heading));
         statusCard = card;
         if (!paused) {
-            card.setTitle(L10n.t("HushGram is on"));
+            card.setTitle(L10n.t("Instagram is on"));
             card.setSelectable(false);
             showStatus(card, context);
             return card;
         }
-        card.setTitle(L10n.t("HushGram is paused"));
+        card.setTitle(L10n.t("Instagram is paused"));
         showStatus(card, context);
         // A tap acts at once, taking the pause off the next start, and the card says so in words.
         card.actsAtOnce = true;
@@ -2616,14 +2618,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (still == HushgramPause.Reason.MARKER_FILE) {
             String file = L10n.isolate(HushgramPause.MARKER_FILE_NAME);
             String folder = L10n.isolate(markerFolder(context.getPackageName()));
-            String left = L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
+            String left = L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn Instagram back on.",
                     file, folder);
             statusCard.setSummary(left);
             Utils.showToastLong(left);
             return;
         }
         if (still != HushgramPause.Reason.NONE) {
-            Utils.showToastLong(L10n.t("Couldn't turn HushGram back on. Try again."));
+            Utils.showToastLong(L10n.t("Couldn't turn Instagram back on. Try again."));
         }
         showStatus(statusCard, context);
         showRestart();
@@ -2639,12 +2641,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (!HushgramPause.isPaused()) {
             String version = L10n.f("Version %1$s for Instagram %2$s",
                     L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
-            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.") : version;
+            status = pausedNext ? version + " " + L10n.t("The pause takes effect when Instagram restarts.") : version;
         } else if (pausedNext) {
             status = pausedSummary(HushgramPause.reason(), context.getPackageName())
                     + " " + L10n.t("Tap to turn it back on.");
         } else {
-            status = L10n.t("HushGram turns back on when Instagram restarts.");
+            status = L10n.t("The changes take effect when Instagram restarts.");
         }
         card.setSummary(status);
     }
@@ -2722,14 +2724,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         switch (reason) {
             case CRASH_LOOP:
                 why = L10n.t("Instagram crashed or froze within a minute of starting three times in a row, so "
-                        + "HushGram paused itself.");
+                        + "Instagram paused itself.");
                 break;
             case MARKER_FILE:
-                why = L10n.f("A file named %1$s in %2$s paused HushGram.",
+                why = L10n.f("A file named %1$s in %2$s paused Instagram.",
                         L10n.isolate(HushgramPause.MARKER_FILE_NAME), L10n.isolate(markerFolder(packageName)));
                 break;
             default:
-                why = L10n.t("You paused HushGram.");
+                why = L10n.t("You paused Instagram.");
                 break;
         }
         return why + " " + L10n.t("Every switch but Debug logging acts as if it were off, and what was set when you "
@@ -2849,10 +2851,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setDialogTitle(L10n.t("Unlock with"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         if (Build.VERSION.SDK_INT >= 30) {
-            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN"), L10n.t("Fingerprint or face only")});
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("Instagram PIN"), L10n.t("Fingerprint or face only")});
             row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name(), UnlockWith.BIOMETRICS.name()});
         } else {
-            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN")});
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("Instagram PIN")});
             row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()});
         }
         row.setValue(Settings.UNLOCK_WITH.savedValue().name());
@@ -2890,7 +2892,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (state == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
             return L10n.t("This phone has no fingerprint or face unlock to use.");
         }
-        return L10n.t("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.");
+        return L10n.t("Your phone won't let Instagram use your fingerprint or face right now. Check its fingerprint and face settings.");
     }
 
     /** The row that sets or changes the HushGram PIN; changing it while locked asks the current lock first. */
@@ -2898,7 +2900,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row row = new Row(context);
         row.setKey(CHANGE_PIN_ROW);
         row.setPersistent(false);
-        row.setTitle(L10n.t("HushGram PIN"));
+        row.setTitle(L10n.t("Instagram PIN"));
         row.setSummary(L10n.t("Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup."));
         row.setOnPreferenceClickListener(tapped -> {
             Activity activity = activityOf(tapped.getContext());
@@ -3013,8 +3015,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(HIDDEN_CHATS_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("Hidden chats"));
-        row.setSummary(L10n.t("Hide single chats. A hidden chat leaves your inbox and its notifications don't post "
-                + "until you show it here again."));
+        row.setSummary(L10n.t("Hide single chats. A hidden chat leaves your inbox, unread badge counts, and "
+                + "notifications until you show it here again. Long-press a chat in Messages and choose Hide chat "
+                + "to add it."));
         row.setOnPreferenceClickListener(tapped -> {
             Activity activity = getActivity();
             if (activity == null) return true;
@@ -3062,7 +3065,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (last != null) chats.add(0, last);
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden chats"));
         if (chats.isEmpty()) {
-            builder.setMessage(L10n.t("Open a chat in Instagram, then come back here to hide it."));
+            builder.setMessage(L10n.t("Long-press a chat in Messages and choose Hide chat to add it here."));
         } else {
             CharSequence[] names = new CharSequence[chats.size()];
             boolean[] hidden = new boolean[chats.size()];
@@ -3437,17 +3440,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     static String wayInSummary(Setting<?> setting) {
         if (setting == Settings.SETTINGS_SHORTCUT) {
-            return L10n.t("Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.");
+            return L10n.t("Puts Instagram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.");
         }
         if (setting == Settings.SETTINGS_LOGO_PRESS) {
             return L10n.t("A long press on the Instagram logo at the top of Home opens these settings. Off, the long "
                     + "press goes back to Instagram.");
         }
         if (Settings.HIDE_MENU_ROW.savedValue() && SettingsEntry.waysInOn() == 0) {
-            return L10n.t("No other way into HushGram is on, so the row stays in Instagram's menu.");
+            return L10n.t("No other settings shortcut is on, so the settings row stays in Instagram's menu.");
         }
-        return L10n.t("Instagram's Settings and activity screen leaves out the HushGram row while another way here "
-                + "opens HushGram. With every other way off, the row comes back.");
+        return L10n.t("Instagram's Settings and activity screen leaves out the settings row while another way to "
+                + "open these settings is on. With every other way off, the row comes back.");
     }
 
     /**
@@ -3459,7 +3462,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SwitchPreference row = toggle(context, Settings.PROFILE_MENU_LONG_PRESS,
                 L10n.t("Open settings with a long press on your profile's menu"),
                 L10n.t("A long press on the menu button, the three lines at the top right of your own profile, "
-                        + "opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same."));
+                        + "opens these settings. A tap still opens Instagram's menu, and other profiles stay the same."));
         row.setOnPreferenceChangeListener((preference, value) -> {
             Utils.runOnMainThread(ProfileMenuPress::applyChoice);
             return true;
@@ -4000,7 +4003,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What the list calls [icon]. HushGram's own name isn't translated. */
     static String appIconLabel(AppIconChoice icon) {
         switch (icon) {
-            case HUSHGRAM: return "HushGram";
+            case HUSHGRAM: return "Instagram";
             case DARK: return L10n.t("Instagram on black");
             case PLUM: return L10n.t("Instagram on plum");
             case LIGHT: return L10n.t("Instagram in black on white");
@@ -6459,7 +6462,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.")
                         : L10n.f("Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a "
                                 + "toast says which way it went. Normal taps and other tabs stay the same. If the same tab "
-                                + "opens HushGram or picks the playback quality, that comes first.", navigationLabel(target));
+                                + "opens Instagram or picks the playback quality, that comes first.", navigationLabel(target));
                 setSummary(summary);
                 return;
             }
@@ -6468,13 +6471,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.")
                         : L10n.f("Long press %1$s to pick the playback quality instead of that tab's usual action. "
                                 + "Normal taps and other tabs stay the same. Needs Default playback quality on. "
-                                + "If the same tab opens HushGram, that comes first.", navigationLabel(target));
+                                + "If the same tab opens Instagram, that comes first.", navigationLabel(target));
                 setSummary(summary);
                 return;
             }
             summary = target == NavigationTarget.OFF
-                    ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open HushGram instead.")
-                    : L10n.f("Long press %1$s to open HushGram instead of that tab's usual action. "
+                    ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open settings instead.")
+                    : L10n.f("Long press %1$s to open settings instead of that tab's usual action. "
                             + "Normal taps and other tabs stay the same. Only tabs your account shows can be used.",
                             navigationLabel(target));
             setSummary(summary);
@@ -7998,6 +8001,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     @Override
     protected CharSequence initializationErrorTitle(@Nullable Context context) {
-        return L10n.t(context, "HushGram settings couldn't open");
+        return L10n.t(context, "Instagram settings couldn't open");
     }
 }

@@ -46,7 +46,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * With a HushGram PIN behind the locks, every setting that would weaken one asks the PIN, the
+ * With a Instagram PIN behind the locks, every setting that would weaken one asks the PIN, the
  * phone's lock never stands in for it, and a wrong PIN leaves the setting as it was. The rows are
  * the ones on the settings screen, reached by search and by the full list as well.
  */
@@ -211,7 +211,7 @@ public class PinBypassTest {
 
     @Test
     public void changingThePinAsksTheCurrentOneFirst() {
-        eachRoute("hushgram_change_pin_row", "HushGram PIN", () -> {
+        eachRoute("hushgram_change_pin_row", "Instagram PIN", () -> {
             Preference row = row("hushgram_change_pin_row");
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             AlertDialog ask = dialog();

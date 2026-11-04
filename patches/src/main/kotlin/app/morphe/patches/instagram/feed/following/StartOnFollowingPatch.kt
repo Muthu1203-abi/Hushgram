@@ -87,7 +87,7 @@ val startOnFollowingPatch = bytecodePatch(
         "you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. A " +
         "fourth, Fall back to Following, opens Home on Following for an account whose For you brings only " +
         "suggested posts, unless you picked a feed. Restart Instagram to see the change. Starts off. Turn it on " +
-        "in HushGram settings > Feed.",
+        "in Instagram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -161,7 +161,7 @@ public class RepostButtonTest {
                 HookStatus.report());
     }
 
-    /** A state built before the settings can be read, or while HushGram is paused, keeps Instagram's flag. */
+    /** A state built before the settings can be read, or while Instagram is paused, keeps Instagram's flag. */
     @Test
     @Config(sdk = {28, 37})
     public void theFeedStateWaitsForNeitherTheSettingsNorThePause() {

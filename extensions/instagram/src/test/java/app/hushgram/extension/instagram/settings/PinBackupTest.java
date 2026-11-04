@@ -27,7 +27,7 @@ import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
 import app.hushgram.extension.shared.SettingsContextRule;
 
-/** The HushGram PIN never leaves the phone in a Configuration backup, and a backup can't set it. */
+/** The Instagram PIN never leaves the phone in a Configuration backup, and a backup can't set it. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class PinBackupTest {

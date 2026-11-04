@@ -58,7 +58,7 @@ public class SettingsScreenRowLayoutTest {
     @Config(qualifiers = "w320dp-h640dp-xhdpi")
     public void theTitleWrapsAtTwiceTheTextSize() {
         ViewGroup row = rowAtTwiceTheTextSize();
-        assertFits(row, "HushGram settings");
+        assertFits(row, "Instagram settings");
     }
 
     @Test
@@ -73,7 +73,7 @@ public class SettingsScreenRowLayoutTest {
     @Config(qualifiers = "ldrtl-w320dp-h640dp-xhdpi")
     public void rightToLeftPutsTheMarkOnTheRight() {
         ViewGroup row = rowAtTwiceTheTextSize(true);
-        assertFits(row, "HushGram settings");
+        assertFits(row, "Instagram settings");
         View mark = row.getChildAt(0);
         View chevron = row.getChildAt(2);
         assertEquals(View.LAYOUT_DIRECTION_RTL, row.getLayoutDirection());

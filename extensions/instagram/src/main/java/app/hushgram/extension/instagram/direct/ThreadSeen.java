@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.direct;
 import android.content.Context;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -652,7 +653,7 @@ public final class ThreadSeen {
 
     /** The switch, read the way every hook here reads it. Tests hand it to the overloads that take fake chats. */
     static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.READ_WITHOUT_SEEN_RECEIPT.get();
+        return Utils.settingsReady() && GhostMode.enabled(Settings.READ_WITHOUT_SEEN_RECEIPT);
     }
 
     /** Both switches, read the same way: chats stay unread only while their receipts are held. */

@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.direct;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -57,6 +58,6 @@ public final class ScreenshotReports {
     }
 
     private static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.HIDE_SCREENSHOTS.get();
+        return Utils.settingsReady() && GhostMode.enabled(Settings.HIDE_SCREENSHOTS);
     }
 }

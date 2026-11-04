@@ -269,11 +269,46 @@ public final class MessagesLock {
      * it's you. The hidden-only inbox is entered through here, to keep it behind the same lock.
      */
     public static void confirmHiddenThen(Activity activity, Runnable then) {
+        if (Settings.HIDDEN_CHATS_BIOMETRIC_LOCK.get()) {
+            askHiddenBiometric(activity, then);
+            return;
+        }
         if (!switchedOn()) {
             then.run();
             return;
         }
         ask(activity, then);
+    }
+
+    /** Hidden Chats' own biometric gate. It never accepts the device credential as a fallback. */
+    @RequiresApi(30)
+    private static void askHiddenBiometric(Activity activity, Runnable then) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        if (Build.VERSION.SDK_INT < 30 || !biometricsReady(activity)) {
+            Utils.showToastLong(L10n.t("Set up a fingerprint or face unlock on Android 11 or newer to open Hidden Chats."));
+            return;
+        }
+        try {
+            BiometricPrompt prompt = new BiometricPrompt.Builder(activity)
+                    .setTitle(L10n.t("Unlock Hidden Chats"))
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .setNegativeButton(L10n.t("Cancel"), activity.getMainExecutor(), (dialog, which) -> { })
+                    .build();
+            prompt.authenticate(new CancellationSignal(), activity.getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                    if (!activity.isFinishing() && !activity.isDestroyed() && then != null) then.run();
+                }
+
+                @Override public void onAuthenticationError(int code, CharSequence message) {
+                    if (message != null && message.length() > 0 && !cancelledByYou(code)) {
+                        Utils.showToastLong(message.toString());
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
+            Utils.showToastLong(L10n.t("Fingerprint or face unlock couldn't start. Hidden Chats stayed locked."));
+        }
     }
 
     /**
@@ -927,7 +962,7 @@ public final class MessagesLock {
         column.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView title = new TextView(activity);
-        title.setText(SETTINGS.equals(screen) ? L10n.t("HushGram settings are locked")
+        title.setText(SETTINGS.equals(screen) ? L10n.t("Instagram settings are locked")
                 : wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
         ShimmerTitle.wear(title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
@@ -1045,8 +1080,8 @@ public final class MessagesLock {
         if (keyguard == null || !keyguard.isDeviceSecure()) {
             HookStatus.counted(FamilyNames.MESSAGES_LOCK, NO_PHONE_LOCK);
             Utils.showToastLong(wholeApp()
-                    ? L10n.t("Set a screen lock on your phone so HushGram can lock Instagram.")
-                    : L10n.t("Set a screen lock on your phone so HushGram can lock your messages."));
+                    ? L10n.t("Set a screen lock on your phone to use app locking.")
+                    : L10n.t("Set a screen lock on your phone so message locking can work."));
             confirmed.run();
             return;
         }

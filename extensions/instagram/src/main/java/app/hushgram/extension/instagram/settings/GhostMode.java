@@ -10,17 +10,21 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
+
+import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BooleanSetting;
+import app.hushgram.extension.shared.settings.Setting;
 
 /**
- * One switch over the switches that keep what you do on Instagram to yourself. It keeps no value of
- * its own: it's on while every one of them it turns is on, and flipping it saves the same value to
- * each. Which ones it turns is your pick ({@link #picked}, #251), all of them to start. Pause still
- * wins, since each switch reads as off while HushGram is paused.
+ * One switch over the switches that keep what you do on Instagram to yourself. Its on/off choice is
+ * stored by Instagram account; a selected feature reads that account's choice while its individual
+ * switch values remain the shared fallback. Which ones it turns is your pick ({@link #picked}, #251),
+ * all of them to start. Pause still wins.
  */
-final class GhostMode {
+public final class GhostMode {
     private GhostMode() { }
 
     /**
@@ -86,22 +90,69 @@ final class GhostMode {
         return switches.size() >= 2;
     }
 
-    /** On while every ghost switch is saved on. */
+    /** The account's saved master choice, or the switches' current state before it has one. */
     static boolean on(List<BooleanSetting> switches) {
+        if (Setting.isPaused()) return false;
+        String account = ChatAccounts.active();
+        Boolean saved = accountState(account);
+        if (saved != null) return saved;
         return !switches.isEmpty() && all(switches, true);
     }
 
+    /** Effective value for a selected Ghost mode switch on the account currently in front. */
+    public static boolean enabled(BooleanSetting setting) {
+        if (Setting.isPaused()) return false;
+        if (!pickedKeys().contains(setting.key)) return setting.get();
+        Boolean saved = accountState(ChatAccounts.active());
+        return saved == null ? setting.get() : saved;
+    }
+
+    private static Boolean accountState(String account) {
+        if (account == null || account.isEmpty()) return null;
+        try {
+            JSONObject states = new JSONObject(Settings.GHOST_MODE_ACCOUNT_STATES.savedValue());
+            return states.has(account) ? states.getBoolean(account) : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    static boolean saveAccountState(String account, boolean on) {
+        if (account == null || account.isEmpty()) return false;
+        try {
+            JSONObject states = new JSONObject(Settings.GHOST_MODE_ACCOUNT_STATES.savedValue());
+            states.put(account, on);
+            return Settings.GHOST_MODE_ACCOUNT_STATES.save(states.toString());
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    static boolean setForActiveAccount(boolean on) {
+        String account = ChatAccounts.active();
+        if (account == null) return false;
+        if (!saveAccountState(account, on)) {
+            Utils.showToastShort(L10n.t("Couldn't save Ghost mode for this account."));
+        }
+        return true;
+    }
+
     /**
-     * Saves the opposite of what the switches show now to each of them, so a build that has them all
-     * on turns them all off and any other turns them all on, then toasts which way it went. This is
-     * the flip for a place with no settings page open, so the failure toast names HushGram settings.
-     * Returns the value it saved.
+     * Saves the opposite of the effective account state, then refreshes the tab outline and toasts
+     * which way it went. Without a known account, it keeps the older behavior of saving each switch.
      */
     static boolean flip(List<BooleanSetting> switches) {
         boolean on = !on(switches);
-        for (BooleanSetting setting : switches) setting.save(on);
+        String account = ChatAccounts.active();
+        if (account == null) {
+            for (BooleanSetting setting : switches) setting.save(on);
+        } else if (!saveAccountState(account, on)) {
+            Utils.showToastShort(L10n.t("Couldn't save Ghost mode for this account."));
+            return !on;
+        }
+        NavigationSettings.refreshGhostTabIndicator();
         Utils.showToastShort(message(switches, on,
-                L10n.t("Couldn't change every Ghost mode switch. Open HushGram settings to check them.")));
+                L10n.t("Couldn't change every Ghost mode switch. Open Instagram settings to check them.")));
         return on;
     }
 
@@ -116,7 +167,7 @@ final class GhostMode {
     /** Whether every one of [switches] is saved as [value]. */
     static boolean all(List<BooleanSetting> switches, boolean value) {
         for (BooleanSetting setting : switches) {
-            if (setting.savedValue() != value) return false;
+            if (enabled(setting) != value) return false;
         }
         return true;
     }

@@ -36,7 +36,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * What Hide profile tabs does to the list of tab keys Instagram builds for a profile: it drops the
  * keys the setting for that profile names (your own or someone else's), never the grid, never by
- * position, and gives Instagram's list back untouched when nothing is picked, HushGram is paused or
+ * position, and gives Instagram's list back untouched when nothing is picked, Instagram is paused or
  * the list isn't one it knows.
  */
 @RunWith(RobolectricTestRunner.class)

@@ -83,11 +83,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * Without blur, or with
  * Android's blur unavailable, the pill is the same tint, more opaque.
  *
- * <p>The liquid look (#65) rounds the pill and the capsule fully, moves Search into a glass circle of its own
- * beside the pill, and spreads the other tabs over what's left, all by translation, so nothing is laid out
- * again. Both shapes share the one blurred backdrop, clipped to them. With Hide the tab bar as you scroll off,
- * a list scrolled down shrinks the pill to a circle round the tab you're on, next to Search's circle
- * ({@link GlassScrollHide}), and the other tabs fade out and take no touches until it grows back.
+ * <p>The liquid look (#65) rounds the pill and the capsule fully and keeps every tab, including Search,
+ * together in the same pill. With Hide the tab bar as you scroll off, a list scrolled down shrinks the pill
+ * to a circle round the tab you're on ({@link GlassScrollHide}), and the other tabs fade out and take no
+ * touches until it grows back.
  *
  * <p>Sizes follow the pill on Instagram's iPhone tab bar, as proportions of the screen's width
  * (see the constants), so they carry to any width, and are held to sensible limits on narrow and
@@ -128,7 +127,7 @@ public final class GlassTabBar {
     static final String REEL_MEDIA = "clips_media_component";
     /** Where Instagram puts what shows under a reel: a paused reel's controls, a comment field and the like (#260). */
     static final String REEL_FOOTERS = "clips_footer_mask_container";
-    /** The Search tab, a child of the bar, which the liquid look puts in a circle of its own (#65). */
+    /** The Search tab, a child of the bar. */
     static final String SEARCH_TAB = "search_tab";
     /** The Reels tab, a child of the bar. With it selected a reel keeps the pill's slot while the bar hides (#347). */
     static final String REELS_TAB = "clips_tab";
@@ -702,13 +701,9 @@ public final class GlassTabBar {
     static final String COUNT_SHEETS_LIFTED = "Sheets kept above the navigation bar";
     /** Counted each time the bar, left showing by Instagram over a story, is hidden for it (#224). */
     static final String COUNT_STORY_ASIDE = "Bar hidden over a story";
-    /** Counted once for each bar whose Search tab the liquid look puts in a circle of its own (#65). */
-    static final String COUNT_SEARCH_APART = "Search put in its own circle";
     /** Counted each time a tab badge's ring, new to the glass, is made clear (#315). */
     static final String COUNT_BADGE_RING = "Tab badge's ring made clear";
 
-    /** Liquid look (#65): the clear gap between the pill and Search's circle beside it. */
-    static final int SEARCH_GAP_DP = 8;
     /** How long the liquid bar takes to shrink to its compact row, and to grow back. */
     static final long COMPACT_MS = 260;
 
@@ -1380,7 +1375,6 @@ public final class GlassTabBar {
         private final RectF circle = new RectF();
         private final RectF whole = new RectF();
         private final java.util.ArrayList<View> order = new java.util.ArrayList<>();
-        private boolean countedApart;
 
         Glass(ViewGroup bar) {
             this.bar = bar;
@@ -1505,13 +1499,9 @@ public final class GlassTabBar {
         }
 
         /**
-         * Works out the liquid look's shapes for the pill [pillArea] into {@link #holder} and {@link #circle}:
-         * Search's circle beside the pill holding the other tabs when [search] shows and there's room, or the
-         * whole pill holding every tab. Says whether Search got its circle.
+         * Keeps the whole row of tabs, including Search, inside one glass pill.
          */
-        private boolean liquidShapes(RectF pillArea, @Nullable View search) {
-            boolean rtl = bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-            if (search != null && splitOffSearch(pillArea, dp(SEARCH_GAP_DP), rtl, holder, circle)) return true;
+        private boolean liquidShapes(RectF pillArea) {
             holder.set(pillArea);
             circle.setEmpty();
             return false;
@@ -1519,8 +1509,7 @@ public final class GlassTabBar {
 
         /**
          * Puts the tabs where the liquid look draws them (#65), by their translation only, so nothing is laid
-         * out again: Search in its circle and the other tabs spread across the pill beside it. On the way to
-         * the compact row the tab you're on slides into a circle at the pill's start while the others fade, and
+         * out again. On the way to the compact row the tab you're on slides into a circle at the pill's start while the others fade, and
          * once there they're put out of a touch's reach. With the look off or HushGram paused, whatever this
          * moved goes back.
          */
@@ -1530,11 +1519,7 @@ public final class GlassTabBar {
                 return;
             }
             View search = searchTab();
-            boolean apart = liquidShapes(whole, search);
-            if (apart && !countedApart) {
-                countedApart = true;
-                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_SEARCH_APART);
-            }
+            boolean apart = liquidShapes(whole);
             boolean rtl = bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
             View selected = selectedTab();
             order.clear();
@@ -2350,15 +2335,14 @@ public final class GlassTabBar {
             }
 
             /**
-             * The liquid look (#65): the pill holding the tabs and Search's circle beside it, both fully round,
-             * over the one blurred backdrop clipped to the two, with the standard pill's tint, sheen and edge. A
+             * The liquid look (#65): the fully round pill holding every tab, over its blurred backdrop, with
+             * the standard pill's tint, sheen and edge. A
              * highlight as round marks the tab you're on. On the way to the compact row the pill shrinks to a
              * circle round that tab, and its highlight fades.
              */
             private void drawLiquid(@NonNull Canvas canvas) {
                 boolean dark = isDark(base);
-                View search = searchTab();
-                boolean apart = liquidShapes(rect, search);
+                boolean apart = liquidShapes(rect);
                 shrunkHolder(holder, bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL, compact, shrunk);
                 float round = shrunk.height() / 2f;
                 underlay(canvas);
@@ -2384,7 +2368,7 @@ public final class GlassTabBar {
                 canvas.drawPath(shapes, sheen);
 
                 View selected = selectedTab();
-                RectF within = apart && selected != null && selected == search ? circle : shrunk;
+                RectF within = apart && selected != null && selected == searchTab() ? circle : shrunk;
                 drawCapsule(canvas, within, Math.max(0f, within.height() / 2f - dp(HIGHLIGHT_INSET_DP)), 1f - compact);
 
                 stroke.setStrokeWidth(Math.max(1f, density));
