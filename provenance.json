@@ -524,6 +524,27 @@
       "commit": "04987953674f98b3f302dc7a8da7492ae96b5267",
       "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
       "changes": "Adapted from Piko 3.11.0-dev.3. DeveloperOptions reads Instagram's active Quick Experiment list and formats its IDs; DeveloperOptionsItem decodes MobileConfig specifiers. HushGram package names, reflection handling and logging replace Piko-specific dependencies. These helpers do not themselves expose or unlock a settings screen."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/**"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/crimera/piko",
+      "commit": "a0ed9a5ae782fe66e02294e5a49d235e2f139b24",
+      "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
+      "changes": "Adapted Piko's Unlock developer options long-press hook for HushGram. The HushGram patch omits Piko's flag override, Recommended Flags and runtime preference wiring; it only opens Instagram's own developer screen. The patch is opt-in and targets HushGram's declared Instagram compatibility."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/FlagNameList.kt",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/DeveloperOptions.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/SysAdminDoc/HushGram",
+      "commit": "1ad2410af6508a1a1b8d3ef175ccc157367e2b62",
+      "license": "GPL-3.0-only",
+      "changes": "Adapted the earlier HushGram MetaConfig row-label hook. HushGram now labels rows from Instagram's active Quick Experiment names through its existing Piko-derived reader; it does not import or change flag values. Unknown names retain Instagram's original numeric labels."
     }
   ]
 }

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Open developer options` adds an optional patch. Long-press the Home tab to open Instagram's own developer screen. It uses names Instagram provides for active Quick Experiments in place of matching numeric labels; other entries keep their numeric labels. It starts off; changing server flags there can affect the account.
 * `Add the source to saved photos` covers videos now and is called `Add the source to saved photos and videos`. A saved MP4 gets the poster, the post date and the post's link in tags exiftool and most galleries read.
 * Tagging a saved video leaves its picture and sound exactly as they were. A video the save knows nothing about isn't touched.
 * `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Asked for in #13.
