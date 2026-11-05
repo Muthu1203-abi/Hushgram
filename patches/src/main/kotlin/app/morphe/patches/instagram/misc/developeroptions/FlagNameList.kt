@@ -7,7 +7,6 @@ package app.morphe.patches.instagram.misc.developeroptions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -264,3 +263,11 @@ private fun Instruction.arguments(): List<Int> = when (this) {
 }
 private fun <T> List<T>.one(part: String): T = singleOrNull() ?: refuse("expected one $part, found $size")
 private fun refuse(detail: String): Nothing = throw PatchException("Open developer options: $detail")
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
+
+private fun loadsString(method: Method, value: String): Boolean {
+    return method.code().any { instruction ->
+        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
+        ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == value
+    }
+}
