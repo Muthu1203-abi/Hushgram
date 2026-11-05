@@ -72,6 +72,10 @@ public class Settings extends BaseSettings {
     public static final EnumSetting<NavigationTarget> GHOST_TAB_TARGET =
             new EnumSetting<>("hushgram_ghost_tab_target", NavigationTarget.OFF, false);
 
+    /** Color of the chosen tab's icon while Ghost mode is on. */
+    public static final EnumSetting<GhostIndicatorColor> GHOST_INDICATOR_COLOR =
+            new EnumSetting<>("hushgram_ghost_indicator_color", GhostIndicatorColor.YELLOW, false);
+
     /**
      * Leaves the HushGram row out of Instagram's own settings menu while another way in works
      * ({@link SettingsEntry#menuRowLeftOut}): the launcher shortcut or the logo's long press with its
@@ -1389,6 +1393,20 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting REMOVE_BOTTOM_SPACE =
             new BooleanSetting("hushgram_remove_bottom_space", FALSE, true);
+
+    /** Pages on which the bottom navigation-bar guess should be removed. */
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_STORIES =
+            new BooleanSetting("hushgram_remove_bottom_space_stories", TRUE, true);
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_FEED =
+            new BooleanSetting("hushgram_remove_bottom_space_feed", TRUE, true);
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_MESSAGES =
+            new BooleanSetting("hushgram_remove_bottom_space_messages", TRUE, true);
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_EXPLORE =
+            new BooleanSetting("hushgram_remove_bottom_space_explore", TRUE, true);
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_REELS =
+            new BooleanSetting("hushgram_remove_bottom_space_reels", TRUE, true);
+    public static final BooleanSetting REMOVE_BOTTOM_SPACE_PROFILE =
+            new BooleanSetting("hushgram_remove_bottom_space_profile", TRUE, true);
 
     /**
      * Instagram's phone layout on a foldable or tablet, with the tab bar at the bottom: every window

@@ -33,7 +33,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * The main page shows HushGram's name once: the header's while Black settings page has it on the
+ * The main page shows Muthu's name once: the header's while Black settings page has it on the
  * screen, and the bar's otherwise. A search names itself in the bar either way.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -164,7 +164,7 @@ public class SettingsTitleBarTest {
         assertNotNull("the header's name is on the page", name);
         assertTrue(name.isShown());
         assertEquals("the bar leaves the name to the header", View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
         assertTrue("Back stays in the bar", bar().getChildAt(0).isShown());
     }
 
@@ -179,10 +179,10 @@ public class SettingsTitleBarTest {
         page.searchSettings("");
         layoutPage();
         // The search scrolled its field to the top and the header away, so the bar names the page.
-        assertEquals("the page is named once after a search", 1, shown(dialog.getView(), "HushGram"));
+        assertEquals("the page is named once after a search", 1, shown(dialog.getView(), "Muthu"));
         scrollToTop();
         assertEquals("back at the top the header has the name", View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
         assertEquals(height, bar().getHeight());
     }
 
@@ -192,11 +192,11 @@ public class SettingsTitleBarTest {
         scrollBy(list().getHeight());
         assertTrue("the header row has scrolled off", list().getFirstVisiblePosition() > 0);
         assertEquals(View.VISIBLE, barTitle().getVisibility());
-        assertEquals("HushGram", barTitle().getText().toString());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals("Muthu", barTitle().getText().toString());
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
         scrollToTop();
         assertEquals(View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
     }
 
     @Test public void theClassicPageKeepsTheNameInTheBar() throws Exception {
@@ -204,8 +204,8 @@ public class SettingsTitleBarTest {
         openDialog();
         assertNull("no header", page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
         assertEquals(View.VISIBLE, barTitle().getVisibility());
-        assertEquals("HushGram", barTitle().getText().toString());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals("Muthu", barTitle().getText().toString());
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
     }
 
     @Test public void flippingBlackSettingsPageMovesTheName() throws Exception {
@@ -213,13 +213,13 @@ public class SettingsTitleBarTest {
         openDialog();
         flip(true);
         assertEquals(SettingsHeader.KEY, page.getPreferenceScreen().getPreference(0).getKey());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
         scrollToTop();
         assertEquals(View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
         flip(false);
         assertNull(page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
         assertEquals(View.VISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(1, shown(dialog.getView(), "Muthu"));
     }
 }

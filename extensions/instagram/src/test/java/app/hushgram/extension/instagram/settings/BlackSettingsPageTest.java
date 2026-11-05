@@ -41,7 +41,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Black settings page (#455): on to start, with black cards and dialogs, HushGram's name at the top
+ * Black settings page (#455): on to start, with black cards and dialogs, Muthu's name at the top
  * and one line per category, and the classic page back at once when it's turned off.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -188,7 +188,7 @@ public class BlackSettingsPageTest {
         assertFalse("nothing to tap", header.isSelectable());
         View view = render(header, null);
         TextView name = view.findViewWithTag(SettingsHeader.NAME);
-        assertEquals("HushGram", name.getText().toString());
+        assertEquals("Muthu", name.getText().toString());
         assertTrue("in Instagram's gradient", ShimmerTitle.wears(name));
         assertTrue(name.isAccessibilityHeading());
         TextView version = view.findViewWithTag(SettingsHeader.VERSION);

@@ -42,7 +42,19 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
                         L10n.t("Removes the empty gap under Instagram's tab bar that appears when your phone hides "
                                 + "its navigation bar or Instagram is in a pop-up window. Restart Instagram to see "
-                                + "the change.")));
+                                + "the change. Choose the pages below.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_STORIES, L10n.t("Stories"),
+                        L10n.t("Remove the bottom gap while viewing Stories.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_FEED, L10n.t("Home feed"),
+                        L10n.t("Remove the bottom gap on the home feed.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_MESSAGES, L10n.t("Messages"),
+                        L10n.t("Remove the bottom gap in Messages.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_EXPLORE, L10n.t("Explore"),
+                        L10n.t("Remove the bottom gap in Explore.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_REELS, L10n.t("Reels"),
+                        L10n.t("Remove the bottom gap while viewing Reels.")));
+                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_PROFILE, L10n.t("Profile"),
+                        L10n.t("Remove the bottom gap on profile pages.")));
             }
             if (build.contains(PatchFamily.PHONE_LAYOUT)) {
                 layout.addPreference(toggle(context, Settings.PHONE_LAYOUT, L10n.t("Phone layout on big screens"),

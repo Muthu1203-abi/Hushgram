@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.media.BackgroundPlay;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -100,6 +101,7 @@ public final class ReelAutoScroll {
      * was last left on. Otherwise answers what Instagram did.
      */
     public static boolean answer(int instagram) {
+        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
         return answer(instagram, ReelAutoScroll::learning, ReelAutoScroll::switchedOn, ReelAutoScroll::advancing, SAVED);
     }
 
@@ -152,6 +154,7 @@ public final class ReelAutoScroll {
      * asks once as it opens.
      */
     public static boolean install(int instagram) {
+        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
         return install(instagram, ReelAutoScroll::advancing);
     }
 
@@ -182,6 +185,7 @@ public final class ReelAutoScroll {
      * during the move (#473). The scroller asks this once, as it's built.
      */
     public static boolean lead(int instagram) {
+        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
         return lead(instagram, ReelAutoScroll::learning);
     }
 
@@ -206,6 +210,7 @@ public final class ReelAutoScroll {
      * milliseconds. Otherwise answers what Instagram did.
      */
     public static int leadTime(int instagram) {
+        if (BackgroundPlay.autoAdvanceDuringBackground()) return Math.max(instagram, LEAD_MS);
         return leadTime(instagram, ReelAutoScroll::learning);
     }
 

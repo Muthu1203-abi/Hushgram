@@ -117,6 +117,14 @@ public final class ConfigurationBackup {
         for (PatchFamily family : PatchFamily.inThisBuild()) {
             for (Setting<?> setting : family.switches) settings.put(setting.key, setting);
         }
+        if (PatchFamily.BOTTOM_SPACE.inBuild()) {
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_STORIES.key, Settings.REMOVE_BOTTOM_SPACE_STORIES);
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_FEED.key, Settings.REMOVE_BOTTOM_SPACE_FEED);
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_MESSAGES.key, Settings.REMOVE_BOTTOM_SPACE_MESSAGES);
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_EXPLORE.key, Settings.REMOVE_BOTTOM_SPACE_EXPLORE);
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_REELS.key, Settings.REMOVE_BOTTOM_SPACE_REELS);
+            settings.put(Settings.REMOVE_BOTTOM_SPACE_PROFILE.key, Settings.REMOVE_BOTTOM_SPACE_PROFILE);
+        }
         if (PatchFamily.STORY_RING.inBuild()) {
             settings.put(Settings.STORY_RING_SCALE.key, Settings.STORY_RING_SCALE);
             settings.put(Settings.STORY_RING_COLOR.key, Settings.STORY_RING_COLOR);
@@ -184,6 +192,7 @@ public final class ConfigurationBackup {
         if (GhostMode.offered(GhostMode.switches(PatchFamily.inThisBuild()))) {
             settings.put(Settings.GHOST_MODE_PICKS.key, Settings.GHOST_MODE_PICKS);
             settings.put(Settings.GHOST_TAB_TARGET.key, Settings.GHOST_TAB_TARGET);
+            settings.put(Settings.GHOST_INDICATOR_COLOR.key, Settings.GHOST_INDICATOR_COLOR);
         }
         if (PatchFamily.MESSAGE_BOX.inBuild()) settings.put(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key, Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
         if (PatchFamily.PROFILE_TABS.inBuild()) {

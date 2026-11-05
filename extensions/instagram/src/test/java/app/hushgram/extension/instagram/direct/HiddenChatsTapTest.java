@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
+import android.view.WindowManager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,13 +195,20 @@ public class HiddenChatsTapTest {
         }
 
         HiddenChats.toggleHiddenOnlyInbox();
+        HiddenChatsTap.syncRecentPreviewProtection(activity);
         List<Object> chats = Arrays.asList("hidden-chat", "regular-chat");
         assertEquals(Collections.singletonList("hidden-chat"), HiddenChats.inbox(new Object(), chats));
+        assertTrue("hidden chats are protected in the task preview",
+                (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
 
         controller.pause().stop();
+        assertTrue("keep the task preview protected while Instagram is in Recents",
+                (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
         controller.start().resume();
 
         assertEquals("returning to Instagram starts at the normal chat list",
                 Collections.singletonList("regular-chat"), HiddenChats.inbox(new Object(), chats));
+        assertEquals("restore the window's original screenshot policy", 0,
+                activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE);
     }
 }

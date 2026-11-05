@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 
@@ -62,6 +63,9 @@ public final class BackgroundPlay {
     /** A video muted in the background plays again when the sound comes back within this long. */
     static final long MUTE_RESUME_MS = 60_000;
 
+    /** How long a background Reel may wait for Instagram to create its next player. */
+    static final long REEL_NEXT_TIMEOUT_MS = 10_000;
+
     /** The reason the pause stub hands Instagram's pause, the one its fragment gives. */
     static final String PAUSE_REASON = "fragment_paused";
 
@@ -111,6 +115,11 @@ public final class BackgroundPlay {
     /** True while this class pauses the held player itself, so that pause goes through. */
     private static boolean passing;
     private static boolean watching;
+    /** The session began in the Reels viewer, where Instagram's own scroller can request the next player. */
+    private static boolean reelSession;
+    /** The current Reel player was released and the next one has not started yet. */
+    private static boolean awaitingNextReel;
+    private static long nextReelDeadline = NONE;
 
     private BackgroundPlay() {
     }
@@ -257,8 +266,21 @@ public final class BackgroundPlay {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             boolean ours;
+            boolean waitForReel;
             synchronized (LOCK) {
                 ours = phase != Phase.IDLE && player != null && player == heldLocked();
+                waitForReel = ours && reelSession && on();
+                if (waitForReel) {
+                    held = null;
+                    awaitingNextReel = true;
+                    nextReelDeadline = SystemClock.uptimeMillis() + REEL_NEXT_TIMEOUT_MS;
+                }
+            }
+            if (waitForReel) {
+                log(() -> "Reels released its player; waiting for the next Reel");
+                Utils.runOnMainThreadDelayed(() -> adoptNextReel(player), 80);
+                BackgroundPlayService.refresh();
+                return;
             }
             if (ours) end(false, "Instagram let the player go");
         } catch (Throwable t) {
@@ -302,11 +324,16 @@ public final class BackgroundPlay {
     /** The service's regular check: the player still there, and a pause not left too long. */
     static void tick() {
         Object player;
+        boolean waiting;
+        long deadline;
         synchronized (LOCK) {
             if (phase != Phase.BACKGROUND) return;
             player = heldLocked();
+            waiting = awaitingNextReel;
+            deadline = nextReelDeadline;
         }
         if (player == null) {
+            if (waiting && SystemClock.uptimeMillis() < deadline) return;
             end(false, "the player is gone");
             return;
         }
@@ -362,6 +389,9 @@ public final class BackgroundPlay {
             phase = Phase.LEAVING;
             held = new WeakReference<>(player);
             leavingScreen = new WeakReference<>(screen);
+            reelSession = isReelsViewer(screen);
+            awaitingNextReel = false;
+            nextReelDeadline = NONE;
             mutedAt = NONE;
             pausedSince = NONE;
         }
@@ -382,23 +412,38 @@ public final class BackgroundPlay {
 
     static void stopped(Activity screen) {
         Object player;
+        boolean waiting;
         synchronized (LOCK) {
             if (phase != Phase.LEAVING || leavingScreen == null || leavingScreen.get() != screen) return;
             player = heldLocked();
+            waiting = awaitingNextReel && SystemClock.uptimeMillis() < nextReelDeadline;
         }
         if (screen.isChangingConfigurations() || inPictureInPicture(screen)) {
             end(false, "the screen turned or went to picture in picture");
             return;
         }
-        if (player == null || !isPlaying(player)) {
+        if ((player == null && !waiting) || (player != null && !isPlaying(player))) {
             end(false, "Instagram stopped the video some other way as it left");
             return;
         }
-        Float volume;
-        synchronized (LOCK) {
-            volume = volumes.get(player);
+        if (player != null && !isPlaying(player)) {
+            synchronized (LOCK) {
+                if (phase == Phase.LEAVING && reelSession && on()) {
+                    held = null;
+                    awaitingNextReel = true;
+                    nextReelDeadline = SystemClock.uptimeMillis() + REEL_NEXT_TIMEOUT_MS;
+                    waiting = true;
+                    player = null;
+                }
+            }
         }
-        if (volume != null && volume <= 0f) {
+        Float volume = null;
+        if (player != null) {
+            synchronized (LOCK) {
+                volume = volumes.get(player);
+            }
+        }
+        if (!waiting && volume != null && volume <= 0f) {
             end(true, "Instagram muted the video as it left");
             return;
         }
@@ -460,6 +505,9 @@ public final class BackgroundPlay {
             phase = Phase.IDLE;
             held = null;
             leavingScreen = null;
+            reelSession = false;
+            awaitingNextReel = false;
+            nextReelDeadline = NONE;
             mutedAt = NONE;
             pausedSince = NONE;
         }
@@ -472,29 +520,73 @@ public final class BackgroundPlay {
 
     private static void afterStart(Object player) {
         Object current;
-        Activity screen;
         synchronized (LOCK) {
-            if (phase != Phase.BACKGROUND) return;
+            if (phase != Phase.BACKGROUND && phase != Phase.LEAVING) return;
             current = heldLocked();
-            screen = leavingScreen != null ? leavingScreen.get() : null;
         }
         if (player != current && isPlaying(player) && (current == null || !isPlaying(current))) {
             // The reel moved on by itself: the one playing now is the one to keep.
             synchronized (LOCK) {
-                if (phase != Phase.BACKGROUND || screen == null) return;
+                if (phase != Phase.BACKGROUND && phase != Phase.LEAVING) return;
                 held = new WeakReference<>(player);
+                awaitingNextReel = false;
+                nextReelDeadline = NONE;
             }
             log(() -> "another video took over in the background");
         }
         synchronized (LOCK) {
             if (player == heldLocked()) pausedSince = NONE;
         }
-        BackgroundPlayService.refresh();
+        if (phase() == Phase.BACKGROUND) BackgroundPlayService.refresh();
+    }
+
+    /** Lets Instagram's existing Reels scroller run only while a Reel background session is active. */
+    public static boolean autoAdvanceDuringBackground() {
+        synchronized (LOCK) {
+            return on() && reelSession && phase != Phase.IDLE;
+        }
+    }
+
+    private static boolean isReelsViewer(Activity activity) {
+        try {
+            int id = activity.getResources().getIdentifier("root_clips_layout", "id", activity.getPackageName());
+            if (id == 0) return false;
+            View viewer = activity.findViewById(id);
+            return viewer != null && viewer.isShown();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static void adoptNextReel(Object released) {
+        Activity screen;
+        synchronized (LOCK) {
+            if (!awaitingNextReel || (phase != Phase.BACKGROUND && phase != Phase.LEAVING)) return;
+            screen = leavingScreen != null ? leavingScreen.get() : null;
+        }
+        Context context = screen != null ? screen : Utils.getContext();
+        if (context == null) return;
+        Object next = audiblePlayerExcept(context, released);
+        if (next == null) return;
+        synchronized (LOCK) {
+            if (!awaitingNextReel || (phase != Phase.BACKGROUND && phase != Phase.LEAVING)) return;
+            held = new WeakReference<>(next);
+            awaitingNextReel = false;
+            nextReelDeadline = NONE;
+            pausedSince = NONE;
+        }
+        log(() -> "the next Reel player took over the background session");
+        if (phase() == Phase.BACKGROUND) BackgroundPlayService.refresh();
     }
 
     /** The player that started most lately and plays with sound now, or null. */
     @Nullable
     private static Object audiblePlayer(Context context) {
+        return audiblePlayerExcept(context, null);
+    }
+
+    @Nullable
+    private static Object audiblePlayerExcept(Context context, Object excluded) {
         Object[] candidates;
         synchronized (LOCK) {
             candidates = new Object[recent.size()];
@@ -503,7 +595,7 @@ public final class BackgroundPlay {
         }
         Boolean music = null;
         for (Object player : candidates) {
-            if (player == null || !isPlaying(player)) continue;
+            if (player == null || player == excluded || !isPlaying(player)) continue;
             Float volume;
             synchronized (LOCK) {
                 volume = volumes.get(player);
@@ -628,6 +720,9 @@ public final class BackgroundPlay {
             resumedScreen = null;
             mutedAt = NONE;
             pausedSince = NONE;
+            reelSession = false;
+            awaitingNextReel = false;
+            nextReelDeadline = NONE;
             passing = false;
         }
         // Each test has an application of its own to watch.

@@ -66,7 +66,8 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,
                         L10n.t("Keep playing in the background"),
                         L10n.t("A video or reel playing with sound keeps going when you leave Instagram or turn the "
-                                + "screen off. A notification lets you pause or stop it.")));
+                                + "screen off. In Reels, it moves on to the next reel and keeps its sound going too. "
+                                + "A notification lets you pause or stop it.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

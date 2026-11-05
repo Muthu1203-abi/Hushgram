@@ -11,6 +11,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.viewingHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostTabRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostIndicatorColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.placeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.proxyServerRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sharingDomainRow;
@@ -42,6 +43,7 @@ final class PrivacyCategory {
             privacy.add(page.ghostPicks);
             page.ghostTab = ghostTabRow(context);
             privacy.add(page.ghostTab);
+            privacy.add(ghostIndicatorColorRow(context));
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
             privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),

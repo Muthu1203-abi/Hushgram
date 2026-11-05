@@ -269,11 +269,43 @@ public final class MessagesLock {
      * it's you. The list of hidden chats opens through here, since it names them.
      */
     public static void confirmHiddenThen(Activity activity, Runnable then) {
+        if (Utils.settingsReady() && Settings.HIDDEN_CHATS_BIOMETRIC_LOCK.get()) {
+            askHiddenBiometric(activity, then);
+            return;
+        }
         if (!switchedOn()) {
             then.run();
             return;
         }
         ask(activity, then);
+    }
+
+    /** Hidden Chats can ask for biometrics on their own, even when the general messages lock is off. */
+    private static void askHiddenBiometric(Activity activity, Runnable then) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        if (Build.VERSION.SDK_INT < 30 || !biometricsReady(activity)) {
+            Utils.showToastLong(L10n.t("Set up a fingerprint or face on your phone to open Hidden Chats."));
+            return;
+        }
+        try {
+            BiometricPrompt prompt = promptFor(activity, true, () -> { });
+            prompt.authenticate(new CancellationSignal(), activity.getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                @Override
+                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                    if (then != null && !activity.isFinishing() && !activity.isDestroyed()) then.run();
+                }
+
+                @Override
+                public void onAuthenticationError(int code, CharSequence message) {
+                    if (message != null && message.length() > 0 && !cancelledByYou(code)) {
+                        Utils.showToastLong(message.toString());
+                    }
+                }
+            });
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, failure);
+            Utils.showToastLong(L10n.t("Could not open Hidden Chats. Try again."));
+        }
     }
 
     /**

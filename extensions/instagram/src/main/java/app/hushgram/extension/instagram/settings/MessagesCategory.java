@@ -16,10 +16,12 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import android.content.Context;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
+import android.widget.Toast;
 
 import java.util.Set;
 
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.instagram.direct.MessagesLock;
 
 /** Builds the Messages category of HushGram settings. */
 final class MessagesCategory {
@@ -221,6 +223,17 @@ final class MessagesCategory {
                 messages.addPreference(changePinRow(context));
                 messages.addPreference(page.lockedChatsRow(context));
                 messages.addPreference(page.hiddenChatsRow(context));
+                android.preference.SwitchPreference hiddenBiometric = toggle(context,
+                        Settings.HIDDEN_CHATS_BIOMETRIC_LOCK, L10n.t("Fingerprint or face for Hidden Chats"),
+                        L10n.t("Ask for your fingerprint or face every time you open Hidden Chats."));
+                hiddenBiometric.setOnPreferenceChangeListener((preference, value) -> {
+                    if (Boolean.TRUE.equals(value) && !MessagesLock.biometricsReady(context)) {
+                        Toast.makeText(context, L10n.t("Set up a fingerprint or face on your phone first."), Toast.LENGTH_LONG).show();
+                        return false;
+                    }
+                    return true;
+                });
+                messages.addPreference(hiddenBiometric);
                 messages.addPreference(toggle(context, Settings.DOUBLE_TAP_HIDDEN_CHATS,
                         L10n.t("Double-tap Messages for hidden chats"),
                         L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, open "

@@ -289,8 +289,8 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     /**
-     * Shows the search title, and HushGram again for null. While [pageHeader], the page's own header
-     * has HushGram's name and icon on the screen, so the bar leaves the name off rather than show it
+     * Shows the search title, and Muthu again for null. While [pageHeader], the page's own header
+     * has Muthu's name and icon on the screen, so the bar leaves the name off rather than show it
      * twice. Once the header scrolls away the bar names the screen again. Runs on every scroll.
      */
     void showTitle(@androidx.annotation.Nullable CharSequence title, boolean pageHeader) {

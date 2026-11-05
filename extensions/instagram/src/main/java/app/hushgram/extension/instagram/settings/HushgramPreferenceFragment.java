@@ -3905,6 +3905,40 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return tabRow(context, NavigationRow.Use.GHOST);
     }
 
+    /** The color used to tint the chosen tab's icon while Ghost mode is on. */
+    static ListPreference ghostIndicatorColorRow(Context context) {
+        ListPreference row = new ListPreference(context);
+        row.setKey(Settings.GHOST_INDICATOR_COLOR.key);
+        row.setTitle(L10n.t("Ghost mode indicator color"));
+        row.setDialogTitle(L10n.t("Choose a color"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GhostIndicatorColor[] colors = GhostIndicatorColor.values();
+        CharSequence[] labels = new CharSequence[colors.length];
+        CharSequence[] values = new CharSequence[colors.length];
+        for (int i = 0; i < colors.length; i++) {
+            labels[i] = L10n.t(colors[i].name().substring(0, 1) + colors[i].name().substring(1).toLowerCase(java.util.Locale.ROOT));
+            values[i] = colors[i].name();
+        }
+        row.setEntries(labels);
+        row.setEntryValues(values);
+        row.setValue(Settings.GHOST_INDICATOR_COLOR.savedValue().name());
+        row.setSummary(labels[indexOf(colors, Settings.GHOST_INDICATOR_COLOR.savedValue())]);
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            String selected = String.valueOf(value);
+            for (int i = 0; i < colors.length; i++) {
+                if (colors[i].name().equals(selected)) row.setSummary(labels[i]);
+            }
+            Utils.runOnMainThreadDelayed(NavigationSettings::refreshGhostTabIndicator, 50);
+            return true;
+        });
+        return row;
+    }
+
+    private static int indexOf(GhostIndicatorColor[] colors, GhostIndicatorColor selected) {
+        for (int i = 0; i < colors.length; i++) if (colors[i] == selected) return i;
+        return 0;
+    }
+
     private static NavigationRow tabRow(Context context, NavigationRow.Use use) {
         EnumSetting<NavigationTarget> setting = use == NavigationRow.Use.QUALITY ? Settings.QUALITY_TAB_TARGET
                 : use == NavigationRow.Use.GHOST ? Settings.GHOST_TAB_TARGET : Settings.NAVIGATION_SETTINGS_TARGET;

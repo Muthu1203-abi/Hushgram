@@ -103,9 +103,20 @@ public final class GhostMode {
     /** Effective value for a selected Ghost mode switch on the account currently in front. */
     public static boolean enabled(BooleanSetting setting) {
         if (Setting.isPaused()) return false;
-        if (!pickedKeys().contains(setting.key)) return setting.get();
+        Set<String> keys = pickedKeys();
+        // An empty pick list means every Ghost switch. The account's master choice must therefore
+        // apply to those switches too; otherwise the long press saves successfully but each row
+        // still reads its shared value and reports that it could not change them all.
+        if (keys.isEmpty() ? !isGhostSwitch(setting) : !keys.contains(setting.key)) return setting.get();
         Boolean saved = accountState(ChatAccounts.active());
         return saved == null ? setting.get() : saved;
+    }
+
+    private static boolean isGhostSwitch(BooleanSetting setting) {
+        for (BooleanSetting ghostSwitch : switches(java.util.EnumSet.allOf(PatchFamily.class))) {
+            if (ghostSwitch.key.equals(setting.key)) return true;
+        }
+        return false;
     }
 
     private static Boolean accountState(String account) {

@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.autoscroll.keepReelsAutoScrollPatch
 import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -76,7 +77,8 @@ internal val backgroundPlayServicePatch = resourcePatch {
 
 /**
  * A feed video or a reel playing with sound keeps going when you leave Instagram or turn the
- * screen off, with a notification to pause or stop it (#497).
+ * screen off, with a notification to pause or stop it. In Reels, its scroller advances to the next
+ * reel and the notification follows the new player (#497).
  *
  * Instagram stops its players as each screen pauses: the fragment hands IgVideoPlayerImpl's pause
  * or stop "fragment_paused", and a few other screens release the player outright. The extension
@@ -92,11 +94,12 @@ internal val backgroundPlayServicePatch = resourcePatch {
 @Suppress("unused")
 val backgroundPlayPatch = bytecodePatch(
     name = "Keep playing in the background",
-    description = "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, " +
-        "with a notification to pause or stop it. Starts off. Turn it on in Instagram settings > Playback.",
+    description = "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off; " +
+        "in Reels it advances to the next reel too. A notification lets you pause or stop it. Starts off. " +
+        "Turn it on in Instagram settings > Playback.",
 ) {
     category("Playback")
-    dependsOn(settingsPatch, instagramExtensionPatch, backgroundPlayServicePatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, backgroundPlayServicePatch, keepReelsAutoScrollPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

@@ -10,9 +10,13 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.Window;
+import android.view.WindowManager;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Consumer;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -55,6 +59,8 @@ public final class HiddenChatsTap {
 
     private static WeakReference<Activity> tapActivity = new WeakReference<>(null);
     private static Application watchedApplication;
+    /** The prior secure bit, so hidden inbox previews can be blocked without changing app policy. */
+    private static final Map<Activity, Boolean> secureBeforeHiddenInbox = new WeakHashMap<>();
     private static Application.ActivityLifecycleCallbacks lifecycleCallbacks;
     private static int startedActivities;
     /** When the last tap on Messages' button came up, or {@link Long#MIN_VALUE} when there is none to pair. */
@@ -99,11 +105,11 @@ public final class HiddenChatsTap {
                 // already selected another tab, clear the temporary view before a swipe back
                 // starts; the previous ACTION_UP also checks after Instagram handles it.
                 if (HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
-                    HiddenChats.showRegularInbox();
+                    showRegularInbox(activity);
                     forget();
                 }
                 if (onOtherTab(activity, x, y)) {
-                    HiddenChats.showRegularInbox();
+                    showRegularInbox(activity);
                     forget();
                 }
                 if (!switchedOn()) {
@@ -128,7 +134,7 @@ public final class HiddenChatsTap {
                     float dx = x - downX;
                     float dy = y - downY;
                     if (Math.abs(dx) > Math.abs(dy) && HiddenChats.isShowingHiddenOnlyInbox()) {
-                        HiddenChats.showRegularInbox();
+                        showRegularInbox(activity);
                         forget();
                     }
                 }
@@ -197,18 +203,70 @@ public final class HiddenChatsTap {
             @Override public void onActivityStopped(Activity stopped) {
                 startedActivities = Math.max(0, startedActivities - 1);
                 if (startedActivities == 0 && !stopped.isChangingConfigurations()) {
-                    HiddenChats.showRegularInbox();
+                    // Retain FLAG_SECURE until the next resume, when Recents is already dismissed.
+                    if (HiddenChats.isShowingHiddenOnlyInbox()) HiddenChats.showRegularInbox();
                     forget();
                 }
             }
 
-            @Override public void onActivityCreated(Activity activity, Bundle state) { }
-            @Override public void onActivityResumed(Activity activity) { }
-            @Override public void onActivityPaused(Activity activity) { }
+            @Override public void onActivityCreated(Activity activity, Bundle state) {
+                if (HiddenChats.isShowingHiddenOnlyInbox()) protectRecentPreview(activity);
+            }
+
+            @Override public void onActivityResumed(Activity activity) {
+                if (HiddenChats.isShowingHiddenOnlyInbox()) HiddenChats.showRegularInbox();
+                restoreRecentPreviewProtection(activity);
+            }
+
+            @Override public void onActivityPaused(Activity activity) {
+                // FLAG_SECURE is already set while hidden-only mode is active. Reapply here in case
+                // the inbox was opened before the lifecycle watcher attached to this Activity.
+                syncRecentPreviewProtection(activity);
+            }
+
             @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
-            @Override public void onActivityDestroyed(Activity activity) { }
+
+            @Override public void onActivityDestroyed(Activity activity) {
+                restoreRecentPreviewProtection(activity);
+            }
         };
         app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+    }
+
+    /** Makes Android omit the hidden inbox from screenshots and the Recent Apps task preview. */
+    static void syncRecentPreviewProtection(Activity activity) {
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        if (HiddenChats.isShowingHiddenOnlyInbox()) protectRecentPreview(activity);
+        else restoreRecentPreviewProtection(activity);
+    }
+
+    private static void protectRecentPreview(Activity activity) {
+        Window window = activity.getWindow();
+        if (window == null) return;
+        synchronized (secureBeforeHiddenInbox) {
+            if (!secureBeforeHiddenInbox.containsKey(activity)) {
+                boolean wasSecure = (window.getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0;
+                secureBeforeHiddenInbox.put(activity, wasSecure);
+            }
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+    }
+
+    private static void restoreRecentPreviewProtection(Activity activity) {
+        if (activity == null) return;
+        Window window = activity.getWindow();
+        if (window == null) return;
+        synchronized (secureBeforeHiddenInbox) {
+            Boolean wasSecure = secureBeforeHiddenInbox.remove(activity);
+            if (wasSecure == null) return;
+            if (wasSecure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+    }
+
+    private static void showRegularInbox(Activity activity) {
+        HiddenChats.showRegularInbox();
+        syncRecentPreviewProtection(activity);
     }
 
     private static int touchSlop(Activity activity) {
@@ -241,7 +299,7 @@ public final class HiddenChatsTap {
             try {
                 if (!activity.isFinishing() && !activity.isDestroyed()
                         && HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
-                    HiddenChats.showRegularInbox();
+                    showRegularInbox(activity);
                     forget();
                 }
             } catch (Throwable failure) {
@@ -278,6 +336,7 @@ public final class HiddenChatsTap {
                 if (activity.isFinishing() || activity.isDestroyed()) return;
                 MessagesLock.confirmHiddenThen(activity, () -> {
                     HiddenChats.toggleHiddenOnlyInbox();
+                    syncRecentPreviewProtection(activity);
                     HiddenChats.watchInboxIndicator(activity);
                 });
             } catch (Throwable failure) {
@@ -299,5 +358,8 @@ public final class HiddenChatsTap {
         watchedApplication = null;
         lifecycleCallbacks = null;
         startedActivities = 0;
+        for (Activity activity : new java.util.ArrayList<>(secureBeforeHiddenInbox.keySet())) {
+            restoreRecentPreviewProtection(activity);
+        }
     }
 }

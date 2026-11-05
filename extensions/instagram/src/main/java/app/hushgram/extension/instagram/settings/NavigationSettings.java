@@ -177,7 +177,11 @@ public final class NavigationSettings {
                 originalFilter = icon.getColorFilter();
                 hadFilter = originalFilter != null;
             }
-            if (icon != null) icon.setColorFilter(0xFFFFD51A, PorterDuff.Mode.SRC_IN);
+            if (icon != null) {
+                int color = Utils.settingsReady()
+                        ? Settings.GHOST_INDICATOR_COLOR.get().color : GhostIndicatorColor.YELLOW.color;
+                icon.setColorFilter(color, PorterDuff.Mode.SRC_IN);
+            }
         }
 
         void restore() {
