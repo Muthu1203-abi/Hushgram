@@ -244,10 +244,9 @@ public final class HiddenChats {
             unreadByAccount.put(account, unread);
             Set<String> dismissed = dismissedUnreadByAccount.get(account);
             if (dismissed != null) {
-                // Keep stale unread snapshots from bringing a dismissed dot back. Once Instagram
-                // reports the chat as read, a later incoming message can notify normally again.
-                dismissed.retainAll(unread);
-                if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
+                // Keep the dismissal until a new message push clears it. Instagram can replay an
+                // older unread snapshot after reporting the conversation as read; pruning the
+                // dismissal from that snapshot made the dot return despite there being no new message.
                 saveDismissedUnreadLocked();
             }
         }
@@ -829,13 +828,18 @@ public final class HiddenChats {
      * Counted when it is, so the diagnostic report shows pushes that were dropped.
      */
     static boolean hides(Collection<String> pushIds, @Nullable String account) {
+        return hides(pushIds, account, true);
+    }
+
+    /** Drops a push for a hidden chat; only a confirmed message push may add the in-app unread dot. */
+    static boolean hides(Collection<String> pushIds, @Nullable String account, boolean messagePush) {
         try {
             Set<String> hidden = idsFor(account);
             if (hidden.isEmpty()) return false;
             for (String id : pushIds) {
                 if (hidden.contains(id)) {
                     HookStatus.counted(FamilyNames.MESSAGES_LOCK, SILENCED);
-                    rememberHiddenPush(pushIds, account, hidden);
+                    if (messagePush) rememberHiddenPush(pushIds, account, hidden);
                     return true;
                 }
             }

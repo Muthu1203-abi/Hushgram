@@ -3279,12 +3279,13 @@
     },
     {
       "name": "Keep playing in the background",
-      "description": "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, with a notification to pause or stop it. Starts off. Turn it on in Instagram settings > Playback.",
+      "description": "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off; in Reels it advances to the next reel too. A notification lets you pause or stop it. Starts off. Turn it on in Instagram settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
         "Instagram settings",
+        "Keep Reels auto scroll on",
         "ResourcePatch"
       ],
       "compatiblePackages": {
