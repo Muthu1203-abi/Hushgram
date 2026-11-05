@@ -43,8 +43,8 @@ public final class BottomSpace {
     public static int navigationBarHeight(int height) {
         try {
             HookStatus.invoked(FamilyNames.BOTTOM_SPACE);
-            if (Utils.settingsReady() && Settings.REMOVE_BOTTOM_SPACE.get()) watchPageChanges(Utils.getActivity());
-            if (height <= 0 || !Utils.settingsReady() || !Settings.REMOVE_BOTTOM_SPACE.get()
+            if (Utils.settingsReady()) watchPageChanges(Utils.getActivity());
+            if (height <= 0 || !Utils.settingsReady()
                     || !enabledForCurrentPage(Utils.getActivity())) return height;
             if (!logged) {
                 logged = true;

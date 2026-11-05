@@ -155,6 +155,9 @@ public final class ReelAutoScroll {
      */
     public static boolean install(int instagram) {
         if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
+        // Build the scroller while the Reels viewer opens. BackgroundPlay can turn it on after
+        // leaving, but that is too late for accounts where Instagram did not offer auto scroll.
+        if (BackgroundPlay.reelsAutoScrollNeeded()) return true;
         return install(instagram, ReelAutoScroll::advancing);
     }
 

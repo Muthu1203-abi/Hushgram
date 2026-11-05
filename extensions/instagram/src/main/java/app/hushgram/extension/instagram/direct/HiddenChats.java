@@ -8,7 +8,9 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -130,6 +132,7 @@ public final class HiddenChats {
     /** Whether dismissed IDs have been restored from the phone's private settings. */
     private static boolean dismissedUnreadLoaded;
     private static volatile WeakReference<Activity> lastActivity = new WeakReference<>(null);
+    private static long lastHiddenMessageHapticAt;
 
     private static final String[] HIDE_MENU_BUTTONS = {"HIDE_FROM_PRIMARY", "HIDE_FROM_MESSAGES"};
     private static final String[] SHOW_MENU_BUTTONS = {"SHOW_IN_PRIMARY", "SHOW_IN_MESSAGES"};
@@ -271,7 +274,29 @@ public final class HiddenChats {
             }
             saveDismissedUnreadLocked();
         }
+        vibrateForHiddenMessageInApp();
         refreshHiddenUnreadDot();
+    }
+
+    /** Haptic-only feedback for a hidden message; never vibrates while Instagram is in the background. */
+    private static void vibrateForHiddenMessageInApp() {
+        if (!Utils.settingsReady() || !Settings.VIBRATE_HIDDEN_CHAT_MESSAGES.get()) return;
+        Activity activity = Utils.getActivity();
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        View decor = activity.getWindow().getDecorView();
+        decor.post(() -> {
+            try {
+                if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus()) return;
+                long now = SystemClock.elapsedRealtime();
+                synchronized (HiddenChats.class) {
+                    if (lastHiddenMessageHapticAt != 0L && now - lastHiddenMessageHapticAt < 1200L) return;
+                    lastHiddenMessageHapticAt = now;
+                }
+                decor.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden message haptic", t);
+            }
+        });
     }
 
     static boolean hasHiddenUnread() {

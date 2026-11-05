@@ -239,6 +239,10 @@ final class MessagesCategory {
                         L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, open "
                                 + "your hidden chats. While a lock is on, it asks for it first. One tap opens Messages "
                                 + "as usual.")));
+                messages.addPreference(toggle(context, Settings.VIBRATE_HIDDEN_CHAT_MESSAGES,
+                        L10n.t("Vibrate for hidden chat messages"),
+                        L10n.t("Gives a short vibration when a hidden chat gets a message while Instagram is open. "
+                                + "No notification is shown. Turn on vibration in your phone's settings too.")));
                 messages.addPreference(page.pinnedChatsRow(context));
             }
         }

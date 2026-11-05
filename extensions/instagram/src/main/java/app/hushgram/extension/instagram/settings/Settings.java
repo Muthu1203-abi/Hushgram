@@ -738,6 +738,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDDEN_CHATS_BIOMETRIC_LOCK =
             new BooleanSetting("hushgram_hidden_chats_biometric_lock", FALSE, false, false);
 
+    /** Haptic feedback in the open app when a message arrives in a hidden chat. */
+    public static final BooleanSetting VIBRATE_HIDDEN_CHAT_MESSAGES =
+            new BooleanSetting("hushgram_vibrate_hidden_chat_messages", FALSE, false);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
@@ -1394,19 +1398,19 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting REMOVE_BOTTOM_SPACE =
             new BooleanSetting("hushgram_remove_bottom_space", FALSE, true);
 
-    /** Pages on which the bottom navigation-bar guess should be removed. */
+    /** Pages on which the bottom navigation-bar guess should be removed. Each is independent. */
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_STORIES =
-            new BooleanSetting("hushgram_remove_bottom_space_stories", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_stories", FALSE, true);
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_FEED =
-            new BooleanSetting("hushgram_remove_bottom_space_feed", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_feed", FALSE, true);
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_MESSAGES =
-            new BooleanSetting("hushgram_remove_bottom_space_messages", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_messages", FALSE, true);
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_EXPLORE =
-            new BooleanSetting("hushgram_remove_bottom_space_explore", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_explore", FALSE, true);
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_REELS =
-            new BooleanSetting("hushgram_remove_bottom_space_reels", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_reels", FALSE, true);
     public static final BooleanSetting REMOVE_BOTTOM_SPACE_PROFILE =
-            new BooleanSetting("hushgram_remove_bottom_space_profile", TRUE, true);
+            new BooleanSetting("hushgram_remove_bottom_space_profile", FALSE, true);
 
     /**
      * Instagram's phone layout on a foldable or tablet, with the tab bar at the bottom: every window

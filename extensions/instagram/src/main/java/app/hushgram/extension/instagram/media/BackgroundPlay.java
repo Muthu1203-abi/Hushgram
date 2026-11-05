@@ -547,15 +547,25 @@ public final class BackgroundPlay {
         }
     }
 
+    /** The Reels viewer must build its scroller before the app leaves, so playback can advance later. */
+    public static boolean reelsAutoScrollNeeded() {
+        return on();
+    }
+
     private static boolean isReelsViewer(Activity activity) {
         try {
-            int id = activity.getResources().getIdentifier("root_clips_layout", "id", activity.getPackageName());
-            if (id == 0) return false;
-            View viewer = activity.findViewById(id);
-            return viewer != null && viewer.isShown();
+            return shownViewer(activity, "root_clips_layout")
+                    || shownViewer(activity, "clips_viewer_container");
         } catch (Throwable ignored) {
             return false;
         }
+    }
+
+    private static boolean shownViewer(Activity activity, String name) {
+        int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        if (id == 0) return false;
+        View viewer = activity.findViewById(id);
+        return viewer != null && viewer.isShown();
     }
 
     private static void adoptNextReel(Object released) {

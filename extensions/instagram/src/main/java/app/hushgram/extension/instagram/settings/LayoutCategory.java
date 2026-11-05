@@ -39,10 +39,9 @@ final class LayoutCategory {
             PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT,
                     L10n.t("Change how Instagram looks, from its colors to its emoji."));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
-                layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
-                        L10n.t("Removes the empty gap under Instagram's tab bar that appears when your phone hides "
-                                + "its navigation bar or Instagram is in a pop-up window. Restart Instagram to see "
-                                + "the change. Choose the pages below.")));
+                layout.addPreference(info(context, L10n.t("Remove bottom space on selected screens"),
+                        L10n.t("Choose each screen separately. Turning one screen off keeps its bottom space, "
+                                + "even when this setting is on for another screen.")));
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_STORIES, L10n.t("Stories"),
                         L10n.t("Remove the bottom gap while viewing Stories.")));
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE_FEED, L10n.t("Home feed"),
