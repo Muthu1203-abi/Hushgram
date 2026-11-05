@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val DEVELOPER_OPTIONS = "$EXTENSION_PACKAGE/misc/DeveloperOptions;"
 /** Read-only label lookups backed by Instagram's active Quick Experiments. */
@@ -263,7 +264,6 @@ private fun Instruction.arguments(): List<Int> = when (this) {
 }
 private fun <T> List<T>.one(part: String): T = singleOrNull() ?: refuse("expected one $part, found $size")
 private fun refuse(detail: String): Nothing = throw PatchException("Open developer options: $detail")
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private fun loadsString(method: Method, value: String): Boolean {
     return method.code().any { instruction ->
