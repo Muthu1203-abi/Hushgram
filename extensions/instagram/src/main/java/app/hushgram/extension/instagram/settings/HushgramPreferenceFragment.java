@@ -67,6 +67,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.io.File;
 import java.text.NumberFormat;
 import java.lang.ref.WeakReference;
 import java.text.Normalizer;
@@ -107,6 +108,10 @@ import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
+import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.misc.CustomIcon;
+import app.hushgram.extension.instagram.misc.HeaderPicture;
+import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.SettingsRows;
@@ -114,12 +119,17 @@ import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
+import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
+import app.hushgram.extension.instagram.stories.UploadBitrate;
+import app.hushgram.extension.instagram.stories.UploadScope;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
+import app.hushgram.extension.instagram.profile.FollowerHistory;
 import app.hushgram.extension.instagram.profile.FollowLabelPlace;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassCorners;
@@ -137,6 +147,7 @@ import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.BurnInWait;
+import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.HiddenSounds;
@@ -186,6 +197,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The repository as a link, and as a person reads it. */
     static final String SOURCE_URL = "https://github.com/SysAdminDoc/HushGram";
     static final String SOURCE_ADDRESS = SOURCE_URL.substring(SOURCE_URL.indexOf("://") + 3);
+    /** Where Support HushGram goes: the maintainer's Ko-fi page. */
+    static final String SUPPORT_URL = "https://ko-fi.com/X8K126YVER";
+    static final String SUPPORT_ADDRESS = SUPPORT_URL.substring(SUPPORT_URL.indexOf("://") + 3);
+    /** The key of Support HushGram, the settings home's last row. */
+    static final String SUPPORT_ROW_KEY = "action_support_hushgram";
+    /** The row right above Support HushGram that opens a filled-in bug report on GitHub. */
+    static final String REPORT_ROW_KEY = "action_report_problem";
     /** Lock these settings (#301), right under Pause HushGram. */
     static final String LOCK_ROW_KEY = "hushgram_settings_lock_row";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
@@ -196,6 +214,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_DOWNLOAD_HISTORY = "hushgram_clear_download_history";
     /** The row listing who left your Followers list, and the row that forgets them. */
     static final String UNFOLLOWERS_ROW = "hushgram_unfollowers_row";
+    static final String FOLLOWER_HISTORY_ROW = "hushgram_follower_history_row";
     static final String VIEWING_HISTORY_ROW = "hushgram_viewing_history_row";
     static final String CLEAR_VIEWING_HISTORY = "hushgram_clear_viewing_history";
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
@@ -235,6 +254,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_STORY_EMOJI = 0x484f;
     private static final int PICK_SAVE_FOLDER = 0x4850;
     private static final int PICK_EMOJI = 0x4851;
+    private static final int PICK_ICON_PICTURE = 0x4852;
+    private static final int PICK_HEADER_PICTURE = 0x4853;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -261,6 +282,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private boolean lockHolds, showingLock;
     private final Handler lockRefresh = new Handler(Looper.getMainLooper());
     private final Runnable lockTick = this::showLock;
+    /** The About section, whose rows stay open while the settings are locked. */
+    @Nullable PreferenceCategory about;
     /** Ghost mode's switch, and the switches it turns, both set once the page is built. */
     @Nullable SwitchPreference ghostMode;
     List<BooleanSetting> ghostSwitches = new ArrayList<>();
@@ -273,6 +296,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private String searchQuery = "";
     @Nullable private SearchRow search;
     @Nullable private Row noSearchResults;
+    /** The home page's last row, which opens the Ko-fi page in a browser. */
+    @Nullable private Row support;
+    /** Report a problem, right above Support HushGram. */
+    @Nullable private Row report;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -286,6 +313,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private String lastCategory;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
+    /** Under it, while the categories are listed: switches them between rows and a grid of tiles (#494). */
+    @Nullable private Row gridToggle;
+    /** The tiles, one row of the page, while the grid is on and nothing is searched. */
+    @Nullable private CategoryGrid categoryGrid;
+    /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
+    @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
     @Nullable private Preference beforeSignIn;
     @Nullable private String restoredCategory;
@@ -304,6 +337,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Choose a folder (#333) and Use Movies and Pictures, under Save folder. */
     @Nullable Row saveTree;
     @Nullable Row galleryFolders;
+    @Nullable Row headerPicture;
+    @Nullable Row removeHeaderPicture;
     @Nullable PreferenceCategory recovery;
     @Nullable private Row interruptedSaves;
     @Nullable private Row lastCarouselSave;
@@ -389,9 +424,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setItemsCanFocus(true);
             list.setDivider(null);
             list.setDividerHeight(0);
-            list.setBackgroundColor(Color.BLACK);
+            list.setBackgroundColor(ScreenColors.current().background);
+            // The last row ends with room under it instead of on the gesture bar, and the room
+            // scrolls with the rows.
+            list.setClipToPadding(false);
+            list.setPaddingRelative(list.getPaddingStart(), list.getPaddingTop(), list.getPaddingEnd(),
+                    Math.round(24 * list.getResources().getDisplayMetrics().density));
+            // A layout calls this too, so the bar learns when the header comes and goes as well as scrolls.
+            list.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+                @Override public void onScrollStateChanged(android.widget.AbsListView view, int state) {
+                }
+
+                @Override public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
+                    showTitle();
+                }
+            });
         }
-        showTitle(null);
+        showTitle();
     }
 
     @Override public void onViewStateRestored(Bundle state) {
@@ -512,6 +561,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             return true;
         });
+        gridToggle = new Row(context);
+        gridToggle.setKey("hushgram_grid_toggle");
+        gridToggle.setPersistent(false);
+        gridToggle.setOnPreferenceClickListener(tapped -> {
+            if (!allowMutation()) return true;
+            keepingScroll(() -> {
+                Settings.CATEGORY_GRID.save(!Settings.CATEGORY_GRID.savedValue());
+                filterSettings();
+            }, gridToggle);
+            return true;
+        });
+        categoryGrid = new CategoryGrid(context, this::openFromGrid);
+        // Before the first section, after the notice and recovery notes above it.
+        categoryGrid.setOrder(-10);
+        header = new SettingsHeader(context);
+        header.setOrder(-60);
         Preference status = statusCard(context);
         status.setOrder(-40);
         screen.addPreference(status);
@@ -524,6 +589,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         viewToggle.setOrder(-45);
         screen.addPreference(viewToggle);
+        gridToggle.setOrder(-29);
         search = new SearchRow(context);
         search.setOrder(-50);
         search.setKey("hushgram_settings_search");
@@ -566,6 +632,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PatchTimeCategory.add(this, screen, context, build);
         BackupCategory.add(this, screen, context, build);
         PauseCategory.add(this, screen, context, build);
+
         for (int i = 0; i < screen.getPreferenceCount(); i++) {
             Preference section = screen.getPreference(i);
             if (!(section instanceof PreferenceCategory)) continue;
@@ -594,12 +661,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         || L10n.t("Pure black dark mode isn't in this build").equals(row.getTitle())) {
                     aliases.append(" amoled oled black theme");
                 }
+                if (Settings.SETTINGS_BLACK_LOOK.key.equals(key)) aliases.append(" amoled oled dark theme layout");
                 if (NotificationsCategory.movedFromProfiles(key)) aliases.append(' ').append(L10n.t("Profiles"));
                 if (Settings.HIDE_REELS_TAB.key.equals(key) || Settings.SHOW_REELS_TAB.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Reels"));
                 }
                 if (Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key.equals(key)) aliases.append(' ').append(L10n.t("Ads and privacy"));
                 if (Settings.REMOVE_BUILD_EXPIRED_POPUP.key.equals(key)) aliases.append(' ').append(L10n.t("Updates"));
+                // Instagram's menu calls clear mode Full screen (#480).
+                if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key) || Settings.START_REEL_CLEAR_MODE.key.equals(key)
+                        || Settings.QUIET_REEL_CLEAR_MODE.key.equals(key)) {
+                    aliases.append(' ').append(L10n.t("Full screen")).append(" fullscreen");
+                }
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
@@ -612,6 +685,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
                             || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key)
+                            || Settings.BURN_IN_LIGHT_WHEN_PAUSED.key.equals(key)
+                            || Settings.BURN_IN_STORIES.key.equals(key)
                             || Settings.START_REEL_CLEAR_MODE.key.equals(key));
                     belongs |= family == PatchFamily.REEL_SCROLLING && (Settings.SCROLL_BREAK.key.equals(key)
                             || Settings.REEL_CAP_COUNT.key.equals(key) || Settings.REEL_CAP_BREAK.key.equals(key));
@@ -620,12 +695,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
                             || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_MENTIONS && Settings.STORY_MENTIONS_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.FEED_SEEK_BAR && Settings.FEED_SEEK_BAR_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_SEEK_BAR && Settings.STORY_SEEK_BAR_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
-                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key) || Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
                             || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
@@ -637,6 +716,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_NOT_INTERESTED_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_BLOCK_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.TEXT_BUTTON_ON_REELS.key.equals(key);
+                    belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.KEEP_REEL_SPEED)
+                            && Settings.SPEED_BUTTON_ON_REELS.key.equals(key);
+                    belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.REEL_DECLUTTER)
+                            && Settings.FULL_SCREEN_BUTTON_ON_REELS.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && (Settings.HIDE_SOUND_REELS.key.equals(key)
                             || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
@@ -655,7 +738,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAB_BAR_LAYOUT && Settings.TAB_BAR_LAYOUT.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
-                            || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
+                            || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key)
+                            || Settings.REELS_KEPT_LANGUAGES.key.equals(key) || Settings.HIDE_OTHER_LANGUAGE_HOME.key.equals(key));
+                    belongs |= family == PatchFamily.LOW_VIEW_REELS
+                            && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
+                    belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
+                            || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key));
+                    belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
@@ -681,11 +770,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (family == PatchFamily.FOLLOWING_FEED) aliases.append(" following home feed");
                     if (Settings.REEL_AUTO_ADVANCE.key.equals(key)) aliases.append(" auto advance autoloop loop next reels");
                     if (Settings.STOP_VIDEO_LOOPING.key.equals(key)) aliases.append(" autoloop loop replay repeat reels");
+                    if (Settings.KEEP_PLAYING_IN_BACKGROUND.key.equals(key)) {
+                        aliases.append(" background audio minimized screen off notification music");
+                    }
                     if (family == PatchFamily.REEL_DECLUTTER || family == PatchFamily.REEL_DOWNLOAD
                             || family == PatchFamily.REEL_WATCH_HISTORY || family == PatchFamily.REELS_TAB
                             || family == PatchFamily.KEEP_REEL_SPEED || family == PatchFamily.TAP_TO_PLAY
                             || family == PatchFamily.PLAYBACK_QUALITY || family == PatchFamily.RESUME_LONG_VIDEOS
-                            || family == PatchFamily.REEL_TAP_AND_VOLUME
+                            || family == PatchFamily.REEL_TAP_AND_VOLUME || family == PatchFamily.BACKGROUND_PLAY
                             || Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.key.equals(key)) aliases.append(" reels");
                 }
                 searchAliases.put(row, aliases.toString());
@@ -755,6 +847,69 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /**
+     * Runs [change], then puts the list back where [anchor] was on the screen, so a switch near the
+     * top doesn't move the page under the finger.
+     */
+    private void keepingScroll(Runnable change, Preference anchor) {
+        ListView list = listView();
+        android.widget.ListAdapter before = list == null ? null : list.getAdapter();
+        int at = -1;
+        if (before != null) {
+            for (int i = 0; i < before.getCount(); i++) if (before.getItem(i) == anchor) { at = i; break; }
+        }
+        int top = 0;
+        if (at >= 0) {
+            View row = list.getChildAt(at - list.getFirstVisiblePosition());
+            top = row == null ? 0 : row.getTop() - list.getPaddingTop();
+            if (row == null) at = -1;
+        }
+        change.run();
+        if (list == null || at < 0) return;
+        int kept = top;
+        list.post(() -> {
+            if (list != listView()) return;
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == anchor) {
+                    list.setSelectionFromTop(i, kept);
+                    return;
+                }
+            }
+        });
+    }
+
+    /**
+     * A tile was tapped: its section opens on this page, below the tiles, and any other one folds,
+     * as if each had a page of its own. The tile of the section already open only scrolls to it.
+     */
+    private void openFromGrid(Heading section) {
+        if (!categoryPages() || !Settings.CATEGORY_GRID.savedValue() || !searchQuery.trim().isEmpty()) return;
+        String key = section.getKey();
+        if (!expandedCategories.contains(key)) {
+            for (PreferenceCategory other : searchableRows.keySet()) {
+                if (other != section && !other.getKey().equals(key) && expandedCategories.remove(other.getKey())) {
+                    NewRowDots.left(other);
+                }
+            }
+            expandedCategories.add(key);
+        }
+        lastCategory = key;
+        focusPage();
+        filterSettings();
+        if (categoryGrid != null) categoryGrid.refresh();
+        ListView list = listView();
+        if (list == null) return;
+        list.post(() -> {
+            if (list != listView()) return;
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == section) {
+                    list.setSelectionFromTop(i, 0);
+                    return;
+                }
+            }
+        });
+    }
+
     /** Back clears a search first. Expanded sections do not add a navigation level. */
     boolean closeCategory() {
         return endSearch();
@@ -789,6 +944,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (list != null) list.invalidateViews();
     }
 
+    /** Black settings page shows at once: the header, the category lines and every row's colours (#455). */
+    void applyLook() {
+        filterSettings();
+        rebindRows();
+    }
+
     /** Page entry shouldn't focus the search field or move a restored viewport to show it. */
     private void focusPage() {
         View view = getView();
@@ -803,8 +964,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         body.requestFocus();
     }
 
-    private void showTitle(@Nullable CharSequence title) {
-        if (getParentFragment() instanceof SettingsDialog) ((SettingsDialog) getParentFragment()).showTitle(title);
+    /** The bar's title: the search while there is one, else HushGram unless the header shows it. */
+    private void showTitle() {
+        if (!(getParentFragment() instanceof SettingsDialog)) return;
+        boolean searching = !searchText(searchQuery).trim().isEmpty();
+        ((SettingsDialog) getParentFragment()).showTitle(
+                searching ? L10n.t("Search settings") : null, headerNameShown());
+    }
+
+    /**
+     * Whether some of the header's HushGram name is on the screen. A search that starts scrolls its
+     * field to the top and the header away, and so can a reader, and then the bar names the page.
+     */
+    private boolean headerNameShown() {
+        ListView list = listView();
+        if (list == null || header == null || header.getParent() != getPreferenceScreen()) return false;
+        View name = list.findViewWithTag(SettingsHeader.NAME);
+        return name != null && name.isShown() && name.getLocalVisibleRect(new android.graphics.Rect());
     }
 
     /** Keeps the screen's Restart now bar in step with what waits on a restart. */
@@ -899,18 +1075,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the buttons left off in [saved] do, for the row's summary. */
+    /** What the buttons left off in [saved] do, for the row's summary, with the plus menu switch as saved. */
     static String messageBoxSummary(String saved) {
+        return messageBoxSummary(saved, PatchFamily.PLUS_MENU.inBuild() && Settings.MOVE_TO_PLUS_MENU.savedValue());
+    }
+
+    /**
+     * The summary for [saved] with Gallery and microphone in the plus menu [moved] or not. Moved, the
+     * bar leaves Gallery and Voice message out whatever's ticked here ({@link MessageBox}), so the
+     * summary says where they went rather than calling them shown or left off.
+     */
+    static String messageBoxSummary(String saved, boolean moved) {
         Set<String> hidden = MessageBox.parse(saved);
-        if (hidden.isEmpty()) {
-            return L10n.t("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.");
-        }
         List<String> labels = new ArrayList<>();
         for (String name : MessageBox.OFFERED) {
+            if (moved && ("GALLERY".equals(name) || "VOICE_MESSAGE".equals(name))) continue;
             if (hidden.contains(name)) labels.add(L10n.isolate(messageBoxLabel(name)));
         }
+        if (labels.isEmpty()) {
+            return moved
+                    ? L10n.t("Gallery and Voice message are in the plus menu while Gallery and microphone in the plus "
+                            + "menu is on. The text box and Send always stay.")
+                    : L10n.t("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.");
+        }
         String left = String.join(", ", labels);
-        return L10n.f("Left off the message box: %1$s. The text box and Send stay.", left);
+        return moved
+                ? L10n.f("Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery "
+                        + "and microphone in the plus menu is on. The text box and Send stay.", left)
+                : L10n.f("Left off the message box: %1$s. The text box and Send stay.", left);
     }
 
     /** What the message box list calls the button Instagram names [name]. */
@@ -1118,21 +1310,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SwitchPreference row = new Toggle(context);
         row.setPersistent(false);
         row.setTitle(L10n.t("Ghost mode"));
-        row.setSummary(L10n.t("Turns the switches that keep what you do to yourself on or off for this Instagram account, "
-                + "like View stories anonymously and Hide that you're typing. Each account remembers its own choice."));
+        row.setSummary(L10n.t("Turns the switches that keep what you do to yourself on or off in one go, like View "
+                + "stories anonymously and Hide that you're typing. Each one keeps its own switch."));
         row.setOnPreferenceChangeListener((preference, value) -> {
             boolean on = Boolean.TRUE.equals(value);
             List<BooleanSetting> picked = GhostMode.picked(ghostSwitches);
-            if (!GhostMode.setForActiveAccount(on)) {
-                for (BooleanSetting setting : picked) {
-                    Preference own = findPreference(setting.key);
-                    if (own instanceof TwoStatePreference && own.isPersistent()) ((TwoStatePreference) own).setChecked(on);
-                    else setting.save(on);
-                }
+            for (BooleanSetting setting : picked) {
+                Preference own = findPreference(setting.key);
+                if (own instanceof TwoStatePreference && own.isPersistent()) ((TwoStatePreference) own).setChecked(on);
+                else setting.save(on);
             }
             showGhostMode();
             Utils.showToastShort(GhostMode.message(picked, on,
-                    L10n.t("Couldn't change every Ghost mode switch. Check them below.")));
+                    L10n.t("Ghost mode partly changed. Check the switches below.")));
             return false;
         });
         row.setChecked(GhostMode.on(GhostMode.picked(ghostSwitches)));
@@ -1213,16 +1403,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         rankForSearch(terms);
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
-        showTitle(terms.length > 0 ? L10n.t("Search settings") : null);
-        for (Preference top : new Preference[]{statusCard, beforeSignIn, viewToggle, search}) {
+        boolean black = Settings.SETTINGS_BLACK_LOOK.savedValue();
+        for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, gridToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
-            boolean hidden = top == statusCard && !HushgramPause.isPaused();
+            // The header stays while searching. Taking a row off above the field moved the field's
+            // place in the list mid-word, and a hardware keyboard's next key was dropped.
+            boolean hidden = top == statusCard ? !HushgramPause.isPaused()
+                    : top == gridToggle ? !listing : top == header && !black;
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
         }
+        // After the header's turn, since the bar leaves HushGram's name to it.
+        showTitle();
         if (viewToggle != null) {
             CharSequence label = pages ? L10n.t("Show all settings as a list") : L10n.t("Show settings by category");
             if (!label.equals(viewToggle.getTitle())) {
@@ -1231,6 +1426,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 mark(viewToggle, pages ? SettingsIcons.MENU : SettingsIcons.FEED);
             }
         }
+        if (gridToggle != null) {
+            boolean grid = Settings.CATEGORY_GRID.savedValue();
+            CharSequence label = grid ? L10n.t("Show categories as rows") : L10n.t("Show categories as a grid");
+            if (!label.equals(gridToggle.getTitle())) {
+                gridToggle.setTitle(label);
+                mark(gridToggle, grid ? SettingsIcons.MENU : SettingsIcons.LAYOUT);
+            }
+        }
+        // Tiles stand in for the folded sections' headings, so those headings stay off the page.
+        boolean gridOn = listing && Settings.CATEGORY_GRID.savedValue();
+        List<Heading> tiles = new ArrayList<>();
         int matches = 0;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
@@ -1264,10 +1470,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     else if (!expanded && lastCarouselSave.getParent() == group) group.removePreference(lastCarouselSave);
                 }
             }
-            if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded);
-            if (filled) {
+            if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded, black);
+            boolean tile = gridOn && filled && group instanceof Heading;
+            if (tile) tiles.add((Heading) group);
+            if (filled && !(tile && !expanded)) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
+        }
+        if (categoryGrid != null) {
+            if (!tiles.isEmpty()) {
+                categoryGrid.show(tiles);
+                if (categoryGrid.getParent() != screen) screen.addPreference(categoryGrid);
+            } else if (categoryGrid.getParent() == screen) screen.removePreference(categoryGrid);
         }
         // removePreference notifies even when absent. No-op changes mustn't rebind live Cancel.
         if (terms.length > 0 && matches == 0) {
@@ -1329,8 +1543,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * Whether the lock greys [row] out. The lock's own row, both exports, Debug logging and clearing
-     * the diagnostic data stay open: none of them changes how Instagram acts.
+     * Whether the lock greys [row] out. The lock's own row, both exports, Debug logging, clearing
+     * the diagnostic data and the About rows stay open: none of them changes how Instagram acts.
      */
     private boolean lockable(Preference row) {
         if (row == settingsLock || row == exportConfiguration || row == exportDiagnostics
@@ -1380,7 +1594,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     private static String heldMessage() {
         return SettingsLock.locked() ? L10n.t("These settings are locked. Ask to unlock first.")
-                : L10n.t("Instagram settings are locked");
+                : L10n.t("HushGram settings are locked");
     }
 
     /** A deferred callback must save successfully before it presents a new value. */
@@ -1397,7 +1611,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } finally {
             row.setPersistent(persistent);
         }
-        if (!saved) Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        if (!saved) Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
         else {
             HushgramPreferenceFragment owner = mutationOwner(row);
             if (owner != null) owner.noteRestartPending(setting, before);
@@ -1522,7 +1736,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     private static void changeFailed() {
-        Utils.showToastLong(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        Utils.showToastLong(L10n.t("Couldn't finish that change. Showing what's saved."));
     }
 
     /**
@@ -1581,6 +1795,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         List<Preference> rows = new ArrayList<>();
         for (List<Preference> section : searchableRows.values()) rows.addAll(section);
         return rows;
+    }
+
+    /** The Ko-fi page, for a browser, in a task of its own so it never opens inside Instagram's. */
+    static Intent supportIntent() {
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_URL))
+                .addCategory(Intent.CATEGORY_BROWSABLE)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
+    /** Opens the Ko-fi page, or says no app here can, as Source code and issues does. */
+    static void openSupport(Context context) {
+        try {
+            context.startActivity(supportIntent());
+        } catch (ActivityNotFoundException | SecurityException missing) {
+            // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
+            Logger.printInfo(() -> "No app opened the support link");
+            // The address in a toast of its own: after the sentence it ran to a third line.
+            Utils.showToastLong(L10n.t("No app can open this link."));
+            Utils.showToastLong(SUPPORT_ADDRESS);
+        }
     }
 
     void showConfiguration() {
@@ -1652,8 +1886,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         documentRequest = importing ? IMPORT_CONFIGURATION : EXPORT_CONFIGURATION;
         documentCode = ++documentSequence;
         showConfiguration();
+        // A settings file that came through a chat or a download often carries some other type, or none,
+        // and a picker filtered to JSON greys it out. Import takes any file; the reader refuses one that
+        // isn't a settings file. Export still names the file's type, so it's saved as JSON.
         Intent picker = new Intent(importing ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_CREATE_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");
+                .addCategory(Intent.CATEGORY_OPENABLE).setType(importing ? "*/*" : "application/json");
         if (!importing) picker.putExtra(Intent.EXTRA_TITLE,
                 ConfigurationBackup.fileName(new Date(), Settings.DATE_SETTINGS_EXPORT.savedValue()));
         try {
@@ -1663,9 +1900,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentCode = 0;
             fontRequestRevision = -1;
             if (!importing) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                    L10n.t("This phone has no file picker. Your settings haven't changed."));
+                    L10n.t("There's no file picker. Your settings haven't changed."));
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -1681,6 +1918,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             fontRequestRevision = -1;
             showConfiguration();
             if (result == Activity.RESULT_OK) keepPickedFont(request, data == null ? null : data.getData(), revision);
+            return;
+        }
+        if (request == PICK_ICON_PICTURE) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            if (result == Activity.RESULT_OK) CustomIcon.edit(getActivity(), data == null ? null : data.getData());
+            return;
+        }
+        if (request == PICK_HEADER_PICTURE) {
+            documentRequest = 0;
+            documentCode = 0;
+            // Canceled: nothing to do and nothing to say.
+            if (result == Activity.RESULT_OK) keepHeaderPicture(data == null ? null : data.getData());
             return;
         }
         if (request == PICK_SAVE_FOLDER) {
@@ -1709,8 +1960,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Uri uri = data == null ? null : data.getData();
         if (uri == null || !"content".equals(uri.getScheme())) {
             if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                    L10n.t("Couldn't use that settings file. Your settings haven't changed."));
-            Utils.showToastLong(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+                    L10n.t("Couldn't use that file. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("Couldn't use that file. Your settings haven't changed."));
             showConfiguration();
             return;
         }
@@ -1742,7 +1993,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentCode = 0;
             fontRequestRevision = -1;
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -1782,6 +2033,193 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     static final String GALLERY_FOLDERS = "hushgram_gallery_folders";
 
+    /** The Custom app icon row (#442): Android's picture picker, then the framing dialog. */
+    Row customIconRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(CUSTOM_ICON_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Custom app icon"));
+        row.setSummary(L10n.t("Pick a picture, frame it and add it to your home screen as a shortcut to Instagram."));
+        row.setOnPreferenceClickListener(p -> {
+            pickIconPicture();
+            return true;
+        });
+        return row;
+    }
+
+    static final String CUSTOM_ICON_KEY = "hushgram_custom_icon";
+    static final String HEADER_PICTURE_KEY = "hushgram_header_picture_row";
+    static final String REMOVE_HEADER_PICTURE_KEY = "hushgram_remove_header_picture";
+
+    /** The Home header picture row (#454): Android's picture picker, then a shrunk copy in Instagram's files. */
+    Row headerPictureRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(HEADER_PICTURE_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Home header picture"));
+        row.setOnPreferenceClickListener(p -> {
+            pickHeaderPicture();
+            return true;
+        });
+        headerPicture = row;
+        return row;
+    }
+
+    /** Remove the header picture: forgets the picture, there only while one is picked. */
+    Row removeHeaderPictureRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(REMOVE_HEADER_PICTURE_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Remove the header picture"));
+        row.setSummary(L10n.t("The top of Home goes back to your header text, or to Instagram's logo."));
+        row.setOnPreferenceClickListener(p -> {
+            if (!allowMutation()) return true;
+            removeHeaderPicture(p.getContext().getApplicationContext());
+            return true;
+        });
+        removeHeaderPicture = row;
+        showHeaderPicture();
+        return row;
+    }
+
+    /** What the two picture rows say and allow now, for a picked picture or none. */
+    void showHeaderPicture() {
+        Row choose = headerPicture;
+        if (choose != null) {
+            String name = Settings.HEADER_PICTURE.savedValue();
+            choose.setSummary(name.isEmpty()
+                    ? L10n.t("Pick a picture to show at the top of Home, in place of Instagram's logo or your text.")
+                    : L10n.f("The top of Home shows %1$s. Tap to pick another.", L10n.isolate(name)));
+        }
+        if (removeHeaderPicture != null) removeHeaderPicture.setEnabled(!Settings.HEADER_PICTURE.savedValue().isEmpty());
+    }
+
+    private void pickHeaderPicture() {
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
+        if (!allowMutation()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_HEADER_PICTURE;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
+        }
+    }
+
+    /**
+     * Copies the picked picture into Instagram's files off the main thread. The name is saved before
+     * the copy moves in and put back if it can't, so the row and the copy never disagree.
+     */
+    private void keepHeaderPicture(@Nullable Uri uri) {
+        Activity activity = getActivity();
+        if (uri == null || activity == null) return;
+        Context context = activity.getApplicationContext();
+        Utils.runOnBackgroundThread(() -> {
+            String said;
+            try {
+                String name = pictureName(context, uri);
+                String before = Settings.HEADER_PICTURE.savedValue();
+                HeaderPicture.copy(context.getContentResolver().openInputStream(uri), HeaderPicture.file(context),
+                        new HeaderPicture.Choice() {
+                            @Override
+                            public boolean save() {
+                                return Settings.HEADER_PICTURE.save(name);
+                            }
+
+                            @Override
+                            public void undo() {
+                                Settings.HEADER_PICTURE.save(before);
+                            }
+                        });
+                said = L10n.t("Header picture set.");
+            } catch (HeaderPicture.Refused refused) {
+                Logger.printInfo(() -> "Header picture refused: " + refused.reason);
+                said = headerPictureRefusal(refused.reason);
+            } catch (Exception failure) {
+                // The class only: a provider's message can carry the document's name or address.
+                Logger.printInfo(() -> "Header picture unreadable: " + failure.getClass().getSimpleName());
+                said = headerPictureRefusal(HeaderPicture.Refusal.UNREADABLE);
+            }
+            String result = said;
+            Utils.runOnMainThread(() -> {
+                showHeaderPicture();
+                Utils.showToastShort(result);
+            });
+        });
+    }
+
+    /** Stops naming the picture, then takes its copy away, off the main thread. */
+    private void removeHeaderPicture(Context context) {
+        Utils.runOnBackgroundThread(() -> {
+            boolean saved = Settings.HEADER_PICTURE.save("");
+            if (saved) {
+                HeaderPicture.forget();
+                File copy = HeaderPicture.file(context);
+                if (copy.exists() && !copy.delete()) Logger.printInfo(() -> "The header picture copy couldn't be removed");
+            }
+            Utils.runOnMainThread(() -> {
+                showHeaderPicture();
+                Utils.showToastShort(saved ? L10n.t("Header picture removed.") : L10n.t("Couldn't start that. Try again."));
+            });
+        });
+    }
+
+    /** One short sentence per refusal, each fitting a toast. */
+    static String headerPictureRefusal(HeaderPicture.Refusal reason) {
+        switch (reason) {
+            case NOT_A_PICTURE:
+                return L10n.t("That isn't a picture.");
+            case TOO_LARGE:
+                return L10n.f("That picture is over %1$d MB.", HeaderPicture.MAX_MEGABYTES);
+            case NOT_SAVED:
+                return L10n.t("Couldn't save the picture.");
+            default:
+                return L10n.t("Couldn't read that picture.");
+        }
+    }
+
+    /** The picked file's name as its app gives it, or "picture" when it gives none. */
+    static String pictureName(Context context, Uri uri) {
+        try (android.database.Cursor cursor = context.getContentResolver().query(uri,
+                new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                if (name != null && !name.trim().isEmpty()) return name.trim();
+            }
+        } catch (RuntimeException failure) {
+            // The plain name below.
+        }
+        return "picture";
+    }
+
+    private void pickIconPicture() {
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_ICON_PICTURE;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
+        }
+    }
+
     private void pickSaveFolder() {
         if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
         if (!allowMutation()) return;
@@ -1803,7 +2241,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentRequest = 0;
             documentCode = 0;
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -1812,7 +2250,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Context context = getContext();
         if (context == null || !allowMutation()) return;
         if (!SaveTree.keep(context, tree)) {
-            Utils.showToastLong(L10n.t("Couldn't use that folder. Saves still go where they did."));
+            Utils.showToastLong(L10n.t("Couldn't use that folder. Saves go where they did."));
             return;
         }
         Utils.showToastShort(L10n.f("Folder set to %1$s.", L10n.isolate(SaveTree.label(context, tree))));
@@ -1836,6 +2274,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
         if (galleryFolders != null) galleryFolders.setEnabled(!busy && SaveTree.picked());
+        Preference folder = findPreference(Settings.SAVE_FOLDER.key);
+        if (folder instanceof FolderRow) ((FolderRow) folder).showWhere();
     }
 
     private static boolean isFontRequest(int request) {
@@ -1979,23 +2419,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void fontFinished(FontResult result) {
         if (result.verdict == FontVerdict.HELD) Utils.showToastLong(heldMessage());
         else if (result.verdict == FontVerdict.STALE || result.verdict == FontVerdict.SAVE_FAILED) {
-            Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+            Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
         } else if (result.verdict == FontVerdict.UNREACHED) {
             Utils.showToastLong(L10n.t("Couldn't download the emoji. Try again."));
         } else if (result.verdict == FontVerdict.INVALID) {
             Utils.showToastLong(result.request == PICK_FONT
-                    ? L10n.t("That file isn't a font Instagram can use. Your font hasn't changed.")
+                    ? L10n.t("That file isn't a usable font. Yours didn't change.")
                     : result.request == PICK_STORY_FONT
-                    ? L10n.t("That file isn't a font Instagram can use. Nothing was added.")
+                    ? L10n.t("That file isn't a usable font. Nothing was added.")
                     : result.request == PICK_EMOJI
                     ? L10n.t("No color emoji in that file. Nothing changed.")
-                    : L10n.t("That file isn't a font Instagram can use. Story emoji haven't changed."));
+                    : L10n.t("That file isn't a usable font. Emoji didn't change."));
         } else if (result.request == PICK_EMOJI) {
             Utils.showToastLong(L10n.t("Emoji saved. Restart Instagram to see them."));
         } else if (result.request == PICK_FONT) {
             Utils.showToastLong(L10n.t("Font saved. Restart Instagram to see it."));
         } else if (result.request == PICK_STORY_FONT) {
-            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor alongside Instagram's fonts.",
+            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor.",
                     L10n.isolate(result.name)));
             if (isAdded() && getView() != null && !Fonts.importActive() && documentRequest == 0 && asyncChangesAllowed()) showStoryFonts();
         } else Utils.showToastLong(L10n.t("Emoji font saved. Emoji in story text draw in it."));
@@ -2008,10 +2448,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     void exportConfiguration(Uri uri) {
         String token = configurationExportToken;
-        if (!ExportStatus.CONFIGURATION.start(token, L10n.t("Exporting Instagram settings..."))) return;
+        if (!ExportStatus.CONFIGURATION.start(token, L10n.t("Exporting HushGram settings..."))) return;
         Context context = getContext();
         if (context == null) {
-            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."));
+            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."));
             return;
         }
         Context application = context.getApplicationContext();
@@ -2019,27 +2459,64 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         showConfiguration();
         if (!Utils.runOnBackgroundThread(() -> {
             try {
-                byte[] bytes = ConfigurationBackup.export();
-                try (java.io.OutputStream output = app.getContentResolver().openOutputStream(uri, "wt")) {
-                    if (output == null) throw new java.io.IOException();
-                    output.write(bytes);
-                }
-                ExportStatus.CONFIGURATION.finish(token, L10n.t("Instagram settings exported."));
-                Utils.showToastLong(L10n.t("Instagram settings exported."));
+                writeConfiguration(app.getContentResolver(), uri, ConfigurationBackup.export());
+                ExportStatus.CONFIGURATION.finish(token, L10n.t("HushGram settings exported."));
+                Utils.showToastLong(L10n.t("HushGram settings exported."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration export failed");
-                ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."));
-                Utils.showToastLong(L10n.t("Couldn't export Instagram settings. Try another file."));
+                ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."));
+                Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
             } finally {
                 // An Error past the catch still ends the export, or every settings action stays busy until a restart.
-                if (ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export Instagram settings. Try another file."))) {
-                    Utils.showToastLong(L10n.t("Couldn't export Instagram settings. Try another file."));
+                if (ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."))) {
+                    Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
                 }
             }
         })) {
             ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't start that. Try again."));
             configurationQueueFull();
         }
+    }
+
+    /**
+     * Writes [bytes] to [uri] and reads the file back. A few document providers ignore "wt"'s
+     * truncate, so a file that was longer before kept its old tail after the new settings and
+     * wouldn't import, while the export said it worked. A tail like that is cut off through the
+     * file's descriptor, and a file that still doesn't match throws. A provider that won't let the
+     * file be read back is taken at its word, as before.
+     */
+    static void writeConfiguration(android.content.ContentResolver resolver, Uri uri, byte[] bytes) throws java.io.IOException {
+        try (java.io.OutputStream output = resolver.openOutputStream(uri, "wt")) {
+            if (output == null) throw new java.io.IOException();
+            output.write(bytes);
+        }
+        if (!Boolean.FALSE.equals(holds(resolver, uri, bytes))) return;
+        android.os.ParcelFileDescriptor file = resolver.openFileDescriptor(uri, "rw");
+        if (file == null) throw new java.io.IOException();
+        try (java.io.FileOutputStream output = new android.os.ParcelFileDescriptor.AutoCloseOutputStream(file)) {
+            java.nio.channels.FileChannel channel = output.getChannel();
+            channel.position(0);
+            java.nio.ByteBuffer rest = java.nio.ByteBuffer.wrap(bytes);
+            while (rest.hasRemaining()) channel.write(rest);
+            channel.truncate(bytes.length);
+        }
+        if (!Boolean.TRUE.equals(holds(resolver, uri, bytes))) throw new java.io.IOException();
+    }
+
+    /** Whether [uri] reads back as exactly [bytes], or null when it can't be read back at all. */
+    @Nullable
+    private static Boolean holds(android.content.ContentResolver resolver, Uri uri, byte[] bytes) {
+        // One byte past the length is enough to see a leftover tail.
+        byte[] read = new byte[bytes.length + 1];
+        int total = 0;
+        try (java.io.InputStream input = resolver.openInputStream(uri)) {
+            if (input == null) return null;
+            for (int count; total < read.length && (count = input.read(read, total, read.length - total)) > 0; ) total += count;
+        } catch (java.io.IOException | RuntimeException unreadable) {
+            // A write-only grant, a provider with no reads, or a stream that throws: nothing to compare.
+            return null;
+        }
+        return total == bytes.length && java.util.Arrays.equals(java.util.Arrays.copyOf(read, total), bytes);
     }
 
     /** Undo always remains Undo, even if its expiration callback hasn't reached the screen yet. */
@@ -2102,7 +2579,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         : L10n.t("Couldn't save or fully restore the settings. Check the shown values and try Undo."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration import failed before applying settings");
-                showImportFeedback(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+                showImportFeedback(L10n.t("Couldn't use that file. Your settings haven't changed."));
             } finally { configurationFinished(); }
         })) configurationQueueFull();
     }
@@ -2159,7 +2636,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 ? L10n.f("Undo is available until %1$s.",
                 DateFormat.getTimeInstance(DateFormat.MEDIUM, L10n.locale(row.getContext())).format(
                         new Date(System.currentTimeMillis() + Math.max(0, deadline - SystemClock.elapsedRealtime()))))
-                : L10n.t("Instagram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them "
+                : L10n.t("HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them "
                         + "from this device."));
         row.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override public boolean onPreferenceClick(Preference preference) {
@@ -2206,7 +2683,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             } catch (Exception failure) {
                 Logger.printException(() -> "Could not update resume history", failure);
-                Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
+                Utils.showToastLong(L10n.t("Couldn't update remembered playback positions."));
             } finally {
                 Utils.runOnMainThread(() -> {
                     changingPositions = false;
@@ -2216,7 +2693,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             changingPositions = false;
             showClearPositions();
-            Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
+            Utils.showToastLong(L10n.t("Couldn't update remembered playback positions."));
         }
     }
 
@@ -2291,16 +2768,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             float density = context.getResources().getDisplayMetrics().density;
             int inset = Math.round(18 * density);
             int gap = Math.round(4 * density);
-            android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
-            for (boolean focused : new boolean[]{true, false}) {
-                android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
-                surface.setColor(ScreenColors.DEFAULT.card);
-                surface.setCornerRadius(Math.round(10 * density));
-                surface.setStroke(Math.round(density), focused ? ScreenColors.DEFAULT.heading : ScreenColors.DEFAULT.outline);
-                states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
-                        new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
-            }
-            row.setBackground(states);
+            paint(row);
             row.setAddStatesFromChildren(true);
             row.setPaddingRelative(inset + Math.round(14 * density), gap, inset + Math.round(4 * density), gap);
             row.setMinimumHeight(touch + 2 * gap);
@@ -2318,9 +2786,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             field.setBackground(null);
             field.setPaddingRelative(0, Math.round(10 * density), 0, Math.round(10 * density));
             field.setTextColor(ScreenColors.DEFAULT.title);
-            field.setHintTextColor(ScreenColors.DEFAULT.summary);
             field.setHint(L10n.t("Search settings"));
             field.setContentDescription(L10n.t("Search settings"));
+            // The hint and the query start by the magnifier, on the right in a right-to-left layout.
+            field.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
             // A magnifier at the field's start, as every row starts with an icon. A screen reader
             // already hears the field's name, and a compound drawable isn't read.
             android.graphics.drawable.Drawable glass = SettingsIcons.icon(context, SettingsIcons.SEARCH,
@@ -2384,6 +2853,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             });
             return row;
+        }
+
+        /**
+         * The field's card in the colours on show, outlined in the heading blue while it has focus. The
+         * row keeps the card colour in its tag, so a bind while typing keeps its drawable.
+         */
+        private void paint(View row) {
+            ScreenColors colors = ScreenColors.current();
+            row.setTag(colors.card);
+            float density = row.getResources().getDisplayMetrics().density;
+            int inset = Math.round(18 * density);
+            int gap = Math.round(4 * density);
+            android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+            for (boolean focused : new boolean[]{true, false}) {
+                android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
+                surface.setColor(colors.card);
+                surface.setCornerRadius(Math.round(10 * density));
+                surface.setStroke(Math.round(density), focused ? colors.heading : colors.outline);
+                states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
+                        new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
+            }
+            // An inset background sets the view's padding to its insets. Keep the row's own.
+            int start = row.getPaddingStart(), top = row.getPaddingTop();
+            int end = row.getPaddingEnd(), bottom = row.getPaddingBottom();
+            row.setBackground(states);
+            row.setPaddingRelative(start, top, end, bottom);
+        }
+
+        /**
+         * A flip of Black settings page repaints the card each row view was built with (#455). The list
+         * keeps more than one view of this row, so the colour is read off the view, not the row.
+         */
+        @Override protected void onBindView(View view) {
+            super.onBindView(view);
+            if (!Integer.valueOf(ScreenColors.current().card).equals(view.getTag())) paint(view);
         }
     }
 
@@ -2454,12 +2958,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 paused ? palette.summary : palette.heading));
         statusCard = card;
         if (!paused) {
-            card.setTitle(L10n.t("Instagram is on"));
+            card.setTitle(L10n.t("HushGram is on"));
             card.setSelectable(false);
             showStatus(card, context);
             return card;
         }
-        card.setTitle(L10n.t("Instagram is paused"));
+        card.setTitle(L10n.t("HushGram is paused"));
         showStatus(card, context);
         // A tap acts at once, taking the pause off the next start, and the card says so in words.
         card.actsAtOnce = true;
@@ -2540,14 +3044,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (still == HushgramPause.Reason.MARKER_FILE) {
             String file = L10n.isolate(HushgramPause.MARKER_FILE_NAME);
             String folder = L10n.isolate(markerFolder(context.getPackageName()));
-            String left = L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn Instagram back on.",
+            String left = L10n.f("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                     file, folder);
             statusCard.setSummary(left);
             Utils.showToastLong(left);
             return;
         }
         if (still != HushgramPause.Reason.NONE) {
-            Utils.showToastLong(L10n.t("Couldn't turn Instagram back on. Try again."));
+            Utils.showToastLong(L10n.t("Couldn't turn HushGram back on. Try again."));
         }
         showStatus(statusCard, context);
         showRestart();
@@ -2563,12 +3067,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (!HushgramPause.isPaused()) {
             String version = L10n.f("Version %1$s for Instagram %2$s",
                     L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()));
-            status = pausedNext ? version + " " + L10n.t("The pause takes effect when Instagram restarts.") : version;
+            status = pausedNext ? version + " " + L10n.t("HushGram pauses when Instagram restarts.") : version;
         } else if (pausedNext) {
             status = pausedSummary(HushgramPause.reason(), context.getPackageName())
                     + " " + L10n.t("Tap to turn it back on.");
         } else {
-            status = L10n.t("The changes take effect when Instagram restarts.");
+            status = L10n.t("HushGram turns back on when Instagram restarts.");
         }
         card.setSummary(status);
     }
@@ -2579,14 +3083,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     void restartNow() {
         if (Fonts.importActive()) {
-            Utils.showToastLong(L10n.t("A save or an export is still running. Restart once it's done."));
+            Utils.showToastLong(L10n.t("Still saving or exporting. Restart once it's done."));
             return;
         }
         Activity activity = getActivity();
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
         switch (RestartNow.restart(activity, currentPage())) {
             case BUSY:
-                Utils.showToastLong(L10n.t(activity, "A save or an export is still running. Restart once it's done."));
+                Utils.showToastLong(L10n.t(activity, "Still saving or exporting. Restart once it's done."));
                 break;
             case FAILED:
                 Utils.showToastLong(L10n.t(activity, "Couldn't restart Instagram. Close it and open it again."));
@@ -2646,14 +3150,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         switch (reason) {
             case CRASH_LOOP:
                 why = L10n.t("Instagram crashed or froze within a minute of starting three times in a row, so "
-                        + "Instagram paused itself.");
+                        + "HushGram paused itself.");
                 break;
             case MARKER_FILE:
-                why = L10n.f("A file named %1$s in %2$s paused Instagram.",
+                why = L10n.f("A file named %1$s in %2$s paused HushGram.",
                         L10n.isolate(HushgramPause.MARKER_FILE_NAME), L10n.isolate(markerFolder(packageName)));
                 break;
             default:
-                why = L10n.t("You paused Instagram.");
+                why = L10n.t("You paused HushGram.");
                 break;
         }
         return why + " " + L10n.t("Every switch but Debug logging acts as if it were off, and what was set when you "
@@ -2773,10 +3277,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setDialogTitle(L10n.t("Unlock with"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         if (Build.VERSION.SDK_INT >= 30) {
-            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("Instagram PIN"), L10n.t("Fingerprint or face only")});
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN"), L10n.t("Fingerprint or face only")});
             row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name(), UnlockWith.BIOMETRICS.name()});
         } else {
-            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("Instagram PIN")});
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN")});
             row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()});
         }
         row.setValue(Settings.UNLOCK_WITH.savedValue().name());
@@ -2814,7 +3318,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (state == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
             return L10n.t("This phone has no fingerprint or face unlock to use.");
         }
-        return L10n.t("Your phone won't let Instagram use your fingerprint or face right now. Check its fingerprint and face settings.");
+        return L10n.t("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.");
     }
 
     /** The row that sets or changes the HushGram PIN; changing it while locked asks the current lock first. */
@@ -2822,7 +3326,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row row = new Row(context);
         row.setKey(CHANGE_PIN_ROW);
         row.setPersistent(false);
-        row.setTitle(L10n.t("Instagram PIN"));
+        row.setTitle(L10n.t("HushGram PIN"));
         row.setSummary(L10n.t("Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup."));
         row.setOnPreferenceClickListener(tapped -> {
             Activity activity = activityOf(tapped.getContext());
@@ -2854,8 +3358,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(LOCKED_CHATS_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("Locked chats"));
-        row.setSummary(L10n.t("Lock single chats. A locked chat asks for your fingerprint, face or screen lock each "
-                + "time you open it, and its notifications say only that a message came."));
+        row.setSummary(L10n.t("Lock single chats. A locked chat opens only once you unlock it the way Unlock with "
+                + "says, and its notifications say only that a message came."));
         row.setOnPreferenceClickListener(tapped -> {
             showLockedChats();
             return true;
@@ -2937,9 +3441,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(HIDDEN_CHATS_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("Hidden chats"));
-        row.setSummary(L10n.t("Hide single chats. A hidden chat leaves your inbox, unread badge counts, and "
-                + "notifications until you show it here again. Long-press a chat in Messages and choose Hide chat "
-                + "to add it."));
+        row.setSummary(L10n.t("Hide single chats. A hidden chat leaves your inbox and its notifications don't post "
+                + "until you show it here again."));
         row.setOnPreferenceClickListener(tapped -> {
             Activity activity = getActivity();
             if (activity == null) return true;
@@ -2987,7 +3490,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (last != null) chats.add(0, last);
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden chats"));
         if (chats.isEmpty()) {
-            builder.setMessage(L10n.t("Long-press a chat in Messages and choose Hide chat to add it here."));
+            builder.setMessage(L10n.t("Open a chat in Instagram, then come back here to hide it."));
         } else {
             CharSequence[] names = new CharSequence[chats.size()];
             boolean[] hidden = new boolean[chats.size()];
@@ -3287,7 +3790,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (!allowMutation()) return;
                     String name = HiddenAccounts.add(field.getText().toString());
                     if (name == null) {
-                        Utils.showToastShort(L10n.t("A username is up to 30 letters, numbers, dots and underscores"));
+                        Utils.showToastShort(L10n.t("Up to 30 letters, numbers, dots and underscores"));
                     } else {
                         Utils.showToastShort(L10n.f("Posts from @%1$s are hidden", name));
                     }
@@ -3300,7 +3803,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** A chat's change couldn't be saved: its check goes back to [saved], what the list still holds, and a toast says so. */
     private static void notSaved(AlertDialog dialog, int position, boolean saved) {
         setChecked(dialog, position, saved);
-        Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
     }
 
     private static void setChecked(AlertDialog dialog, int position, boolean checked) {
@@ -3362,17 +3865,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     static String wayInSummary(Setting<?> setting) {
         if (setting == Settings.SETTINGS_SHORTCUT) {
-            return L10n.t("Puts Instagram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.");
+            return L10n.t("Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.");
         }
         if (setting == Settings.SETTINGS_LOGO_PRESS) {
             return L10n.t("A long press on the Instagram logo at the top of Home opens these settings. Off, the long "
                     + "press goes back to Instagram.");
         }
         if (Settings.HIDE_MENU_ROW.savedValue() && SettingsEntry.waysInOn() == 0) {
-            return L10n.t("No other settings shortcut is on, so the settings row stays in Instagram's menu.");
+            return L10n.t("No other way into HushGram is on, so the row stays in Instagram's menu.");
         }
-        return L10n.t("Instagram's Settings and activity screen leaves out the settings row while another way to "
-                + "open these settings is on. With every other way off, the row comes back.");
+        return L10n.t("Instagram's Settings and activity screen leaves out the HushGram row while another way here "
+                + "opens HushGram. With every other way off, the row comes back.");
     }
 
     /**
@@ -3384,7 +3887,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SwitchPreference row = toggle(context, Settings.PROFILE_MENU_LONG_PRESS,
                 L10n.t("Open settings with a long press on your profile's menu"),
                 L10n.t("A long press on the menu button, the three lines at the top right of your own profile, "
-                        + "opens these settings. A tap still opens Instagram's menu, and other profiles stay the same."));
+                        + "opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same."));
         row.setOnPreferenceChangeListener((preference, value) -> {
             Utils.runOnMainThread(ProfileMenuPress::applyChoice);
             return true;
@@ -3603,6 +4106,47 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return mark(row, SettingsIcons.PERSON);
     }
 
+    /** The row logging who left, came back or is new since each whole Followers list was kept. */
+    static Preference followerHistoryRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(FOLLOWER_HISTORY_ROW);
+        row.setPersistent(false);
+        row.setSelectable(false);
+        row.setTitle(L10n.t("Follower history"));
+        row.setSummary(L10n.t("Reading the list…"));
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = followerHistorySummary(Unfollowers.history(application));
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(followerHistorySummary(Unfollowers.history(application)));
+        }
+        return mark(row, SettingsIcons.PERSON);
+    }
+
+    /** What the history row says for [changes], newest first. */
+    static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
+        if (changes.isEmpty()) {
+            return L10n.t("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers "
+                    + "list to the end, changes since the last time are added here.");
+        }
+        java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (FollowerHistory.Change change : changes) {
+            if (shown == UNFOLLOWERS_SHOWN) break;
+            String who = change.username.isEmpty() ? L10n.f("Account %1$s", change.id) : "@" + change.username;
+            String when = day.format(new java.util.Date(change.when));
+            String line = change.kind == FollowerHistory.UNFOLLOWED ? L10n.f("%1$s unfollowed you, %2$s", who, when)
+                    : change.kind == FollowerHistory.FOLLOWED_AGAIN ? L10n.f("%1$s followed you again, %2$s", who, when)
+                    : L10n.f("%1$s started following you, %2$s", who, when);
+            text.append(line).append('\n');
+            shown++;
+        }
+        if (changes.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
+        return text.toString().trim();
+    }
+
     /** What the unfollowers row says for [record]. */
     static String unfollowersSummary(Unfollowers.Record record) {
         if (record.checked <= 0) {
@@ -3629,7 +4173,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * empties [list]. It's handed over rather than looked up, since a search that hides the list row
      * takes it off the screen, and it came back still naming everyone (S22, 2026-10-15).
      */
-    static void clearUnfollowers(Preference row, Preference list) {
+    static void clearUnfollowers(Preference row, Preference list, Preference history) {
         if (!allowMutation(row, true)) return;
         Context context = row.getContext();
         if (!Utils.runOnBackgroundThread(() -> {
@@ -3642,6 +4186,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (cleared) {
                     Utils.showToastShort(L10n.t("Unfollower list cleared."));
                     list.setSummary(unfollowersSummary(Unfollowers.Record.NONE));
+                    history.setSummary(followerHistorySummary(java.util.Collections.emptyList()));
                 } else {
                     Utils.showToastLong(L10n.t("Couldn't clear the unfollower list. Try again."));
                 }
@@ -3670,20 +4215,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** How many of the newest viewing history rows the list row shows. */
-    static final int VIEWING_HISTORY_SHOWN = 50;
+    /** How many of the newest viewing history rows the settings row shows. Its page has them all. */
+    static final int VIEWING_HISTORY_SHOWN = 3;
 
     /**
-     * The row listing what the viewing history kept, newest first. Read off the main thread, so it
-     * says so until it's read. It isn't tappable: the summary is the list.
+     * The row with the newest of what the viewing history kept. Read off the main thread, so it
+     * says so until it's read. Tapping it opens the whole list on a page of its own.
      */
     static Preference viewingHistoryRow(Context context) {
         Row row = new Row(context);
         row.setKey(VIEWING_HISTORY_ROW);
         row.setPersistent(false);
-        row.setSelectable(false);
         row.setTitle(L10n.t("Viewing history"));
         row.setSummary(L10n.t("Reading the list…"));
+        row.setOnPreferenceClickListener(tapped -> {
+            ViewingHistoryPage.open(tapped.getContext(), tapped);
+            return true;
+        });
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         if (!Utils.runOnBackgroundThread(() -> {
             String summary = viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis());
@@ -3691,7 +4239,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             row.setSummary(viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis()));
         }
-        return mark(row, SettingsIcons.PERSON);
+        // The history clock: the list holds posts, reels and stories as well as people.
+        return mark(row, SettingsIcons.UPDATES);
     }
 
     /** What the viewing history row says for [rows], newest first, at [now]. */
@@ -3709,7 +4258,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             text.append(who).append(viewingKindLabel(seen.kind)).append(", ").append(ago).append('\n');
             shown++;
         }
-        if (rows.size() > VIEWING_HISTORY_SHOWN) text.append(L10n.t("Only the newest 50 are shown."));
+        text.append(L10n.f("Tap to see all %1$d, by kind or by search.", rows.size()));
         return text.toString().trim();
     }
 
@@ -3725,6 +4274,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** Forgets the viewing history off the main thread, says so, and empties [list]. */
     static void clearViewingHistory(Preference row, Preference list) {
+        clearViewingHistory(row, list, null);
+    }
+
+    /** {@link #clearViewingHistory(Preference, Preference)}, running [after] once it's gone. */
+    static void clearViewingHistory(Preference row, Preference list, @Nullable Runnable after) {
         if (!allowMutation(row, true)) return;
         Context context = row.getContext();
         if (!Utils.runOnBackgroundThread(() -> {
@@ -3737,6 +4291,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (cleared) {
                     Utils.showToastShort(L10n.t("Viewing history cleared."));
                     list.setSummary(viewingHistorySummary(java.util.Collections.emptyList(), System.currentTimeMillis()));
+                    if (after != null) after.run();
                 } else {
                     Utils.showToastLong(L10n.t("Couldn't clear the viewing history. Try again."));
                 }
@@ -3763,6 +4318,71 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntryValues(values);
         row.setValue(Settings.TAP_TO_PLAY_SCOPE.savedValue().name());
         return row;
+    }
+
+    /** Which uploads Upload stories at full quality covers (#37). The list shows the chosen entry as its summary. */
+    static UploadChoiceRow uploadScopeRow(Context context) {
+        UploadChoiceRow row = new UploadChoiceRow(context);
+        row.setKey(Settings.UPLOAD_QUALITY_APPLIES_TO.key);
+        row.setTitle(L10n.t("Upload quality applies to"));
+        row.setDialogTitle(L10n.t("Upload quality applies to"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        UploadScope[] scopes = UploadScope.values();
+        CharSequence[] entries = new CharSequence[scopes.length];
+        CharSequence[] values = new CharSequence[scopes.length];
+        for (int i = 0; i < scopes.length; i++) {
+            entries[i] = scopes[i] == UploadScope.ALL ? L10n.t("Stories, posts and reels") : L10n.t("Stories only");
+            values[i] = scopes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.UPLOAD_QUALITY_APPLIES_TO.savedValue().name());
+        row.setSummary(row.getEntry());
+        return row;
+    }
+
+    /** The least video bitrate an upload is prepared at (#37). */
+    static UploadChoiceRow uploadBitrateRow(Context context) {
+        UploadChoiceRow row = new UploadChoiceRow(context);
+        row.setKey(Settings.UPLOAD_VIDEO_BITRATE.key);
+        row.setTitle(L10n.t("Video bitrate"));
+        row.setDialogTitle(L10n.t("Video bitrate"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        UploadBitrate[] rates = UploadBitrate.values();
+        CharSequence[] entries = new CharSequence[rates.length];
+        CharSequence[] values = new CharSequence[rates.length];
+        for (int i = 0; i < rates.length; i++) {
+            entries[i] = rates[i] == UploadBitrate.INSTAGRAM ? L10n.t("Instagram's own")
+                    : L10n.f("%1$s Mbps", java.text.NumberFormat.getIntegerInstance(L10n.locale()).format(rates[i].megabits));
+            values[i] = rates[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.UPLOAD_VIDEO_BITRATE.savedValue().name());
+        row.setSummary(row.getEntry());
+        return row;
+    }
+
+    /** A plain choice row for the upload quality settings. Its summary is the chosen entry, set by the base class. */
+    static final class UploadChoiceRow extends ListPreference {
+        UploadChoiceRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
     }
 
     /** What the list calls [scope]. */
@@ -3925,11 +4545,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What the list calls [icon]. HushGram's own name isn't translated. */
     static String appIconLabel(AppIconChoice icon) {
         switch (icon) {
-            case HUSHGRAM: return "Instagram";
+            case HUSHGRAM: return "HushGram";
             case DARK: return L10n.t("Instagram on black");
             case PLUM: return L10n.t("Instagram on plum");
             case LIGHT: return L10n.t("Instagram in black on white");
             case SKETCH: return L10n.t("Hand-drawn Instagram");
+            case GRADIENT: return L10n.t("Instagram gradient on dark");
+            case RETRO: return L10n.t("Retro Instagram");
+            case PINK: return L10n.t("Instagram in pink");
             default: return L10n.t("Instagram's own");
         }
     }
@@ -4019,8 +4642,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** How strong the glass tab bar's tint is, from a slider in percent of the bar's own look (#391). */
     static SliderRow glassOpacityRow(Context context) {
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_OPACITY, 5, L10n.t("%1$d%%"));
-        row.setTitle(L10n.t("Tab bar opacity"));
+        row.setTitle(L10n.t("Tint intensity"));
         row.setText(String.valueOf(Settings.GLASS_TAB_BAR_OPACITY.savedValue()));
+        return row;
+    }
+
+    /** How hard the liquid pill bends what's behind its edge, from a slider in percent of the standard bend (#391). */
+    static SliderRow glassRefractRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_REFRACT_STRENGTH, 10, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Refraction intensity"));
+        row.setText(String.valueOf(Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.savedValue()));
         return row;
     }
 
@@ -4566,11 +5197,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case "whatsapp_status":
                 return L10n.t("WhatsApp status");
             case "reply_to_author":
-                return L10n.t("Reply to author");
+                return L10n.t("Reply to author (posts and reels)");
             case "watch_on_tv":
                 return L10n.t("Watch on TV");
             case "profile_card_download":
-                return L10n.t("Download profile card");
+                return L10n.t("Download profile card (on profiles)");
             case "line":
                 return L10n.t("LINE");
             case "kakaotalk":
@@ -5081,6 +5712,116 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** How Page dots on a pill's pill looks (#471). */
+    static OverlayLookRow carouselPillLookRow(Context context) {
+        return overlayLookRow(context, Settings.CAROUSEL_PILL_LOOK, L10n.t("Pill look"), new String[] {
+                L10n.t("A light pill with dark dots, as it's always been."),
+                L10n.t("A see-through dark pill with white dots, so more of the photo shows."),
+                L10n.t("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead."),
+        }, L10n.t("Turn on Page dots on a pill to use this choice."));
+    }
+
+    /** How the seek bar on feed videos looks (#471). */
+    static OverlayLookRow feedSeekBarLookRow(Context context) {
+        return overlayLookRow(context, Settings.FEED_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
+                L10n.t("Turn on Seek bar on feed videos or its button to use this choice."));
+    }
+
+    /** How the seek bar on stories looks (#471). */
+    static OverlayLookRow storySeekBarLookRow(Context context) {
+        return overlayLookRow(context, Settings.STORY_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
+                L10n.t("Turn on Seek bar on stories to use this choice."));
+    }
+
+    /** What a seek bar looks like with each {@link OverlayLook}, in their order. */
+    private static String[] seekBarLookSummaries() {
+        return new String[] {
+                L10n.t("A white bar and handle, as they've always been."),
+                L10n.t("A fainter bar and handle, so more of the video shows through."),
+                L10n.t("A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead."),
+        };
+    }
+
+    /**
+     * A choice of [setting]'s look, titled [title], with [summaries] saying what each look is in their order
+     * and [needs] shown while its switch is off. Its values are the looks' own names.
+     */
+    static OverlayLookRow overlayLookRow(Context context, EnumSetting<OverlayLook> setting, String title,
+            String[] summaries, String needs) {
+        OverlayLookRow row = new OverlayLookRow(context, setting, summaries, needs);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        OverlayLook[] looks = OverlayLook.values();
+        CharSequence[] entries = new CharSequence[looks.length];
+        CharSequence[] values = new CharSequence[looks.length];
+        for (int i = 0; i < looks.length; i++) {
+            entries[i] = overlayLookLabel(looks[i]);
+            values[i] = looks[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(setting.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [look]. */
+    static String overlayLookLabel(OverlayLook look) {
+        switch (look) {
+            case SEE_THROUGH:
+                return L10n.t("See-through");
+            case FROSTED:
+                return L10n.t("Frosted glass");
+            default:
+                return L10n.t("Solid");
+        }
+    }
+
+    /** Where the mention pill goes and what it says (#468). Its values are the setting's own names. */
+    static StoryMentionsLookRow storyMentionsLookRow(Context context) {
+        StoryMentionsLookRow row = new StoryMentionsLookRow(context);
+        row.setKey(Settings.STORY_MENTIONS_LOOK.key);
+        row.setTitle(L10n.t("Where the mention pill goes"));
+        row.setDialogTitle(L10n.t("Where the mention pill goes"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StoryMentionsLook[] looks = StoryMentionsLook.values();
+        CharSequence[] entries = new CharSequence[looks.length];
+        CharSequence[] values = new CharSequence[looks.length];
+        for (int i = 0; i < looks.length; i++) {
+            entries[i] = storyMentionsLookLabel(looks[i]);
+            values[i] = looks[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.STORY_MENTIONS_LOOK.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [look]. */
+    static String storyMentionsLookLabel(StoryMentionsLook look) {
+        switch (look) {
+            case TOP_BAR:
+                return L10n.t("Top bar, @1 mention");
+            case TOP_BAR_SHORT:
+                return L10n.t("Top bar, @1");
+            default:
+                return L10n.t("Under the name, 1 mention");
+        }
+    }
+
+    /** Where the pill shows with [look] and how its list opens, for the row's summary. */
+    static String storyMentionsLookSummary(StoryMentionsLook look) {
+        switch (look) {
+            case TOP_BAR:
+                return L10n.t("The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.");
+            case TOP_BAR_SHORT:
+                return L10n.t("The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.");
+            default:
+                return L10n.t("The pill sits under the story's name and reads like 1 mention. Its list opens over the story.");
+        }
+    }
+
     /** Where the follow chip goes and how big it is (#157). Its values are the setting's own names. */
     static FollowLabelPlaceRow followLabelPlaceRow(Context context) {
         FollowLabelPlaceRow row = new FollowLabelPlaceRow(context);
@@ -5174,17 +5915,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the list calls [size]: its share in the phone's own percent format, or Instagram's size. */
+    /** What the list calls [size]: its share in Instagram's language's percent format, or Instagram's size. */
     static String storyRingLabel(StoryRingSize size) {
         if (size == StoryRingSize.INSTAGRAM) return L10n.t("Instagram's size");
-        return NumberFormat.getPercentInstance().format(size.percent() / 100.0);
+        return NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0);
     }
 
-    /** What the rings look like at [size], for the row's summary, with its share in the phone's own percent format. */
+    /** What the rings look like at [size], for the row's summary, with its share in Instagram's language's percent format. */
     static String storyRingSummary(StoryRingSize size) {
         if (size == StoryRingSize.INSTAGRAM) return L10n.t("The rings are the size Instagram picks for your screen.");
         return L10n.f("The rings are %1$s of the size Instagram picks for your screen.",
-                L10n.isolate(NumberFormat.getPercentInstance().format(size.percent() / 100.0)));
+                L10n.isolate(NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0)));
     }
 
     /**
@@ -5215,8 +5956,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         switch (color) {
             case BLUE:
                 return L10n.t("Blue");
-            case CYAN:
-                return L10n.t("Cyan");
             case TEAL:
                 return L10n.t("Teal");
             case PURPLE:
@@ -5227,11 +5966,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Orange");
             case GOLD:
                 return L10n.t("Gold");
-            case YELLOW:
-                return L10n.t("Yellow");
             default:
                 return L10n.t("Instagram's colors");
         }
+    }
+
+    /**
+     * Which switch a greyed-out slider waits on: "Turn on Glass tab bar to use this slider." The switch
+     * named is the one resting, found by walking up from the slider's own parent while that parent is
+     * itself held by one above it, and it's named by its row's title on this page. Null when no row on
+     * the page can name it, and the slider's summary keeps showing its value.
+     */
+    @Nullable
+    private String sliderReason(Setting<?> setting) {
+        for (Setting<?> parent : setting.getParentSettings()) {
+            boolean on = parent instanceof BooleanSetting && ((BooleanSetting) parent).savedValue();
+            if (on && parent.isAvailable()) continue;
+            if (!parent.isAvailable()) {
+                // A greyed-out switch can't be turned on, so it's never the one named. When nothing
+                // above it has a row here either, the next parent gets its turn.
+                String above = sliderReason(parent);
+                if (above != null) return above;
+                continue;
+            }
+            Preference row = findPreference(parent.key);
+            CharSequence title = row == null ? null : row.getTitle();
+            if (title != null && title.length() > 0) return L10n.f("Turn on %1$s to use this slider.", title);
+        }
+        return null;
     }
 
     @Override
@@ -5253,6 +6015,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
+        } else if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) {
+            // Gallery and microphone in the plus menu changes what the bar shows, so its flip redoes this.
+            preference.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
+        } else if (preference instanceof FileNameRow) {
+            // Name saves by account and post time leaves the template only the saves it can't name.
+            preference.setSummary(fileNameSummary(FileNameTemplate.sanitize(((FileNameRow) preference).getText())));
+        } else if (preference instanceof SliderRow) {
+            ((SliderRow) preference).showSummary(setting.isAvailable() ? null : sliderReason(setting));
         } else if (preference instanceof PlaybackQualityRow) {
             ((PlaybackQualityRow) preference).showSummary();
         } else if (preference instanceof TapToPlayScopeRow) {
@@ -5267,6 +6037,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ScrollBreakRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
+        } else if (preference instanceof StoryMentionsLookRow) {
+            ((StoryMentionsLookRow) preference).showSummary();
+        } else if (preference instanceof OverlayLookRow) {
+            ((OverlayLookRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) preference).showSummary();
         } else if (preference instanceof HiddenBarsRow) {
@@ -5312,6 +6086,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ReelTapChoiceRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) listPreference).showSummary();
+        } else if (listPreference instanceof StoryMentionsLookRow) {
+            ((StoryMentionsLookRow) listPreference).showSummary();
+        } else if (listPreference instanceof OverlayLookRow) {
+            ((OverlayLookRow) listPreference).showSummary();
         } else if (listPreference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) listPreference).showSummary();
         } else if (listPreference instanceof HiddenBarsRow) {
@@ -5353,7 +6131,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setTitle(L10n.t("Save folder"));
         row.setDialogTitle(L10n.t("Save folder"));
         row.setDialogMessage(L10n.f("Choose a folder name under Movies and Pictures. Invalid characters become "
-                + "underscores. Leave it blank to use the default folder, %1$s.", L10n.isolate(SaveFolder.DEFAULT)));
+                + "underscores. Leave it blank to use the default folder, %1$s. For an SD card or anywhere else, "
+                + "use Choose a folder.", L10n.isolate(SaveFolder.DEFAULT)));
         row.setPositiveButtonText(L10n.t("Save"));
         // Unset, Android fills in its own Cancel in the activity's language, which can differ
         // from Instagram's, and the dialog read "Speichern" next to "Cancel".
@@ -5364,6 +6143,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setText(Settings.SAVE_FOLDER.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
+            if (raw.indexOf('/') >= 0 || raw.indexOf('\\') >= 0) {
+                // This row only takes a name. Cleaned, a card's path would become a folder named
+                // after it on internal storage, so the folder stays as it was.
+                Utils.showToastShort(L10n.t("Use Choose a folder for a path or an SD card."));
+                return false;
+            }
             String clean = SaveFolder.sanitize(raw);
             if (clean.equals(raw)) return true;
             // Keeps the clean name in place of what was typed. The store changes, and the shared
@@ -5403,7 +6188,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String text = typed == null ? "" : typed.toString().trim();
             if (text.isEmpty() || SpoofLocation.parse(text) != null) return true;
-            Utils.showToastShort(L10n.t("That isn't a place. Type a latitude and a longitude with a comma between them."));
+            Utils.showToastShort(L10n.t("That isn't a place. Type latitude, longitude."));
             return false;
         });
         return row;
@@ -5475,7 +6260,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             String raw = typed == null ? "" : typed.toString();
             String domain = SharingDomain.normalize(raw);
             if (domain == null) {
-                Utils.showToastShort(L10n.t("That isn't a domain. Type one like example.com, or leave it blank."));
+                Utils.showToastShort(L10n.t("That isn't a domain. Try one like example.com."));
                 return false;
             }
             if (domain.equals(raw)) return true;
@@ -5484,6 +6269,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return false;
         });
         return row;
+    }
+
+    /**
+     * Home header text (#454): words of your own at the top of Home in place of Instagram's logo.
+     * What's typed is saved cleaned (one line, at most {@link HeaderText#MAX_LENGTH} characters), and
+     * blank keeps the logo.
+     */
+    static HeaderTextRow headerTextRow(Context context) {
+        HeaderTextRow row = new HeaderTextRow(context);
+        row.setKey(Settings.HEADER_TEXT.key);
+        row.setTitle(L10n.t("Home header text"));
+        row.setDialogTitle(L10n.t("Home header text"));
+        row.setDialogMessage(L10n.f("Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d "
+                + "characters. Leave it blank to keep the logo.", HeaderText.MAX_LENGTH));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(true);
+        field.setHint(L10n.t("Your words"));
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(HeaderText.MAX_LENGTH * 2)});
+        row.setText(Settings.HEADER_TEXT.savedValue());
+        return row;
+    }
+
+    /** What the Home header text row says: the words at the top of Home, or that the logo stays. */
+    static String headerTextSummary(String text) {
+        String words = HeaderText.clean(text);
+        return words.isEmpty()
+                ? L10n.t("Instagram's logo stays at the top of Home.")
+                : L10n.f("The top of Home says %1$s.", L10n.isolate(words));
     }
 
     /** What the Sharing domain row says: where links to instagram.com go out. */
@@ -5575,11 +6390,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** The current template's media types, with the default photo name when it doesn't opt photos in. */
     static String fileNameSummary(String template) {
-        if (FileNameTemplate.usesShortcode(template)) {
-            return L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template));
-        }
-        return L10n.f("Videos are named %1$s. Photos are always named %2$s followed by the date and time.",
-                L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
+        return fileNameSummary(template, Settings.SAVE_NAME_BY_POST.savedValue());
+    }
+
+    /** [byPost]: Name saves by account and post time is on, and these names are only what it falls back on. */
+    static String fileNameSummary(String template, boolean byPost) {
+        String names = FileNameTemplate.usesShortcode(template)
+                ? L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template))
+                : L10n.f("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
+                        L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
+        return byPost ? names + " " + L10n.t("With Name saves by account and post time on, only a save that "
+                + "doesn't know who posted or when is named this way.") : names;
     }
 
     /** "Videos go to Movies/Instagram and photos to Pictures/Instagram." for the folder [leaf]. */
@@ -5696,6 +6517,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         private final int buttonLayout;
         boolean collapsible;
         boolean expanded;
+        /** Its row on the list of categories shows the title alone, for the black look (#455). */
+        boolean compact;
 
         Heading(Context context) {
             super(context);
@@ -5705,13 +6528,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setPersistent(false);
         }
 
-        void display(boolean collapsible, boolean expanded) {
-            if (this.collapsible == collapsible && this.expanded == expanded) return;
+        void display(boolean collapsible, boolean expanded, boolean compact) {
+            if (this.collapsible == collapsible && this.expanded == expanded && this.compact == compact) return;
             this.collapsible = collapsible;
             this.expanded = expanded;
+            this.compact = compact;
             setLayoutResource(collapsible ? buttonLayout : headingLayout);
             setSelectable(collapsible);
-            setSummary(collapsible ? intro : null);
+            setSummary(collapsible && !compact ? intro : null);
             notifyChanged();
         }
 
@@ -5833,7 +6657,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             cancel.setContentDescription(cancelDescription);
             cancel.setAllCaps(false);
             cancel.setTextSize(14);
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             cancel.setTextColor(ScreenColors.dimmedWhenDisabled(colors.heading));
             ScreenColors.styleIconAction(cancel);
             int touch = Math.round(48 * view.getResources().getDisplayMetrics().density);
@@ -5869,7 +6693,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Compact edit forms keep the input first and let their help scroll above the actions. */
     private static View editDialogBody(EditTextPreference preference) {
         Context context = preference.getContext();
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -5914,6 +6738,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * The languages Hide reels in other languages keeps, typed as codes or names with commas or new
+     * lines between them. Its summary names what was understood and any piece that wasn't (#495).
+     */
+    static WordsRow keptLanguagesRow(Context context) {
+        WordsRow row = new WordsRow(context) {
+            @Override String summaryFor(String text) {
+                return CaptionLanguage.summary(text);
+            }
+        };
+        row.setKey(Settings.REELS_KEPT_LANGUAGES.key);
+        row.setTitle(L10n.t("Languages to keep"));
+        row.setDialogTitle(L10n.t("Languages to keep"));
+        row.setDialogMessage(L10n.t("Language codes or names, with a comma or a new line between them, like en, "
+                + "Hindi or Español. Leave it empty to keep your phone's languages."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        field.setMaxLines(4);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.REELS_KEPT_LANGUAGES.savedValue());
+        return row;
+    }
+
     /** What the blocked words row says under its title: how many words it holds, or that it has none. */
     static String blockedWordsSummary(String stored) {
         int count = CaptionWordReels.words(stored).size();
@@ -5925,8 +6774,76 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * The blocked words' row. Its summary follows its text, whoever sets it: the person, the shared
      * page syncing it from the setting, or an import.
      */
-    static final class WordsRow extends EditTextPreference {
+    static class WordsRow extends EditTextPreference {
         WordsRow(Context context) {
+            super(context);
+        }
+
+        /** What the row says under its title for [text]. */
+        String summaryFor(String text) {
+            return blockedWordsSummary(text);
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(summaryFor(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The usernames Stories priority puts first, one to a line (#451). */
+    static AccountsRow priorityAccountsRow(Context context) {
+        AccountsRow row = new AccountsRow(context);
+        row.setKey(Settings.STORY_PRIORITY_ACCOUNTS.key);
+        row.setTitle(L10n.t("Priority accounts"));
+        row.setDialogTitle(L10n.t("Priority accounts"));
+        row.setDialogMessage(L10n.t("Usernames, one on each line. The first line goes first. A leading @ and capital "
+                + "letters don't matter."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setMaxLines(8);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
+        return row;
+    }
+
+    /** What the priority accounts row says under its title: how many accounts it holds, or that it has none. */
+    static String priorityAccountsSummary(String stored) {
+        int count = StoryPriority.accounts(stored).size();
+        return count == 0 ? L10n.t("No accounts yet")
+                : L10n.quantity(count, "%1$d account", "%1$d accounts", count);
+    }
+
+    /**
+     * The priority accounts' row, a list typed in a multi-line dialog. Its summary follows its text,
+     * whoever sets it: the person, the shared page syncing it from the setting, or an import.
+     */
+    static final class AccountsRow extends EditTextPreference {
+        AccountsRow(Context context) {
             super(context);
         }
 
@@ -5939,7 +6856,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(blockedWordsSummary(text));
+            setSummary(priorityAccountsSummary(text));
         }
 
         @Override
@@ -5950,7 +6867,102 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
         }
 
-        /** Its edit dialog takes the screen's colours, as the other rows' dialogs do. */
+        /** Its edit dialog takes the screen's colours and shrinks to fit above the keyboard, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The view count Hide reels with few views keeps a reel at, typed as a number (#444). */
+    static MinCountRow minViewsRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_VIEWS, L10n.t("Minimum views"),
+                L10n.t("Reels with fewer views than this are left out. Type a whole number."));
+    }
+
+    /** The like count it keeps a reel at, typed as a number, 0 leaving likes alone (#444). */
+    static MinCountRow minLikesRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_LIKES, L10n.t("Minimum likes"),
+                L10n.t("Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes."));
+    }
+
+    private static MinCountRow minCountRow(Context context, IntegerSetting setting, String title, String message) {
+        MinCountRow row = new MinCountRow(context, setting);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(message);
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setSingleLine(true);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(9)});
+        row.setText(String.valueOf(setting.savedValue()));
+        return row;
+    }
+
+    /** What a minimum row says under its title, the count written in Instagram's language. */
+    static String minCountSummary(IntegerSetting setting, String stored) {
+        int count = MinCountRow.valueOf(setting, stored);
+        String number = java.text.NumberFormat.getIntegerInstance(L10n.locale()).format(count);
+        if (setting != Settings.MIN_REEL_LIKES) return L10n.f("Fewer than %1$s views", number);
+        return count == 0 ? L10n.t("Likes aren't looked at") : L10n.f("Fewer than %1$s likes", number);
+    }
+
+    /**
+     * A minimum count row (views or likes), a number typed in a dialog. Its text is always a whole
+     * number inside its setting's range, and its summary follows it, whoever sets it.
+     */
+    static final class MinCountRow extends EditTextPreference {
+        final IntegerSetting setting;
+
+        MinCountRow(Context context, IntegerSetting setting) {
+            super(context);
+            this.setting = setting;
+        }
+
+        /** [text] as a count inside [setting]'s range, or its default when it isn't a number. */
+        static int valueOf(IntegerSetting setting, @Nullable String text) {
+            try {
+                long value = Long.parseLong(text == null ? "" : text.trim());
+                return (int) Math.max(setting.minimum(), Math.min(setting.maximum(), value));
+            } catch (NumberFormatException notANumber) {
+                return setting.defaultValue;
+            }
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override
+        protected void onDialogClosed(boolean positiveResult) {
+            // What was typed is brought inside the range first, so the setting never takes an empty or huge count.
+            if (positiveResult) getEditText().setText(String.valueOf(valueOf(setting, getEditText().getText().toString())));
+            super.onDialogClosed(positiveResult);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            // The field is set once the preference itself is made.
+            if (setting != null) setSummary(minCountSummary(setting, text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours and shrinks to fit above the keyboard, as the other rows' dialogs do. */
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
@@ -5978,7 +6990,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(folderSummary(SaveFolder.sanitize(text)));
+            showWhere();
+        }
+
+        /** Where saves go: a folder that's picked and still there takes them all, and this name isn't used. */
+        void showWhere() {
+            setSummary(SaveTree.reachable(getContext())
+                    ? L10n.t("Not used while you've picked a folder. Saves go there.")
+                    : folderSummary(SaveFolder.sanitize(getText())));
         }
 
         @Override
@@ -5995,6 +7014,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             super.showDialog(state);
             if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
             fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The Home header text row. Its summary follows its text, whoever sets it: the person or an import. */
+    static final class HeaderTextRow extends ValidatedEditRow {
+        HeaderTextRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(headerTextSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Any text cleans to something the header can show, blank included, so nothing is refused. */
+        @Override String validatedValue(String typed) {
+            return HeaderText.clean(typed);
+        }
+
+        @Override String validationError() {
+            return "";
         }
     }
 
@@ -6027,7 +7076,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         @Override String validationError() {
-            return L10n.t("That isn't a domain. Type one like example.com, or leave it blank.");
+            return L10n.t("That isn't a domain. Try one like example.com.");
         }
     }
 
@@ -6267,7 +7316,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         @Override String validationError() {
-            return L10n.t("That isn't a place. Type a latitude and a longitude with a comma between them.");
+            return L10n.t("That isn't a place. Type latitude, longitude.");
         }
     }
 
@@ -6293,7 +7342,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         @Override protected View onCreateDialogView() {
             Context context = getContext();
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
             android.widget.LinearLayout content = new android.widget.LinearLayout(context);
             content.setOrientation(android.widget.LinearLayout.VERTICAL);
@@ -6388,7 +7437,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.")
                         : L10n.f("Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a "
                                 + "toast says which way it went. Normal taps and other tabs stay the same. If the same tab "
-                                + "opens Instagram or picks the playback quality, that comes first.", navigationLabel(target));
+                                + "opens HushGram or picks the playback quality, that comes first.", navigationLabel(target));
                 setSummary(summary);
                 return;
             }
@@ -6397,13 +7446,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.")
                         : L10n.f("Long press %1$s to pick the playback quality instead of that tab's usual action. "
                                 + "Normal taps and other tabs stay the same. Needs Default playback quality on. "
-                                + "If the same tab opens Instagram, that comes first.", navigationLabel(target));
+                                + "If the same tab opens HushGram, that comes first.", navigationLabel(target));
                 setSummary(summary);
                 return;
             }
             summary = target == NavigationTarget.OFF
-                    ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open settings instead.")
-                    : L10n.f("Long press %1$s to open settings instead of that tab's usual action. "
+                    ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open HushGram instead.")
+                    : L10n.f("Long press %1$s to open HushGram instead of that tab's usual action. "
                             + "Normal taps and other tabs stay the same. Only tabs your account shows can be used.",
                             navigationLabel(target));
             setSummary(summary);
@@ -6865,6 +7914,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** How far one notch of the slider moves the value. */
         final int step;
         private final String format;
+        /** Told the value as the thumb moves, and -1 once it's let go, by a row that shows the change (#391). */
+        @Nullable java.util.function.IntConsumer live;
+        /** Why the slider is greyed out, shown in place of its value, or null while it can be used. */
+        @Nullable private String reason;
 
         SliderRow(Context context, IntegerSetting setting, int step, String format) {
             super(context);
@@ -6873,6 +7926,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             this.format = format;
             setKey(setting.key);
             setSelectable(false);
+        }
+
+        /**
+         * Shows [reason] as the summary while the slider is greyed out, and the value again once it's
+         * null, the way the rows of choices that wait on a switch say which one.
+         */
+        void showSummary(@Nullable String reason) {
+            this.reason = reason;
+            setSummary(reason != null ? reason : label(valueOf(getText())));
         }
 
         /** [text] as a value inside the setting's range, or its default when it isn't a number. */
@@ -6894,16 +7956,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return Math.round((value - setting.minimum()) / (float) step);
         }
 
-        /** What the summary says for [value], marking the one the bar has always had. */
+        /**
+         * What the summary says for [value], marking the one the bar has always had. Digits follow
+         * Instagram's language, as every other row's do, and not the phone's, which can differ.
+         */
         String label(int value) {
-            String amount = String.format(format, value);
-            return value == setting.defaultValue ? String.format(L10n.t("%1$s (standard)"), amount) : amount;
+            String amount = String.format(L10n.locale(), format, value);
+            return value == setting.defaultValue ? L10n.f("%1$s (standard)", amount) : amount;
         }
 
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(label(valueOf(text)));
+            setSummary(reason != null ? reason : label(valueOf(text)));
         }
 
         /** Saves [value] as the row's text, through the page's listener as any other row's change goes. */
@@ -6926,7 +7991,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             SeekBar slider = slider(view);
             if (slider == null) return;
             TextView summary = view.findViewById(android.R.id.summary);
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             slider.setProgressTintList(ScreenColors.dimmedWhenDisabled(colors.accent));
             slider.setThumbTintList(ScreenColors.dimmedWhenDisabled(colors.accent));
             slider.setOnSeekBarChangeListener(null);
@@ -6944,6 +8009,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     String shown = label(valueAt(progress));
                     if (summary != null) summary.setText(shown);
                     describe(bar, shown);
+                    if (live != null) live.accept(valueAt(progress));
                     // A key or a screen reader moves it a notch at a time without a drag, so each notch saves.
                     if (!dragging) choose(valueAt(progress));
                 }
@@ -6957,6 +8023,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 public void onStopTrackingTouch(SeekBar bar) {
                     dragging = false;
                     choose(valueAt(bar.getProgress()));
+                    if (live != null) live.accept(-1);
                 }
             });
         }
@@ -6964,6 +8031,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** A screen reader reads the value as the summary shows it, not as a share of the slider. */
         private static void describe(SeekBar slider, String shown) {
             if (Build.VERSION.SDK_INT >= 30) slider.setStateDescription(shown);
+            else if (slider instanceof ValueSlider) ((ValueSlider) slider).shown = shown;
         }
 
         /** The row's slider, made under its summary the first time the row's view is bound. */
@@ -6974,7 +8042,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             TextView summary = view.findViewById(android.R.id.summary);
             if (summary == null || !(summary.getParent() instanceof android.view.ViewGroup)) return null;
             android.view.ViewGroup parent = (android.view.ViewGroup) summary.getParent();
-            SeekBar slider = new SeekBar(getContext());
+            SeekBar slider = new ValueSlider(getContext());
             slider.setTag(SLIDER);
             if (parent instanceof RelativeLayout) {
                 RelativeLayout.LayoutParams below = new RelativeLayout.LayoutParams(-1, -2);
@@ -6984,6 +8052,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 parent.addView(slider, parent.indexOfChild(summary) + 1, new android.view.ViewGroup.LayoutParams(-1, -2));
             }
             return slider;
+        }
+    }
+
+    /**
+     * A slider that tells a screen reader its value as the row shows it on Android 9 and 10, which
+     * have no state description. The value goes in the node's extras under AndroidX's key for one,
+     * which TalkBack reads in place of the slider's percent ("18 dp", not "45 percent").
+     */
+    static final class ValueSlider extends SeekBar {
+        static final String STATE_DESCRIPTION_KEY = "androidx.view.accessibility.AccessibilityNodeInfoCompat.STATE_DESCRIPTION_KEY";
+        @Nullable String shown;
+
+        ValueSlider(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            if (Build.VERSION.SDK_INT < 30 && shown != null) info.getExtras().putCharSequence(STATE_DESCRIPTION_KEY, shown);
         }
     }
 
@@ -7531,9 +8619,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (FollowLabelPlace candidate : FollowLabelPlace.values()) {
                 if (candidate.name().equals(getValue())) place = candidate;
             }
+            // Greyed, it names the switch to turn on first: the label's while that's off, since the
+            // chip row rests with it then and can't be turned on.
             setSummary(Settings.FOLLOW_LABEL_PLACE.isAvailable()
                     ? followLabelPlaceSummary(place)
-                    : L10n.t("Turn on Show it as a chip to use this choice."));
+                    : !Settings.SHOW_FRIENDSHIP_STATUS.savedValue()
+                            ? L10n.t("Turn on Show if a profile follows you to use this choice.")
+                            : L10n.t("Turn on Show it as a chip to use this choice."));
         }
 
         @Override
@@ -7571,6 +8663,86 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(Settings.FULL_SCREEN_HIDES.isAvailable()
                     ? hiddenBarsSummary(bars)
                     : L10n.t("Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class OverlayLookRow extends ListPreference {
+        private final EnumSetting<OverlayLook> setting;
+        private final String[] summaries;
+        private final String needs;
+
+        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, String[] summaries, String needs) {
+            super(context);
+            this.setting = setting;
+            this.summaries = summaries;
+            this.needs = needs;
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            if (setting == null) return;
+            OverlayLook look = OverlayLook.SOLID;
+            for (OverlayLook candidate : OverlayLook.values()) {
+                if (candidate.name().equals(getValue())) look = candidate;
+            }
+            setSummary(setting.isAvailable() ? summaries[look.ordinal()] : needs);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class StoryMentionsLookRow extends ListPreference {
+        StoryMentionsLookRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            StoryMentionsLook look = StoryMentionsLook.UNDER_NAME;
+            for (StoryMentionsLook candidate : StoryMentionsLook.values()) {
+                if (candidate.name().equals(getValue())) look = candidate;
+            }
+            setSummary(Settings.STORY_MENTIONS_LOOK.isAvailable()
+                    ? storyMentionsLookSummary(look)
+                    : L10n.t("Turn on See who a story mentions to use this choice."));
         }
 
         @Override
@@ -7744,7 +8916,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** The two choices as cards, each saying what it does under its name. */
         @Override
         protected ListAdapter choices(Context dialogContext) {
-            return new ChoiceCards(ScreenColors.DEFAULT,
+            return new ChoiceCards(ScreenColors.current(),
                     new CharSequence[]{L10n.t(getContext(), "Copy quick report"),
                             L10n.t(getContext(), "Save full report")},
                     new CharSequence[]{L10n.t(getContext(), "Copy a short report to the clipboard."),
@@ -7927,6 +9099,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     @Override
     protected CharSequence initializationErrorTitle(@Nullable Context context) {
-        return L10n.t(context, "Instagram settings couldn't open");
+        return L10n.t(context, "HushGram settings couldn't open");
     }
 }

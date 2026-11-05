@@ -69,7 +69,7 @@ public class PauseRecoveryTest {
         PatchFamily.inBuildForTests = null;
     }
 
-    @Test public void recoveryStaysBelowSearchWithoutTheRemovedActionsWhenTheFullBuildIsFiltered() throws Exception {
+    @Test public void recoveryStaysBelowSearchAndSupportStaysLastWhenTheFullBuildIsFiltered() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
@@ -78,9 +78,9 @@ public class PauseRecoveryTest {
                 page.searchSettings("");
                 Preference status = statusCard(page);
                 page.searchSettings("zzzz no settings");
-                assertSame(status, page.getPreferenceScreen().getPreference(2));
-                assertNull(page.findPreference("action_report_problem"));
-                assertNull(page.findPreference("action_support_hushgram"));
+                // The black page's header, the search field and the view toggle sit above it.
+                assertSame(status, page.getPreferenceScreen().getPreference(3));
+                assertNull(page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY));
                 page.searchSettings("coffee");
                 assertSame(status, statusCard(page));
                 page.searchSettings("");
@@ -112,7 +112,7 @@ public class PauseRecoveryTest {
                 assertFalse(((SwitchPreference) pause).isChecked());
                 assertTrue(status.isEnabled());
                 assertTrue(pause.isEnabled());
-                assertEquals("The changes take effect when Instagram restarts.", status.getSummary());
+                assertEquals("HushGram turns back on when Instagram restarts.", status.getSummary());
                 assertTrue("recovery cannot change this process's frozen pause", HushgramPause.isPaused());
             }
         }
@@ -161,7 +161,7 @@ public class PauseRecoveryTest {
                 assertTrue(status.isEnabled());
                 assertTrue(pause.isEnabled());
                 assertTrue(String.valueOf(status.getSummary()).contains("Tap to turn it back on."));
-                assertEquals("Couldn't turn Instagram back on. Try again.", ShadowToast.getTextOfLatestToast());
+                assertEquals("Couldn't turn HushGram back on. Try again.", ShadowToast.getTextOfLatestToast());
             }
             tap(status);
             finish();
@@ -183,7 +183,7 @@ public class PauseRecoveryTest {
                 assertFalse(pause.isChecked());
                 assertTrue(status.isEnabled());
                 assertTrue(pause.isEnabled());
-                assertEquals("The changes take effect when Instagram restarts.", status.getSummary());
+                assertEquals("HushGram turns back on when Instagram restarts.", status.getSummary());
             }
         }
     }
@@ -200,7 +200,7 @@ public class PauseRecoveryTest {
                 assertTrue(pause.isChecked());
                 assertTrue(status.isEnabled());
                 assertTrue(pause.isEnabled());
-                assertEquals("Couldn't turn Instagram back on. Try again.", ShadowToast.getTextOfLatestToast());
+                assertEquals("Couldn't turn HushGram back on. Try again.", ShadowToast.getTextOfLatestToast());
             }
             tap(status);
             finish();
@@ -239,9 +239,11 @@ public class PauseRecoveryTest {
         android.preference.PreferenceScreen screen = page.getPreferenceScreen();
         Preference status = screen.findPreference("hushgram_status");
         assertNotNull(status);
-        assertEquals("Instagram is paused", status.getTitle());
-        assertNull(page.findPreference("action_report_problem"));
-        assertNull(page.findPreference("action_support_hushgram"));
+        assertEquals("HushGram is paused", status.getTitle());
+        Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
+        assertNotNull(support);
+        assertSame("Support must remain after the status card and every section", support,
+                screen.getPreference(screen.getPreferenceCount() - 1));
         return status;
     }
 

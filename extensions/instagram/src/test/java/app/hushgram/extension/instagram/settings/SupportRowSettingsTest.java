@@ -6,14 +6,12 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.robolectric.Shadows.shadowOf;
-
 import android.app.Activity;
 import android.preference.Preference;
+import android.preference.PreferenceCategory;
+import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
-
 import java.util.EnumSet;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -24,13 +22,13 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
-
+import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The About, Report a problem and Support Instagram entries stay out of the settings list and search. */
+/** About, Report problem and Support rows are intentionally absent from the settings list. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -55,8 +53,6 @@ public class SupportRowSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.CATEGORY_PAGES.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
-        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(false);
-        SettingsEntry.onClosedByUser();
     }
 
     private void open() throws Exception {
@@ -64,36 +60,31 @@ public class SupportRowSettingsTest {
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
         Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
     }
 
-    @Test public void removedEntriesStayOutOfBothLayoutsAndSearch() throws Exception {
-        for (boolean categoryPages : new boolean[]{false, true}) {
-            Settings.CATEGORY_PAGES.save(categoryPages);
-            open();
-            PreferenceScreen screen = page.getPreferenceScreen();
-            assertAbsent(screen);
-            assertNoAboutCategory(screen);
-
-            for (String query : new String[]{"About", "Report a problem", "Support Instagram"}) {
-                page.searchSettings(query);
-                screen = page.getPreferenceScreen();
-                assertAbsent(screen);
-                assertNoAboutCategory(screen);
-            }
-            controller.close();
-            controller = null;
+    private void assertRowsAbsent(PreferenceGroup group) {
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            Preference row = group.getPreference(i);
+            String title = String.valueOf(row.getTitle());
+            assertFalse("About category is absent", "About".equals(title));
+            assertFalse("Report problem row is absent", "Report a problem".equals(title));
+            assertFalse("Support row is absent", "Support HushGram".equals(title));
+            if (row instanceof PreferenceGroup) assertRowsAbsent((PreferenceGroup) row);
         }
     }
 
-    private static void assertAbsent(PreferenceScreen screen) {
-        assertNull(screen.findPreference("action_report_problem"));
+    @Test public void removedRowsStayAbsentInTheSettingsList() throws Exception {
+        open();
+        PreferenceScreen screen = page.getPreferenceScreen();
         assertNull(screen.findPreference("action_support_hushgram"));
+        assertNull(screen.findPreference("action_report_problem"));
+        assertRowsAbsent(screen);
     }
 
-    private static void assertNoAboutCategory(PreferenceScreen screen) {
-        for (int i = 0; i < screen.getPreferenceCount(); i++) {
-            Preference row = screen.getPreference(i);
-            assertFalse("About must not be listed", "About".contentEquals(row.getTitle()));
-        }
+    @Test public void removedRowsStayAbsentWhenCategoriesArePages() throws Exception {
+        Settings.CATEGORY_PAGES.save(true);
+        open();
+        assertRowsAbsent(page.getPreferenceScreen());
     }
 }

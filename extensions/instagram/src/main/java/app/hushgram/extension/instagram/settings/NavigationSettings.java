@@ -5,14 +5,9 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.ContextWrapper;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.PixelFormat;
-import android.graphics.RectF;
+import android.graphics.ColorFilter;
 import android.os.Build;
-import android.graphics.drawable.Drawable;
+import android.graphics.PorterDuff;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -24,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.download.TextGrab;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
@@ -121,7 +117,7 @@ public final class NavigationSettings {
         refreshGhostTabIndicator();
     }
 
-    /** Keeps the chosen tab's outline in step with Ghost mode, without changing Instagram's background or ripple. */
+    /** Tints only the chosen tab's icon while leaving Instagram's glass selection capsule alone. */
     public static void refreshGhostTabIndicator() {
         try {
             NavigationTarget target = Utils.settingsReady() ? Settings.GHOST_TAB_TARGET.get() : NavigationTarget.OFF;
@@ -140,7 +136,7 @@ public final class NavigationSettings {
                 setGhostOutline(view, selected);
             }
         } catch (Throwable t) {
-            Logger.printException(() -> "Navigation settings: could not refresh the Ghost mode tab outline", t);
+            Logger.printException(() -> "Navigation settings: could not refresh the Ghost mode tab icon", t);
         }
     }
 
@@ -149,8 +145,8 @@ public final class NavigationSettings {
             GhostOutline outline = ghostOutlines.get(view);
             if (!enabled) {
                 if (outline != null) {
-                    view.getOverlay().remove(outline.drawable);
                     view.removeOnLayoutChangeListener(outline);
+                    outline.restore();
                     ghostOutlines.remove(view);
                 }
                 return;
@@ -159,98 +155,77 @@ public final class NavigationSettings {
                 outline = new GhostOutline(view);
                 ghostOutlines.put(view, outline);
                 view.addOnLayoutChangeListener(outline);
-                view.getOverlay().add(outline.drawable);
             }
-            outline.size(view);
-            outline.drawable.invalidateSelf();
+            outline.update();
         }
     }
 
     private static final class GhostOutline implements View.OnLayoutChangeListener {
-        final OutlineDrawable drawable;
-        GhostOutline(View tab) { drawable = new OutlineDrawable(tab); }
-        void size(View tab) { drawable.setBounds(0, 0, tab.getWidth(), tab.getHeight()); }
+        private final View tab;
+        private ImageView icon;
+        private ColorFilter originalFilter;
+        private boolean hadFilter;
+
+        GhostOutline(View tab) { this.tab = tab; }
+
+        void update() {
+            ImageView found = iconIn(tab);
+            if (found != icon) {
+                restore();
+                icon = found;
+                if (icon == null) return;
+                originalFilter = icon.getColorFilter();
+                hadFilter = originalFilter != null;
+            }
+            if (icon != null) icon.setColorFilter(0xFFFFD51A, PorterDuff.Mode.SRC_IN);
+        }
+
+        void restore() {
+            if (icon != null) {
+                if (hadFilter) icon.setColorFilter(originalFilter);
+                else icon.clearColorFilter();
+            }
+            icon = null;
+            originalFilter = null;
+            hadFilter = false;
+        }
+
         @Override public void onLayoutChange(View view, int left, int top, int right, int bottom,
                 int oldLeft, int oldTop, int oldRight, int oldBottom) {
-            size(view);
-            drawable.invalidateSelf();
+            update();
         }
     }
 
-    private static final class OutlineDrawable extends Drawable {
-        private final View tab;
-        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF bounds = new RectF();
-        private final float density;
-        OutlineDrawable(View tab) {
-            this.tab = tab;
-            density = tab.getResources().getDisplayMetrics().density;
-            boolean night = (tab.getResources().getConfiguration().uiMode
-                    & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                    == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-            int glow = night ? 0x66D7F1FF : 0x5556CBE8;
-            fill.setStyle(Paint.Style.FILL);
-            fill.setColor(night ? 0x18D7F1FF : 0x1247C4E0);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(1.35f * density);
-            paint.setColor(night ? 0xB8E7F6FF : 0xA84ABFD9);
-            paint.setShadowLayer(5f * density, 0f, 0f, glow);
+    private static ImageView iconIn(View root) {
+        if (root instanceof ImageView) {
+            ImageView image = (ImageView) root;
+            if (image.isShown() && image.getDrawable() != null) return image;
         }
-        @Override public void draw(Canvas canvas) {
-            ImageView icon = iconIn(tab);
-            int[] tabAt = new int[2];
-            tab.getLocationInWindow(tabAt);
-            if (icon != null) {
-                int[] iconAt = new int[2];
-                icon.getLocationInWindow(iconAt);
-                bounds.set(iconAt[0] - tabAt[0], iconAt[1] - tabAt[1],
-                        iconAt[0] - tabAt[0] + icon.getWidth(), iconAt[1] - tabAt[1] + icon.getHeight());
-            } else {
-                float side = Math.max(0f, Math.min(28f * density,
-                        Math.min(tab.getWidth(), tab.getHeight()) - 2f * density));
-                float left = (tab.getWidth() - side) / 2f;
-                float top = (tab.getHeight() - side) / 2f;
-                bounds.set(left, top, left + side, top + side);
+        if (!(root instanceof ViewGroup)) return null;
+        ImageView best = null;
+        double bestScore = Double.MAX_VALUE;
+        ViewGroup group = (ViewGroup) root;
+        float density = root.getResources().getDisplayMetrics().density;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            ImageView candidate = iconIn(group.getChildAt(i));
+            if (candidate == null) continue;
+            if (candidate.getWidth() < 16f * density || candidate.getHeight() < 16f * density) continue;
+            int[] at = new int[2];
+            candidate.getLocationInWindow(at);
+            int[] rootAt = new int[2];
+            root.getLocationInWindow(rootAt);
+            double dx = at[0] - rootAt[0] + candidate.getWidth() / 2d - root.getWidth() / 2d;
+            double dy = at[1] - rootAt[1] + candidate.getHeight() / 2d - root.getHeight() / 2d;
+            double score = dx * dx + dy * dy
+                    + Math.abs(candidate.getWidth() - candidate.getHeight()) * 4d;
+            if (score < bestScore) {
+                best = candidate;
+                bestScore = score;
             }
-            bounds.inset(-3f * density, -3f * density);
-            float radius = Math.min(bounds.width(), bounds.height()) / 2f;
-            canvas.drawRoundRect(bounds, radius, radius, fill);
-            canvas.drawRoundRect(bounds, radius, radius, paint);
         }
-        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
-        @Override public void setColorFilter(android.graphics.ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
-        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
-
-        private static ImageView iconIn(View root) {
-            if (root instanceof ImageView) {
-                ImageView image = (ImageView) root;
-                if (image.isShown() && image.getDrawable() != null) return image;
-            }
-            if (!(root instanceof ViewGroup)) return null;
-            ImageView best = null;
-            double bestScore = Double.MAX_VALUE;
-            ViewGroup group = (ViewGroup) root;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                ImageView candidate = iconIn(group.getChildAt(i));
-                if (candidate == null) continue;
-                if (candidate.getWidth() < 16f * density || candidate.getHeight() < 16f * density) continue;
-                int[] at = new int[2];
-                candidate.getLocationInWindow(at);
-                int[] rootAt = new int[2];
-                root.getLocationInWindow(rootAt);
-                double dx = at[0] - rootAt[0] + candidate.getWidth() / 2d - root.getWidth() / 2d;
-                double dy = at[1] - rootAt[1] + candidate.getHeight() / 2d - root.getHeight() / 2d;
-                double score = dx * dx + dy * dy
-                        + Math.abs(candidate.getWidth() - candidate.getHeight()) * 4d;
-                if (score < bestScore) {
-                    best = candidate;
-                    bestScore = score;
-                }
-            }
-            return best;
-        }
+        return best;
     }
+
 
     /**
      * Puts the saved choice on the tabs Instagram has already built, so a change in settings
@@ -401,15 +376,9 @@ public final class NavigationSettings {
      */
     static Activity ownerOf(View view) {
         if (view == null || !view.isAttachedToWindow() || !view.isShown()) return null;
-        Context context = view.getContext();
-        for (int depth = 0; depth < 16 && context instanceof ContextWrapper && !(context instanceof Activity); depth++) {
-            Context next = ((ContextWrapper) context).getBaseContext();
-            if (next == context) break;
-            context = next;
-        }
-        if (!(context instanceof Activity)) return null;
-        Activity activity = (Activity) context;
-        if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus()) return null;
+        // A profile opened from a link hands its bar a context with no activity under it.
+        Activity activity = TextGrab.ownerOf(view, null);
+        if (activity == null || !activity.hasWindowFocus()) return null;
         View decor = activity.getWindow().getDecorView();
         View current = view;
         for (int depth = 0; depth < 64; depth++) {

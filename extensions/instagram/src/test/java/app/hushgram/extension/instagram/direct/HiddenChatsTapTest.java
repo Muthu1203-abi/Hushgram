@@ -162,6 +162,24 @@ public class HiddenChatsTapTest {
         assertFalse(HiddenChatsTap.onMessagesButton(activity, 100, 1500));
     }
 
+    @Test public void aHorizontalSwipeImmediatelyRestoresTheRegularInbox() {
+        String account = "test-account";
+        ChatAccounts.signInForTests(account);
+        HiddenChats.reader = summary -> (String) summary;
+        HiddenChats.add(account, "hidden-chat", "Hidden");
+        HiddenChats.toggleHiddenOnlyInbox();
+        List<Object> chats = Arrays.asList("hidden-chat", "regular-chat");
+        assertEquals(Collections.singletonList("hidden-chat"), HiddenChats.inbox(new Object(), chats));
+
+        onButton = false;
+        assertFalse(at(MotionEvent.ACTION_DOWN, 400, 900, 0));
+        assertFalse(at(MotionEvent.ACTION_MOVE, 400 + ViewConfiguration.get(activity).getScaledTouchSlop() + 1,
+                900, 20));
+
+        assertEquals("the hidden filter is cleared during the swipe", Collections.singletonList("regular-chat"),
+                HiddenChats.inbox(new Object(), chats));
+    }
+
     @Test public void leavingAndReturningToInstagramRestoresTheRegularInbox() {
         String account = "test-account";
         ChatAccounts.signInForTests(account);

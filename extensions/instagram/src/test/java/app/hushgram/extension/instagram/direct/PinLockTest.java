@@ -55,7 +55,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The Instagram PIN: how it's set and kept, and that every lock path asks it when it's chosen. */
+/** The HushGram PIN: how it's set and kept, and that every lock path asks it when it's chosen. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class PinLockTest {
@@ -535,7 +535,7 @@ public class PinLockTest {
         String text = ((TextView) info.findViewById(android.R.id.message)).getText().toString();
         assertTrue(text, text.contains("can't be recovered"));
         assertTrue(text, text.contains("clear Instagram's storage"));
-        assertTrue(text, text.contains("resets Instagram's settings"));
+        assertTrue(text, text.contains("resets HushGram's settings"));
         assertFalse("nothing asks the phone's lock or opens", opened[0]);
         assertTrue("the PIN dialog stays under it", pinDialog.isShowing());
         assertEquals(before, Settings.LOCK_PIN.get());
@@ -585,7 +585,7 @@ public class PinLockTest {
         assertNull("a PIN dialog showed", ShadowAlertDialog.getLatestAlertDialog());
         // The test phone has no screen lock, which the phone's path answers with a toast and an open.
         assertTrue(opened[0]);
-        assertEquals("Set a screen lock on your phone so message locking can work.",
+        assertEquals("Set a phone screen lock so HushGram can lock messages.",
                 ShadowToast.getTextOfLatestToast());
     }
 

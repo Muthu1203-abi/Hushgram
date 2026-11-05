@@ -83,6 +83,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
@@ -279,10 +280,23 @@ public class GlassTabBarTest {
                         if (floating) assertEquals(0, Color.alpha(corner));
                         else assertEquals("no strip leaves the bar's own colour", Color.BLACK, corner);
                     }
+                    // #487: a reel's ambient light goes over the bar's colour round a docked pill.
+                    GlassTabBar.glow = (canvas, bar) -> {
+                        Paint green = new Paint();
+                        green.setColor(Color.GREEN);
+                        canvas.drawRect(0, 0, 4, 4, green);
+                    };
+                    try (Pixels pixels = host.background()) {
+                        int corner = pixels.bitmap.getPixel(1, 1);
+                        if (floating) assertEquals("no glow round a floating pill", 0, Color.alpha(corner));
+                        else assertEquals("the glow over the bar's colour", Color.GREEN, corner);
+                    }
+                    GlassTabBar.glow = app.hushgram.extension.instagram.feed.AmbientLight::drawUnderPill;
                 }
             }
         } finally {
             GlassTabBar.strip = app.hushgram.extension.instagram.reels.ReelBlurBars::drawStrip;
+            GlassTabBar.glow = app.hushgram.extension.instagram.feed.AmbientLight::drawUnderPill;
         }
     }
 
@@ -592,6 +606,65 @@ public class GlassTabBarTest {
 
             String report = String.join("\n", HookStatus.report());
             assertTrue(report, report.contains(GlassTabBar.COUNT_STORY_ASIDE));
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.STORY_ROOT);
+                else ids.put(GlassTabBar.STORY_ROOT, previous);
+            }
+        }
+    }
+
+    /**
+     * #450: the pill stayed over a story at random until Instagram restarted. A story viewer Instagram
+     * keeps in the tree, hidden, isn't the one to watch once a new viewer shows, wherever the new one sits.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void anOldHiddenStoryViewerDoesNotHideTheNewOne() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        int storyId = 0x7f0b0123;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.STORY_ROOT, storyId); }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int full = ViewGroup.LayoutParams.MATCH_PARENT;
+            host.controller.pause().resume();
+            host.frame();
+
+            FrameLayout content = new FrameLayout(host.activity);
+            host.root.addView(content, 0, new FrameLayout.LayoutParams(full, full));
+            FrameLayout first = new FrameLayout(host.activity);
+            first.setId(storyId);
+            content.addView(first, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over the first story", View.INVISIBLE, host.bar.getVisibility());
+
+            // Instagram closes the first viewer by hiding it and keeps it where it was.
+            first.setVisibility(View.GONE);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("the story closed", View.VISIBLE, host.bar.getVisibility());
+
+            // The next story opens in a viewer of its own, after the old one.
+            FrameLayout second = new FrameLayout(host.activity);
+            second.setId(storyId);
+            content.addView(second, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over the new story", View.INVISIBLE, host.bar.getVisibility());
+
+            content.removeView(second);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals(View.VISIBLE, host.bar.getVisibility());
+
+            // With the hidden one first in the tree, a viewer shown in another container is still found.
+            FrameLayout elsewhere = new FrameLayout(host.activity);
+            host.root.addView(elsewhere, 1, new FrameLayout.LayoutParams(full, full));
+            FrameLayout third = new FrameLayout(host.activity);
+            third.setId(storyId);
+            elsewhere.addView(third, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over a story elsewhere", View.INVISIBLE, host.bar.getVisibility());
+            assertSame(third, GlassTabBar.storyShownOnTop(host.root));
         } finally {
             synchronized (ids) {
                 if (previous == null) ids.remove(GlassTabBar.STORY_ROOT);
@@ -2475,14 +2548,18 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #335: with the Reels auto-hide holding the pill all the way off, the reel gets the pill's height
-     * instead of a black band. Only the navigation bar's room stays under it (#221).
+     * #466, #467: with a Reels auto-hide the reel runs behind the pill, so it keeps one size as the pill
+     * slides instead of growing into its slot, and leaves no black band while it's away (#335).
      */
     @Test
-    public void reelsGiveUpThePillsHeightWhileTheAutoHideHasItOff() {
-        assertEquals("pill showing", GlassTabBar.reelsMargin(150), GlassTabBar.reelsSlot(150, false));
-        assertEquals("pill slid all the way off", GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(150, true));
-        assertEquals(GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(0, false));
+    public void aReelsAutoHideRunsTheReelBehindThePill() {
+        assertFalse(GlassTabBar.reelsRunBehind(false, GlassReelsHide.NEVER));
+        assertFalse(GlassTabBar.reelsRunBehind(false, null));
+        assertTrue(GlassTabBar.reelsRunBehind(true, GlassReelsHide.NEVER));
+        for (GlassReelsHide hide : GlassReelsHide.values()) {
+            if (hide != GlassReelsHide.NEVER) assertTrue(hide.name(), GlassTabBar.reelsRunBehind(false, hide));
+        }
+        assertEquals("never hidden by default", GlassReelsHide.NEVER, Settings.GLASS_TAB_BAR_REELS_HIDE.defaultValue);
     }
 
     /**

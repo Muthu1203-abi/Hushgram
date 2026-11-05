@@ -120,7 +120,18 @@ public final class HiddenChatsTap {
                 return false;
             case MotionEvent.ACTION_MOVE:
                 if (swallowing) return true;
-                if (!moved && far(x - downX, y - downY, touchSlop(activity))) moved = true;
+                if (!moved && far(x - downX, y - downY, touchSlop(activity))) {
+                    moved = true;
+                    // A horizontal drag is how Instagram changes pages without tapping a tab.
+                    // Clear hidden-only mode as soon as the gesture is recognized, before the
+                    // destination inbox gets a chance to draw one frame with the hidden filter.
+                    float dx = x - downX;
+                    float dy = y - downY;
+                    if (Math.abs(dx) > Math.abs(dy) && HiddenChats.isShowingHiddenOnlyInbox()) {
+                        HiddenChats.showRegularInbox();
+                        forget();
+                    }
+                }
                 return false;
             case MotionEvent.ACTION_POINTER_DOWN:
                 if (swallowing) return true;
