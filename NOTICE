@@ -51,6 +51,12 @@ developer-option readers from Piko release 3.11.0-dev.3, commit
 04987953674f98b3f302dc7a8da7492ae96b5267. Their source headers and the
 provenance record identify the imported files. Piko's notice is reproduced below.
 
+The bundled recommended developer-option labels are adapted as data from Rex
+IG Lite's rex_recommended_flags_v3.json. They are 453-era curated suggestions;
+HushGram only applies a label when the numeric config ID or config-and-parameter
+IDs exactly match. Instagram's active names take precedence.
+https://github.com/xboyrex/rex-ig-lite/blob/main/docs/mappings/rex_recommended_flags_v3.json
+
 Piko NOTICE
 
 https://github.com/crimera/piko

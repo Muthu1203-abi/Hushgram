@@ -76,8 +76,7 @@ internal fun BytecodePatchContext.findFlagNameList(): FlagNameList {
         it.name == "<init>" && it.parameterTypes.map(Any::toString) == RECORD_ARGS && it.returnType == "V"
     }.distinctBy(Any::toString).one("MetaConfig schema entry constructor")
     val entry = classDefByOrNull(constructor.definingClass) ?: refuse("missing MetaConfig schema entry ${constructor.definingClass}")
-    val fields = constructorFields(entry, constructor)
-    val roles = FlagFields(configName = fields[0], name = fields[1], index = fields[2], config = fields[8])
+    val roles = constructorFields(entry, constructor)
 
     val builders = mutableListOf<Method>()
     classesAccessing(entry.type, roles.name.name, Opcode.IGET_OBJECT).forEach { clazz ->
@@ -217,8 +216,8 @@ internal fun BytecodePatchContext.applyFlagNameList(list: FlagNameList) {
     }
 }
 
-/** The field roles are determined from the record constructor's actual input registers. */
-private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: MethodReference): List<FieldReference> {
+/** The four fields needed for labels, determined from the record constructor's actual input registers. */
+private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: MethodReference): FlagFields {
     val constructor = owner.methods.singleOrNull { it.toString() == reference.toString() }
         ?: refuse("schema entry constructor is missing or ambiguous")
     val implementation = constructor.implementation ?: refuse("schema entry constructor has no body")
@@ -241,8 +240,20 @@ private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: M
             assigned.put(slot, field) != null
         ) refuse("schema entry constructor field roles changed")
     }
-    if (assigned.size != RECORD_ARGS.size) refuse("schema entry constructor fields are incomplete")
-    return RECORD_ARGS.indices.map { assigned.getValue(it) }
+    // Instagram's schema record can leave unrelated constructor arguments unused. Only these
+    // four roles are read by the label hook; requiring every record argument to become a field
+    // made the entire Developer Options patch fail on builds that omit unused fields.
+    val required = listOf(0, 1, 2, 8)
+    val missing = required.filterNot(assigned::containsKey)
+    if (missing.isNotEmpty()) {
+        refuse("schema entry constructor is missing required field roles ${missing.joinToString()}")
+    }
+    return FlagFields(
+        configName = assigned.getValue(0),
+        name = assigned.getValue(1),
+        index = assigned.getValue(2),
+        config = assigned.getValue(8),
+    )
 }
 
 private fun MethodReference.isRow() = name == "<init>" && returnType == "V" &&

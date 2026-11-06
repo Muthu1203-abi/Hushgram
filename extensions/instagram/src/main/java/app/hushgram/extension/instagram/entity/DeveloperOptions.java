@@ -13,6 +13,8 @@ import org.json.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +28,7 @@ public final class DeveloperOptions {
     private static final String QUICK_EXPERIMENT_CLASS = "X.Sb1";
     private static final String EXPERIMENT_ITEM_CLASS = "X.BSw";
     private static volatile ExperimentNames cachedNames;
+    private static volatile ExperimentNames recommendedNames;
 
     private static final class ExperimentNames {
         final Map<Integer, String> configs;
@@ -70,6 +73,7 @@ public final class DeveloperOptions {
     public static String parameterName(int config, int index, String fallback) {
         if (config < 0 || index < 0) return fallback;
         String name = names().parameters.get(((long) config << 32) | (index & 0xffffffffL));
+        if (name == null) name = recommendedNames().parameters.get(((long) config << 32) | (index & 0xffffffffL));
         return name == null || name.trim().isEmpty() ? fallback : name;
     }
 
@@ -77,7 +81,55 @@ public final class DeveloperOptions {
     public static String configName(int config, String fallback) {
         if (config < 0) return fallback;
         String name = names().configs.get(config);
+        if (name == null) name = recommendedNames().configs.get(config);
         return name == null || name.trim().isEmpty() ? fallback : name;
+    }
+
+    /** Rex IG Lite's curated 453 recommendations are labels only; exact numeric ID matches are used. */
+    private static ExperimentNames recommendedNames() {
+        ExperimentNames ready = recommendedNames;
+        if (ready != null) return ready;
+        synchronized (DeveloperOptions.class) {
+            ready = recommendedNames;
+            if (ready != null) return ready;
+            Map<Integer, String> configs = new HashMap<>();
+            Map<Long, String> parameters = new HashMap<>();
+            try (InputStream stream = DeveloperOptions.class.getClassLoader().getResourceAsStream("rex_recommended_flags_v3.json")) {
+                if (stream != null) {
+                    byte[] bytes = new byte[stream.available()];
+                    int offset = 0;
+                    while (offset < bytes.length) {
+                        int count = stream.read(bytes, offset, bytes.length - offset);
+                        if (count < 0) break;
+                        offset += count;
+                    }
+                    JSONArray flags = new JSONArray(new String(bytes, 0, offset, StandardCharsets.UTF_8));
+                    for (int i = 0; i < flags.length(); i++) {
+                        JSONObject flag = flags.optJSONObject(i);
+                        if (flag == null) continue;
+                        String label = flag.optString("name", "").trim();
+                        String codes = flag.optString("code", "");
+                        if (label.isEmpty()) continue;
+                        for (String code : codes.split(",")) {
+                            String[] ids = code.trim().split("::", -1);
+                            if (ids.length == 1) {
+                                int config = Integer.parseInt(ids[0]);
+                                if (config >= 0) configs.putIfAbsent(config, label);
+                            } else if (ids.length == 2) {
+                                int config = Integer.parseInt(ids[0]);
+                                int index = Integer.parseInt(ids[1]);
+                                if (config >= 0 && index >= 0) parameters.putIfAbsent(((long) config << 32) | (index & 0xffffffffL), label);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Logger.printException(() -> "Could not load recommended developer-option labels", e);
+            }
+            ready = new ExperimentNames(Collections.unmodifiableMap(configs), Collections.unmodifiableMap(parameters));
+            recommendedNames = ready;
+            return ready;
+        }
     }
 
     private static ExperimentNames names() {

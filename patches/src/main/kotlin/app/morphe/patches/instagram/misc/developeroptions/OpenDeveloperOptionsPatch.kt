@@ -31,9 +31,15 @@ val openDeveloperOptionsPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
-        // Resolve the MetaConfig row hook before changing the Home handler, so unsupported layouts
-        // fail the patch as a whole instead of silently producing an unlabeled developer screen.
-        val flagNames = findFlagNameList()
+        // Label replacement is an enhancement to Instagram's own Developer Options screen. If a
+        // build changes the schema row, keep the entry-point patch usable and leave its native
+        // numeric labels alone rather than failing the whole patch.
+        val flagNames = try {
+            findFlagNameList()
+        } catch (unavailable: PatchException) {
+            patchLog.warning("${unavailable.message}. Developer Options will still open; experiment labels keep Instagram's defaults.")
+            null
+        }
         val listener = HomeIconOnClickListenerFingerprint.method
         val openerClass = DeveloperOptionCallWithCallableFingerprint.classDef
         val openerInstance = openerClass.fields.singleOrNull {
@@ -68,6 +74,6 @@ val openDeveloperOptionsPatch = bytecodePatch(
                 """.trimIndent(),
             )
         }
-        applyFlagNameList(flagNames)
+        if (flagNames != null) applyFlagNameList(flagNames)
     }
 }

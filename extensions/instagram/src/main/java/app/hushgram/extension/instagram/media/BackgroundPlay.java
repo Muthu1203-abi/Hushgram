@@ -115,6 +115,13 @@ public final class BackgroundPlay {
     /** True while this class pauses the held player itself, so that pause goes through. */
     private static boolean passing;
     private static boolean watching;
+    /** Audio focus held for a background session after Instagram's Reel viewer gives it up. */
+    @Nullable
+    private static AudioManager focusManager;
+    @Nullable
+    private static AudioManager.OnAudioFocusChangeListener focusListener;
+    private static boolean ownsAudioFocus;
+    private static boolean focusPaused;
     /** The session began in the Reels viewer, where Instagram's own scroller can request the next player. */
     private static boolean reelSession;
     /** The current Reel player was released and the next one has not started yet. */
@@ -229,23 +236,36 @@ public final class BackgroundPlay {
     /**
      * At the top of IgVideoPlayerImpl's pause and stop, after Resume long videos' hook, with Instagram's reason. True, and the
      * pause or stop returns at once, only for the player held as you left, while the switch is on.
-     * A pause for the audio focus always goes through.
+     * Audio-focus pauses go through unless a Reel can reacquire focus for background playback.
      */
     public static boolean hold(Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             HookStatus.bound(FamilyNames.BACKGROUND_PLAY, HOOK);
             Activity screen;
+            boolean reel;
             synchronized (LOCK) {
                 if (passing || phase == Phase.IDLE || player == null || player != heldLocked()) return false;
                 screen = leavingScreen != null ? leavingScreen.get() : null;
+                reel = reelSession;
             }
             if (!on()) {
                 end(false, "the switch is off");
                 return false;
             }
             if (reason != null && reason.toLowerCase(Locale.ROOT).contains("focus")) {
-                log(() -> "let a pause for the audio focus through (" + reason + ")");
+                // Reels may abandon Instagram's focus as its Activity goes to the background.
+                // Keep playing only if Android grants focus back to this media session. If a call
+                // or another app owns focus, let Instagram's pause happen as usual.
+                if (reel) {
+                    if (requestBackgroundAudioFocus()) {
+                        log(() -> "kept the background player after reacquiring audio focus (" + reason + ")");
+                        return true;
+                    }
+                    log(() -> "let the Reel's audio-focus pause through because Android did not grant focus (" + reason + ")");
+                } else {
+                    log(() -> "let a pause for the audio focus through (" + reason + ")");
+                }
                 return false;
             }
             if (screen != null && inPictureInPicture(screen)) {
@@ -295,6 +315,7 @@ public final class BackgroundPlay {
         if (player == null) return;
         synchronized (LOCK) {
             mutedAt = NONE;
+            focusPaused = false;
         }
         pauseThrough(player);
     }
@@ -302,6 +323,9 @@ public final class BackgroundPlay {
     static void playFromNotification() {
         Object player = held();
         if (player == null) return;
+        synchronized (LOCK) {
+            focusPaused = false;
+        }
         // Tap to play holds back a start nobody tapped, and the button is a tap.
         TapToPlay.tappedFromNotification(engineOf(player));
         playThrough(player);
@@ -422,19 +446,25 @@ public final class BackgroundPlay {
             end(false, "the screen turned or went to picture in picture");
             return;
         }
-        if ((player == null && !waiting) || (player != null && !isPlaying(player))) {
+        if (player == null && !waiting) {
             end(false, "Instagram stopped the video some other way as it left");
             return;
         }
         if (player != null && !isPlaying(player)) {
+            boolean canWaitForNextReel;
             synchronized (LOCK) {
-                if (phase == Phase.LEAVING && reelSession && on()) {
+                canWaitForNextReel = phase == Phase.LEAVING && reelSession && on();
+                if (canWaitForNextReel) {
                     held = null;
                     awaitingNextReel = true;
                     nextReelDeadline = SystemClock.uptimeMillis() + REEL_NEXT_TIMEOUT_MS;
                     waiting = true;
                     player = null;
                 }
+            }
+            if (!canWaitForNextReel) {
+                end(false, "Instagram stopped the video some other way as it left");
+                return;
             }
         }
         Float volume = null;
@@ -510,7 +540,9 @@ public final class BackgroundPlay {
             nextReelDeadline = NONE;
             mutedAt = NONE;
             pausedSince = NONE;
+            focusPaused = false;
         }
+        abandonBackgroundAudioFocus();
         if (pause && player != null) pauseThrough(player);
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
         log(() -> "background playback ended: " + why);
@@ -715,12 +747,79 @@ public final class BackgroundPlay {
         return Utils.settingsReady() && Settings.KEEP_PLAYING_IN_BACKGROUND.get();
     }
 
+    /** Requests standard media focus when Instagram's own background transition drops it. */
+    private static boolean requestBackgroundAudioFocus() {
+        try {
+            Context context = Utils.getContext();
+            if (context == null) return false;
+            AudioManager manager = context.getSystemService(AudioManager.class);
+            if (manager == null) return false;
+            synchronized (LOCK) {
+                if (ownsAudioFocus && focusManager == manager) return true;
+            }
+            AudioManager.OnAudioFocusChangeListener listener = change -> {
+                try {
+                    Object current = held();
+                    if (change == AudioManager.AUDIOFOCUS_GAIN) {
+                        boolean resume;
+                        synchronized (LOCK) {
+                            resume = focusPaused && phase != Phase.IDLE && current != null;
+                            focusPaused = false;
+                        }
+                        if (resume && current != null) playThrough(current);
+                    } else if (change == AudioManager.AUDIOFOCUS_LOSS
+                            || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                            || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                        synchronized (LOCK) {
+                            focusPaused = phase != Phase.IDLE && current != null;
+                        }
+                        if (current != null && isPlaying(current)) pauseThrough(current);
+                    }
+                    BackgroundPlayService.refresh();
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "audio focus", t);
+                }
+            };
+            int result = manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+            if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return false;
+            synchronized (LOCK) {
+                focusManager = manager;
+                focusListener = listener;
+                ownsAudioFocus = true;
+            }
+            return true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "request audio focus", t);
+            return false;
+        }
+    }
+
+    /** Releases focus only when this background session requested it. */
+    private static void abandonBackgroundAudioFocus() {
+        AudioManager manager;
+        AudioManager.OnAudioFocusChangeListener listener;
+        synchronized (LOCK) {
+            if (!ownsAudioFocus) return;
+            manager = focusManager;
+            listener = focusListener;
+            ownsAudioFocus = false;
+            focusManager = null;
+            focusListener = null;
+        }
+        try {
+            if (manager != null && listener != null) manager.abandonAudioFocus(listener);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "abandon audio focus", t);
+        }
+    }
+
     private static void log(Logger.LogMessage message) {
         Logger.printInfo(message);
     }
 
     /** Clears every session and record. For tests. */
     static void resetForTests() {
+        abandonBackgroundAudioFocus();
         synchronized (LOCK) {
             recent.clear();
             volumes.clear();
@@ -734,6 +833,10 @@ public final class BackgroundPlay {
             awaitingNextReel = false;
             nextReelDeadline = NONE;
             passing = false;
+            ownsAudioFocus = false;
+            focusManager = null;
+            focusListener = null;
+            focusPaused = false;
         }
         // Each test has an application of its own to watch.
         watching = false;
