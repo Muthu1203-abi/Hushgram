@@ -92,7 +92,7 @@ public final class FamilyNames {
     public static final String REFRESH_RATE = "Use the highest refresh rate";
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String ACCENT_COLOR = "Accent color";
-    public static final String LAUNCH_SCREEN = "Instagram launch screen";
+    public static final String LAUNCH_SCREEN = "HushGram launch screen";
     public static final String HEADER_TEXT = "Home header text";
     public static final String APP_ICON = "Pick the app icon";
     public static final String SETTINGS_ROWS = "Hide rows in Instagram's settings";
@@ -109,6 +109,7 @@ public final class FamilyNames {
     public static final String THREADS_BUTTON = "Hide the Threads button";
     public static final String PROFILE_NOTES = "Hide Notes on profile pictures";
     public static final String PROFILE_POSTS_LIST = "Profile posts as a list";
+    public static final String PROFILE_GRID_JUMP = "Jump a profile's posts to a date";
     public static final String COMMENT_COPY = "Copy comment";
     public static final String COMMENT_PHOTO = "Save comment photo";
     public static final String PROFILE_PICTURE = "Save profile picture";

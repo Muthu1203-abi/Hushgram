@@ -73,6 +73,10 @@ public final class DeveloperOptions {
     public static String parameterName(int config, int index, String fallback) {
         if (config < 0 || index < 0) return fallback;
         String name = names().parameters.get(((long) config << 32) | (index & 0xffffffffL));
+        if (name == null) {
+            DeveloperFlagNames.loadSaved();
+            name = DeveloperFlagNames.parameterName(config, index);
+        }
         if (name == null) name = recommendedNames().parameters.get(((long) config << 32) | (index & 0xffffffffL));
         return name == null || name.trim().isEmpty() ? fallback : name;
     }
@@ -81,6 +85,10 @@ public final class DeveloperOptions {
     public static String configName(int config, String fallback) {
         if (config < 0) return fallback;
         String name = names().configs.get(config);
+        if (name == null) {
+            DeveloperFlagNames.loadSaved();
+            name = DeveloperFlagNames.configName(config);
+        }
         if (name == null) name = recommendedNames().configs.get(config);
         return name == null || name.trim().isEmpty() ? fallback : name;
     }

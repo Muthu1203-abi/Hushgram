@@ -57,6 +57,24 @@ HushGram only applies a label when the numeric config ID or config-and-parameter
 IDs exactly match. Instagram's active names take precedence.
 https://github.com/xboyrex/rex-ig-lite/blob/main/docs/mappings/rex_recommended_flags_v3.json
 
+HushGram also adapts Rex IG Lite's typed MobileConfig override hook, limited to
+boolean and long values. The corresponding source and patch are identified in
+their headers. Rex requires this attribution notice to be retained in source
+distributions and derivative works.
+https://github.com/xboyrex/rex-ig-lite
+
+xboyrex NOTICE
+
+https://github.com/xboyrex/rex-ig-lite
+
+=============
+
+7b. Attribution Requirement
+---------------------------
+
+This NOTICE file must be preserved and retained in all distributions
+of the Source Code and any Derivative Works.
+
 Piko NOTICE
 
 https://github.com/crimera/piko

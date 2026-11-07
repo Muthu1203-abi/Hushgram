@@ -188,7 +188,6 @@ public final class ReelAutoScroll {
      * during the move (#473). The scroller asks this once, as it's built.
      */
     public static boolean lead(int instagram) {
-        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
         return lead(instagram, ReelAutoScroll::learning);
     }
 
@@ -213,7 +212,6 @@ public final class ReelAutoScroll {
      * milliseconds. Otherwise answers what Instagram did.
      */
     public static int leadTime(int instagram) {
-        if (BackgroundPlay.autoAdvanceDuringBackground()) return Math.max(instagram, LEAD_MS);
         return leadTime(instagram, ReelAutoScroll::learning);
     }
 

@@ -63,15 +63,82 @@ public class SupportRowSettingsTest {
         ShadowLooper.idleMainLooper();
     }
 
-    private void assertRowsAbsent(PreferenceGroup group) {
+    private Preference last() {
+        PreferenceScreen screen = page.getPreferenceScreen();
+        return screen.getPreference(screen.getPreferenceCount() - 1);
+    }
+
+    private void assertLastIsSupport() {
+        Preference row = last();
+        assertEquals("action_support_hushgram", row.getKey());
+        assertEquals("Support HushGram", String.valueOf(row.getTitle()));
+        assertNull("the row is its name alone", row.getSummary());
+    }
+
+    @Test public void itEndsTheHomeAsOneList() throws Exception {
+        open();
+        assertLastIsSupport();
+    }
+
+    @Test public void itEndsTheHomeWhenCategoriesArePages() throws Exception {
+        Settings.CATEGORY_PAGES.save(true);
+        open();
+        assertLastIsSupport();
+    }
+
+    @Test public void aTapOpensKofiInABrowserTask() throws Exception {
+        open();
+        Preference row = last();
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        Intent started = shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+        if (started == null) started = shadowOf(controller.get()).getNextStartedActivity();
+        assertNotNull(started);
+        assertEquals(Intent.ACTION_VIEW, started.getAction());
+        assertEquals(Uri.parse("https://ko-fi.com/X8K126YVER"), started.getData());
+        assertTrue(started.hasCategory(Intent.CATEGORY_BROWSABLE));
+        assertTrue((started.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+    }
+
+    @Test public void noBrowserShowsATipAndKeepsRunning() throws Exception {
+        open();
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        Preference row = last();
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        ShadowLooper.idleMainLooper();
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open this link."));
+        assertEquals("ko-fi.com/X8K126YVER", ShadowToast.getTextOfLatestToast());
+    }
+
+    /**
+     * Source code and issues in About says the same and then shows its address on its own: after
+     * the sentence, the 31 characters of the address ran to a third line, which a toast cuts off.
+     */
+    @Test public void sourceCodeWithNoBrowserShowsTheAddressOnItsOwn() throws Exception {
+        open();
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        // About opens with a tap on its heading, as it does for a user.
+        assertTrue(page.about.getOnPreferenceClickListener().onPreferenceClick(page.about));
+        ShadowLooper.idleMainLooper();
+        Preference source = titled(page.about, "Source code and issues");
+        assertNotNull(source);
+        assertTrue(source.getOnPreferenceClickListener().onPreferenceClick(source));
+        ShadowLooper.idleMainLooper();
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open this link."));
+        assertEquals("github.com/SysAdminDoc/HushGram", ShadowToast.getTextOfLatestToast());
+    }
+
+    private static Preference titled(android.preference.PreferenceGroup group, String title) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {
             Preference row = group.getPreference(i);
-            String title = String.valueOf(row.getTitle());
-            assertFalse("About category is absent", "About".equals(title));
-            assertFalse("Report problem row is absent", "Report a problem".equals(title));
-            assertFalse("Support row is absent", "Support HushGram".equals(title));
-            if (row instanceof PreferenceGroup) assertRowsAbsent((PreferenceGroup) row);
+            if (title.equals(String.valueOf(row.getTitle()))) return row;
+            if (row instanceof android.preference.PreferenceGroup) {
+                Preference inside = titled((android.preference.PreferenceGroup) row, title);
+                if (inside != null) return inside;
+            }
         }
+        return null;
     }
 
     @Test public void removedRowsStayAbsentInTheSettingsList() throws Exception {
@@ -82,7 +149,24 @@ public class SupportRowSettingsTest {
         assertRowsAbsent(screen);
     }
 
-    @Test public void removedRowsStayAbsentWhenCategoriesArePages() throws Exception {
+    /**
+     * With no browser, Report a problem says so and then shows where the reports are, each in a
+     * toast of its own: the address after the sentence ran to a third line, which a toast cuts off.
+     */
+    @Test public void reportAProblemWithNoBrowserShowsTheAddressOnItsOwn() throws Exception {
+        open();
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        PreferenceScreen screen = page.getPreferenceScreen();
+        Preference report = screen.getPreference(screen.getPreferenceCount() - 2);
+        assertEquals(HushgramPreferenceFragment.REPORT_ROW_KEY, report.getKey());
+        assertTrue(report.getOnPreferenceClickListener().onPreferenceClick(report));
+        ShadowLooper.idleMainLooper();
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open the bug report."));
+        assertEquals("github.com/SysAdminDoc/HushGram/issues", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test public void aCategoryPageAndAMissSearchLeaveItOff() throws Exception {
         Settings.CATEGORY_PAGES.save(true);
         open();
         assertRowsAbsent(page.getPreferenceScreen());

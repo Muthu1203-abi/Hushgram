@@ -61,6 +61,12 @@ final class LayoutCategory {
                                 + "with the tab bar at the bottom instead of down the side. Restart Instagram to see "
                                 + "the change.")));
             }
+            if (build.contains(PatchFamily.PHONE_LAYOUT)) {
+                layout.addPreference(toggle(context, Settings.PHONE_LAYOUT, L10n.t("Phone layout on big screens"),
+                        L10n.t("On a foldable or tablet, Instagram keeps its phone layout across the whole screen, "
+                                + "with the tab bar at the bottom instead of down the side. Restart Instagram to see "
+                                + "the change.")));
+            }
             // Rows whose key words name no icon get one that says what they change, not the
             // category's grid on every other row.
             if (build.contains(PatchFamily.FONT)) layout.addPreference(mark(page.fontRow(context), SettingsIcons.WRITING));
@@ -81,6 +87,13 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.ACCENT_ICONS, L10n.t("Icons in the accent color"),
                         L10n.t("Instagram's icons on the top bar, the tab bar and under posts take the color you "
                                 + "picked. Text stays as it is. Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.ACCENT_RINGS, L10n.t("Story rings in the accent color"),
+                        L10n.t("Story rings take the color you picked instead of Instagram's gradient. A few other "
+                                + "gradients share those colors and change with them. Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.ACCENT_BACKGROUNDS, L10n.t("Backgrounds in the accent color"),
+                        L10n.t("Screens, panels, cards and menus take a dark or light shade of the color you picked. "
+                                + "Story and reel viewers keep their own background. Wins over Pure black dark mode. "
+                                + "Restart Instagram to see the change.")));
             }
             // Pure black is set when you patch and stays out of the default selection, so a build
             // without it says where to get it (#267, #359).
@@ -96,6 +109,11 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("Custom launch screen"),
                         L10n.t("Shows the app's custom pink and plum mark on the screen you see while Instagram starts, on Android 13 "
                                 + "and newer. It shows from the next start.")));
+            }
+            if (build.contains(PatchFamily.HEADER_TEXT)) {
+                layout.addPreference(mark(headerTextRow(context), SettingsIcons.WRITING));
+                layout.addPreference(mark(page.headerPictureRow(context), SettingsIcons.STORIES));
+                layout.addPreference(mark(page.removeHeaderPictureRow(context), SettingsIcons.DELETE));
             }
             if (build.contains(PatchFamily.HEADER_TEXT)) {
                 layout.addPreference(mark(headerTextRow(context), SettingsIcons.WRITING));

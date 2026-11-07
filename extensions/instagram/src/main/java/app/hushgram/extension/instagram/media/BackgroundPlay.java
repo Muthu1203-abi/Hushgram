@@ -400,6 +400,7 @@ public final class BackgroundPlay {
     static void arm(Activity screen, String why) {
         if (screen == null || !on()) return;
         if (screen.isFinishing() || screen.isChangingConfigurations() || inPictureInPicture(screen)) return;
+        boolean reels;
         synchronized (LOCK) {
             if (phase != Phase.IDLE) return;
         }
@@ -414,10 +415,21 @@ public final class BackgroundPlay {
             held = new WeakReference<>(player);
             leavingScreen = new WeakReference<>(screen);
             reelSession = isReelsViewer(screen);
+            reels = reelSession;
             awaitingNextReel = false;
             nextReelDeadline = NONE;
             mutedAt = NONE;
             pausedSince = NONE;
+        }
+        // Ask while Instagram is still the foreground app. Android 15 rejects audio-focus
+        // requests from a background app unless its foreground service is already running;
+        // waiting until Instagram's focus-loss pause is too late because that arrives before
+        // onActivityStopped starts BackgroundPlayService.
+        if (reels) {
+            boolean focused = requestBackgroundAudioFocus();
+            log(() -> focused
+                    ? "secured audio focus for the Reel before Instagram left the foreground"
+                    : "could not secure audio focus for the Reel before Instagram left the foreground");
         }
         log(() -> why + ", so the video playing with sound is kept going");
         Utils.runOnMainThreadDelayed(() -> watchdog(screen), WATCHDOG_MS);

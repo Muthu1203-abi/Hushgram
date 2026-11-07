@@ -165,7 +165,7 @@ public final class GhostMode {
         }
         NavigationSettings.refreshGhostTabIndicator();
         Utils.showToastShort(message(switches, on,
-                L10n.t("Couldn't change every Ghost mode switch. Open Instagram settings to check them.")));
+                L10n.t("Ghost mode partly changed. Check HushGram settings.")));
         return on;
     }
 

@@ -249,6 +249,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
     private static final int EXPORT_CONFIGURATION = 0x4847;
     private static final int IMPORT_CONFIGURATION = 0x4848;
+    private static final int EXPORT_DEVELOPER_FLAGS = 0x4854;
+    private static final int IMPORT_DEVELOPER_FLAGS = 0x4855;
+    private static final int EXPORT_DEVELOPER_OVERRIDES = 0x4856;
+    private static final int IMPORT_DEVELOPER_OVERRIDES = 0x4857;
     private static final int PICK_FONT = 0x484d;
     private static final int PICK_STORY_FONT = 0x484e;
     private static final int PICK_STORY_EMOJI = 0x484f;
@@ -276,6 +280,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
     @Nullable Row importConfiguration;
     @Nullable Row undoConfiguration;
+    @Nullable Row exportDeveloperFlags;
+    @Nullable Row importDeveloperFlags;
+    @Nullable Row exportDeveloperOverrides;
+    @Nullable Row importDeveloperOverrides;
     /** Lock these settings (#301), and the rows it greyed out while the settings are locked. */
     @Nullable Row settingsLock;
     private final Set<Preference> lockedRows = new HashSet<>();
@@ -508,6 +516,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         clearPositions = null;
         exportDiagnostics = null;
         exportConfiguration = importConfiguration = undoConfiguration = null;
+        exportDeveloperFlags = importDeveloperFlags = null;
+        exportDeveloperOverrides = importDeveloperOverrides = null;
         recovery = null;
         interruptedSaves = null;
         // The rows outlive this view, and a search left on them would be read as how they were built.
@@ -670,7 +680,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (Settings.REMOVE_BUILD_EXPIRED_POPUP.key.equals(key)) aliases.append(' ').append(L10n.t("Updates"));
                 // Instagram's menu calls clear mode Full screen (#480).
                 if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key) || Settings.START_REEL_CLEAR_MODE.key.equals(key)
-                        || Settings.QUIET_REEL_CLEAR_MODE.key.equals(key)) {
+                        || Settings.QUIET_REEL_CLEAR_MODE.key.equals(key) || Settings.CLEAR_MODE_SEEK_BAR.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Full screen")).append(" fullscreen");
                 }
                 for (PatchFamily family : build) {
@@ -679,7 +689,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.AMBIENT_LIGHT && (Settings.AMBIENT_LIGHT_SPREAD.key.equals(key)
-                            || Settings.AMBIENT_LIGHT_SPEED.key.equals(key));
+                            || Settings.AMBIENT_LIGHT_SPEED.key.equals(key) || Settings.AMBIENT_LIGHT_BLEND.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PROGRESS_BAR && Settings.STORY_BAR_THICKNESS.key.equals(key);
                     belongs |= family == PatchFamily.STORIES_TRAY && Settings.TRAY_BADGE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
@@ -1483,6 +1493,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (categoryGrid.getParent() != screen) screen.addPreference(categoryGrid);
             } else if (categoryGrid.getParent() == screen) screen.removePreference(categoryGrid);
         }
+        // Actions below the categories remain on the same page.
+        Row[] loose = {report, support};
+        String[] looseAliases = {" github bug issue", " ko-fi kofi donate coffee"};
+        for (int i = 0; i < loose.length; i++) {
+            Row row = loose[i];
+            if (row == null) continue;
+            String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
+            boolean match = true;
+            for (String term : terms) if (!text.contains(term)) { match = false; break; }
+            boolean shown = match;
+            if (terms.length > 0 && match) matches++;
+            if (shown) {
+                if (row.getParent() != screen) screen.addPreference(row);
+            } else if (row.getParent() == screen) screen.removePreference(row);
+        }
         // removePreference notifies even when absent. No-op changes mustn't rebind live Cancel.
         if (terms.length > 0 && matches == 0) {
             if (noSearchResults.getParent() != screen) screen.addPreference(noSearchResults);
@@ -1906,11 +1931,85 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    void pickDeveloperFlags(boolean importing) {
+        pickDeveloperDocument(importing ? IMPORT_DEVELOPER_FLAGS : EXPORT_DEVELOPER_FLAGS, importing,
+                "Instagram-flags.json");
+    }
+
+    void pickDeveloperOverrides(boolean importing) {
+        pickDeveloperDocument(importing ? IMPORT_DEVELOPER_OVERRIDES : EXPORT_DEVELOPER_OVERRIDES, importing,
+                "Instagram-flag-overrides.json");
+    }
+
+    private void pickDeveloperDocument(int request, boolean importing, String fileName) {
+        if (documentRequest != 0 || changingConfiguration || (importing && SettingsLock.locked())) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = request;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(importing ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE).setType(importing ? "*/*" : "application/json");
+        if (!importing) picker.putExtra(Intent.EXTRA_TITLE, fileName);
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = documentCode = 0;
+            Utils.showToastLong(L10n.t("There's no file picker. Try again."));
+        }
+    }
+
     @Override
     public void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
         if (code != documentCode) return;
         int request = documentRequest;
+        if (request == IMPORT_DEVELOPER_FLAGS || request == EXPORT_DEVELOPER_FLAGS ||
+                request == IMPORT_DEVELOPER_OVERRIDES || request == EXPORT_DEVELOPER_OVERRIDES) {
+            documentRequest = documentCode = 0;
+            if (result != Activity.RESULT_OK || data == null || data.getData() == null
+                    || !"content".equals(data.getData().getScheme())) return;
+            Uri uri = data.getData();
+            Context context = getContext();
+            if (context == null) return;
+            boolean importing = request == IMPORT_DEVELOPER_FLAGS || request == IMPORT_DEVELOPER_OVERRIDES;
+            boolean valuesFile = request == IMPORT_DEVELOPER_OVERRIDES || request == EXPORT_DEVELOPER_OVERRIDES;
+            if (importing && SettingsLock.locked()) {
+                sayLocked();
+                return;
+            }
+            try {
+                if (!importing) {
+                    String json = valuesFile
+                            ? app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.exportJson()
+                            : app.hushgram.extension.instagram.entity.DeveloperFlagNames.exportJson();
+                    writeConfiguration(context.getContentResolver(), uri,
+                            json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    Utils.showToastLong(L10n.t(valuesFile ? "Developer flag values exported." : "Developer flag names exported."));
+                } else {
+                    try (java.io.InputStream input = context.getContentResolver().openInputStream(uri);
+                         java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+                        if (input == null) throw new java.io.IOException();
+                        byte[] buffer = new byte[4096];
+                        int count;
+                        while ((count = input.read(buffer)) != -1) {
+                            if (output.size() + count > 256 * 1024) throw new java.io.IOException("File too large");
+                            output.write(buffer, 0, count);
+                        }
+                        int imported = valuesFile
+                                ? app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.importJson(output.toString("UTF-8"))
+                                : app.hushgram.extension.instagram.entity.DeveloperFlagNames.importJson(output.toString("UTF-8"));
+                        Utils.showToastLong(L10n.f(valuesFile
+                                ? "Imported %1$d developer flag values. Restart Instagram to apply them."
+                                : "Imported %1$d developer flag names. Restart Instagram to apply them.", imported));
+                    }
+                }
+            } catch (Exception failure) {
+                Utils.showToastLong(L10n.t("Couldn't read that flags JSON. No changes were made."));
+            }
+            return;
+        }
         if (isFontRequest(request)) {
             long revision = fontRequestRevision;
             documentRequest = 0;
@@ -3830,6 +3929,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return note.isEmpty() ? summary : summary + " " + note;
     }
 
+    /** [summary] with the note a switch that works the phone hard carries (#510). */
+    static String slowsOlderPhones(String summary) {
+        return summary + " " + L10n.t("Can slow down older phones.");
+    }
+
     static SwitchPreference toggle(Context context, BooleanSetting setting, String title, String summary) {
         SwitchPreference preference = new Toggle(context);
         preference.setKey(setting.key);
@@ -4163,6 +4267,29 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (changes.isEmpty()) {
             return L10n.t("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers "
                     + "list to the end, changes since the last time are added here.");
+        }
+        java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (FollowerHistory.Change change : changes) {
+            if (shown == UNFOLLOWERS_SHOWN) break;
+            String who = change.username.isEmpty() ? L10n.f("Account %1$s", change.id) : "@" + change.username;
+            String when = day.format(new java.util.Date(change.when));
+            String line = change.kind == FollowerHistory.UNFOLLOWED ? L10n.f("%1$s unfollowed you, %2$s", who, when)
+                    : change.kind == FollowerHistory.FOLLOWED_AGAIN ? L10n.f("%1$s followed you again, %2$s", who, when)
+                    : L10n.f("%1$s started following you, %2$s", who, when);
+            text.append(line).append('\n');
+            shown++;
+        }
+        if (changes.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
+        return text.toString().trim();
+    }
+
+    /** What the unfollowers row says for [record]. */
+    static String unfollowersSummary(Unfollowers.Record record) {
+        if (record.checked <= 0) {
+            return L10n.t("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and "
+                    + "scroll to the end. The next time you do, anyone missing shows here.");
         }
         java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
         StringBuilder text = new StringBuilder();
@@ -4989,10 +5116,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What [delay] does and how the bar comes back, for the row's summary. */
     static String glassReelsHideSummary(GlassReelsHide delay) {
         if (delay == GlassReelsHide.NEVER) {
-            return L10n.t("Never. Pick a time and the pill slides away once a reel has played that long without a "
+            return L10n.t("Never. Pick a time and the tab bar slides away once a reel has played that long without a "
                     + "touch. Restart Instagram after changing it.");
         }
-        return L10n.f("On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the "
+        return L10n.f("On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the "
                 + "screen, change tab or press Back to bring it back. Restart Instagram after changing it.",
                 delay.millis / 1000);
     }

@@ -37,7 +37,7 @@ val openDeveloperOptionsPatch = bytecodePatch(
         val flagNames = try {
             findFlagNameList()
         } catch (unavailable: PatchException) {
-            patchLog.warning("${unavailable.message}. Developer Options will still open; experiment labels keep Instagram's defaults.")
+            //patchLog.warning("${unavailable.message}. Developer Options will still open; experiment labels keep Instagram's defaults.")
             null
         }
         val listener = HomeIconOnClickListenerFingerprint.method

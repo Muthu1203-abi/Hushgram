@@ -289,14 +289,14 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     /**
-     * Shows the search title, and Muthu again for null. While [pageHeader], the page's own header
-     * has Muthu's name and icon on the screen, so the bar leaves the name off rather than show it
+     * Shows the search title, and HushGram again for null. While [pageHeader], the page's own header
+     * has HushGram's name and icon on the screen, so the bar leaves the name off rather than show it
      * twice. Once the header scrolls away the bar names the screen again. Runs on every scroll.
      */
     void showTitle(@androidx.annotation.Nullable CharSequence title, boolean pageHeader) {
         TextView bar = heading;
         if (bar == null) return;
-        CharSequence text = title == null ? "Muthu" : title;
+        CharSequence text = title == null ? "HushGram" : title;
         // A new text asks for a layout, which a scroll in the middle of one shouldn't.
         if (!TextUtils.equals(text, bar.getText())) bar.setText(text);
         // Invisible rather than gone, so the bar keeps its height and a search doesn't move the rows.
@@ -315,6 +315,12 @@ public final class SettingsDialog extends DialogFragment {
         // Back key or a tap outside: the person closed it.
         SettingsEntry.onClosedByUser();
         super.onCancel(dialog);
+    }
+
+    @Override
+    public void onDismiss(android.content.DialogInterface dialog) {
+        super.onDismiss(dialog);
+        GhostHeaderButton.settingsClosed();
     }
 
     @Override

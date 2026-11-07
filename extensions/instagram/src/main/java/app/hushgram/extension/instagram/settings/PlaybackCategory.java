@@ -51,8 +51,8 @@ final class PlaybackCategory {
             }
             if (build.contains(PatchFamily.REEL_SOUND)) {
                 playback.addPreference(toggle(context, Settings.START_REELS_WITH_SOUND, L10n.t("Start reels with sound"),
-                        L10n.t("A reel you tap open from a post on Home plays with sound, and Home is muted again when "
-                                + "you go back. Your phone's ringer and volume still count.")));
+                        L10n.t("A reel you open from the Reels tab or a post on Home plays with sound, and Home is muted "
+                                + "again when you go back. Your phone's ringer and volume still count.")));
                 playback.addPreference(toggle(context, Settings.START_REELS_MUTED, L10n.t("Start reels muted"),
                         L10n.t("Every reel starts silent, wherever you open it from. The volume keys or the speaker "
                                 + "icon unmute it. Wins over Start reels with sound.")));
@@ -66,8 +66,7 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,
                         L10n.t("Keep playing in the background"),
                         L10n.t("A video or reel playing with sound keeps going when you leave Instagram or turn the "
-                                + "screen off. In Reels, it moves on to the next reel and keeps its sound going too. "
-                                + "A notification lets you pause or stop it.")));
+                                + "screen off. A notification lets you pause or stop it.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

@@ -53,6 +53,7 @@ import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
@@ -60,6 +61,7 @@ import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
+import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
@@ -151,6 +153,7 @@ public final class SettingsEntry {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
         GlassTabBar.install(context);
+        GlassChat.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
         ReelsTopBar.install(context);
@@ -409,7 +412,7 @@ public final class SettingsEntry {
      * Closes the settings shown on [activity] as if the person had, so a link that came in shows.
      * A request that hasn't shown yet is dropped with its cover, or it would open over the link.
      */
-    public static void closeForLink(Activity activity) {
+    static void closeForLink(Activity activity) {
         if (openPending) {
             openPending = false;
             onClosedByUser();
@@ -443,8 +446,9 @@ public final class SettingsEntry {
     static void sayWhyPaused() {
         try {
             if (HushgramPause.reason() != HushgramPause.Reason.CRASH_LOOP || !pauseSaid.compareAndSet(false, true)) return;
-            Utils.showToastLong(L10n.t("Instagram paused itself because Instagram kept crashing as it started. "
-                    + "Its switches stay off until you turn it back on in Instagram settings."));
+            // Two toasts, since a toast shows two lines and the way back on is the half that matters.
+            Utils.showToastLong(L10n.t("Instagram kept crashing, so HushGram paused itself."));
+            Utils.showToastLong(L10n.t("Turn it back on in HushGram settings."));
         } catch (Throwable failure) {
             Logger.printException(() -> "Settings entry: could not say why HushGram is paused", failure);
         }
@@ -680,6 +684,8 @@ public final class SettingsEntry {
         }
         // Instagram's own call, with the listener above or Instagram's.
         title.setOnLongClickListener(listener);
+        // Home header text (#454) puts its words or picture on the same logo. Never throws.
+        HeaderText.dress(title);
     }
 
     /**
