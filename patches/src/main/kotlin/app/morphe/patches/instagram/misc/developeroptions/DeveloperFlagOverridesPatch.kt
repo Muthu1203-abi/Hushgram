@@ -35,7 +35,8 @@ val developerFlagOverridesPatch = bytecodePatch(
     execute {
         MobileConfigReadFingerprint.apply {
             val methods = classDef.methods
-            val sourceType = parameters[0].type
+            // Parameters உள்ள முதல் method-ஐ கண்டுபிடித்து, அதன் முதல் parameter-ன் type-ஐ எடுக்கவும்
+            val sourceType = methods.first { it.parameters.isNotEmpty() }.parameters[0].type
             val booleanReaders = methods.filter {
                 it.returnType == "Z" && it.parameters.size == 3 && it.parameters[0].type == sourceType
             }
