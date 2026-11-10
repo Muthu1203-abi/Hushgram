@@ -4284,6 +4284,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (changes.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
         return text.toString().trim();
     }
+   static String unfollowersSummary(Unfollowers.Record record) {
         if (record.checked <= 0) {
             return L10n.t("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and "
                     + "scroll to the end. The next time you do, anyone missing shows here.");
