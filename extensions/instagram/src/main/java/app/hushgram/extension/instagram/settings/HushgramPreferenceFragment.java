@@ -4263,7 +4263,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /** What the history row says for [changes], newest first. */
-    static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
+   static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
         if (changes.isEmpty()) {
             return L10n.t("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers "
                     + "list to the end, changes since the last time are added here.");
