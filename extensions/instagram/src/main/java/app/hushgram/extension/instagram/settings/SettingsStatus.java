@@ -150,6 +150,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean hiddenChatSearch() {
+        return false;
+    }
+
     public static boolean feedReels() {
         return false;
     }

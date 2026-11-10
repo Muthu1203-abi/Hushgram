@@ -556,7 +556,11 @@ final class GlassScrollHide {
         } else {
             moved = true;
             bar.animate().cancel();
-            bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
+            if (GlassTabBar.animationsOn()) {
+                bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
+            } else {
+                bar.setTranslationY(travel());
+            }
             giveRoom(true);
         }
         guard = held;
@@ -584,6 +588,13 @@ final class GlassScrollHide {
             return;
         }
         bar.animate().cancel();
+        if (!GlassTabBar.animationsOn()) {
+            bar.setTranslationY(0f);
+            moved = hidden;
+            if (!hidden) giveRoom(false);
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
+            return;
+        }
         // The screens keep the room until the bar covers it again, so nothing shows through as it slides back.
         bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> {

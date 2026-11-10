@@ -35,6 +35,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
+                || build.contains(PatchFamily.HIDDEN_CHAT_SEARCH)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.BLEND_VISITS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
@@ -244,6 +245,12 @@ final class MessagesCategory {
                         L10n.t("Gives a short vibration when a hidden chat gets a message while Instagram is open. "
                                 + "No notification is shown. Turn on vibration in your phone's settings too.")));
                 messages.addPreference(page.pinnedChatsRow(context));
+            }
+            if (build.contains(PatchFamily.HIDDEN_CHAT_SEARCH)) {
+                messages.addPreference(toggle(context, Settings.HIDE_HIDDEN_CHATS_FROM_SEARCH,
+                        L10n.t("Hide hidden chats from search"),
+                        L10n.t("Leaves matching hidden-chat accounts out of people search and Suggested for you. "
+                                + "Only chat names that are valid Instagram usernames can match.")));
             }
         }
     }

@@ -37,11 +37,10 @@ val openDeveloperOptionsPatch = bytecodePatch(
         val flagNames = try {
             findFlagNameList()
         } catch (unavailable: PatchException) {
-            //patchLog.warning("${unavailable.message}. Developer Options will still open; experiment labels keep Instagram's defaults.")
-            // patchLog.warning(
-            //     "${unavailable.message}. Developer Options will still open, but imported flag names won't appear " +
-            //         "because this Instagram build's label hook wasn't installed.",
-            // )
+            patchLog.warning(
+                "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
+                    "because this Instagram build's label hook wasn't installed.",
+            )
             null
         }
         val listener = HomeIconOnClickListenerFingerprint.method

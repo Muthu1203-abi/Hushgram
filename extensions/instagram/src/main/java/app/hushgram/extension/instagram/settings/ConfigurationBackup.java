@@ -169,6 +169,9 @@ public final class ConfigurationBackup {
             settings.put(Settings.PLAYBACK_QUALITY.key, Settings.PLAYBACK_QUALITY);
             settings.put(Settings.QUALITY_TAB_TARGET.key, Settings.QUALITY_TAB_TARGET);
         }
+        if (PatchFamily.MEDIA_QUALITY_INDICATOR.inBuild()) {
+            settings.put(Settings.MEDIA_QUALITY_INDICATOR.key, Settings.MEDIA_QUALITY_INDICATOR);
+        }
         if (PatchFamily.DATA_SAVER.inBuild()) {
             settings.put(Settings.DATA_SAVER_MOBILE_DATA_ONLY.key, Settings.DATA_SAVER_MOBILE_DATA_ONLY);
         }

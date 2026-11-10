@@ -5,12 +5,16 @@
 package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.view.Gravity;
-import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -29,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -292,7 +297,11 @@ public final class HiddenChats {
                     if (lastHiddenMessageHapticAt != 0L && now - lastHiddenMessageHapticAt < 1200L) return;
                     lastHiddenMessageHapticAt = now;
                 }
-                decor.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                Vibrator vibrator = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                        ? activity.getSystemService(VibratorManager.class).getDefaultVibrator()
+                        : (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
+                if (vibrator == null || !vibrator.hasVibrator()) return;
+                vibrator.vibrate(VibrationEffect.createOneShot(35L, VibrationEffect.DEFAULT_AMPLITUDE));
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden message haptic", t);
             }
@@ -938,6 +947,36 @@ public final class HiddenChats {
     /** The same for the account in front. */
     public static List<ChatLocks.Chat> saved() {
         return saved(ChatAccounts.active());
+    }
+
+    /** Usernames named by this account's hidden chats, for public search and suggestions only. */
+    public static Set<String> searchUsernames() {
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_HIDDEN_CHATS_FROM_SEARCH.get()) return Collections.emptySet();
+            String account = ChatAccounts.active();
+            if (empty(account)) return Collections.emptySet();
+            Set<String> names = new HashSet<>();
+            for (ChatList.Row row : rows(false)) {
+                if (!row.protects(account) || row.name == null) continue;
+                String name = row.name.trim();
+                while (name.startsWith("@")) name = name.substring(1).trim();
+                name = name.toLowerCase(Locale.ROOT);
+                if (validUsername(name)) names.add(name);
+            }
+            return names.isEmpty() ? Collections.emptySet() : names;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.HIDDEN_CHAT_SEARCH, "hidden chat search names", failure);
+            return Collections.emptySet();
+        }
+    }
+
+    private static boolean validUsername(String name) {
+        if (name.isEmpty() || name.length() > 30) return false;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '_')) return false;
+        }
+        return true;
     }
 
     /** Every account's hidden chats, as they are now or, with [chosen], as chosen whether paused or not. */

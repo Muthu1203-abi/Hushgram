@@ -702,6 +702,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.REEL_CAP_COUNT.key.equals(key) || Settings.REEL_CAP_BREAK.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
+                    belongs |= family == PatchFamily.MEDIA_QUALITY_INDICATOR && Settings.MEDIA_QUALITY_INDICATOR.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
                             || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);

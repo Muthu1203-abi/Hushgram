@@ -58,6 +58,7 @@ public final class FamilyNames {
     public static final String ACTIVE_STATUS = "Hide your active status";
     public static final String LAST_ACTIVE = "Show when someone was last active";
     public static final String MESSAGES_LOCK = "Lock your messages";
+    public static final String HIDDEN_CHAT_SEARCH = "Hide hidden chats from search";
     public static final String STORIES_TRAY = "Hide suggested stories";
     public static final String STORY_RING = "Story ring size";
     public static final String STORY_PROGRESS_BAR = "Thicker story progress bar";
@@ -149,6 +150,7 @@ public final class FamilyNames {
     public static final String TAP_TO_PLAY = "Tap to play";
     public static final String RESUME_LONG_VIDEOS = "Resume long videos";
     public static final String PLAYBACK_QUALITY = "Default playback quality";
+    public static final String MEDIA_QUALITY_INDICATOR = "Media quality indicator";
     public static final String DATA_SAVER = "Data saver";
     public static final String TRANSLATED_START = "Start on x86 devices";
     public static final String PURE_BLACK = "Pure black dark mode";

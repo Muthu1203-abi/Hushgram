@@ -148,6 +148,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REDUCED_MOTION, L10n.t("Reduce tab bar motion"),
+                        L10n.t("Turns off the tab bar's sliding highlight, icon movement, and hide or shrink animations. "
+                                + "The bar changes immediately instead.")));
                 glass.addPreference(hapticStyleRow(context));
                 glass.addPreference(glassHeightRow(context));
                 glass.addPreference(glassCornersRow(context));

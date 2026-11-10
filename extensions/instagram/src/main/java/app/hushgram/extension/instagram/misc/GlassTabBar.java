@@ -46,6 +46,7 @@ import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
@@ -2198,6 +2199,7 @@ public final class GlassTabBar {
                 View selected = selectedTab();
                 View before = lastSelected == null ? null : lastSelected.get();
                 if (selected != before) {
+                    if (before != null && selected != null) animateSelectedIcon(before, selected);
                     lastSelected = selected == null ? null : new WeakReference<>(selected);
                     if (scrollHide != null) scrollHide.show();
                     bar.invalidate();
@@ -2214,6 +2216,34 @@ public final class GlassTabBar {
             if (now - heldBackAt < HOLD_BACK_MS) return true;
             heldBackAt = now;
             return false;
+        }
+
+        /** Gives the newly selected icon a small directional nudge; the glass capsule slides alongside it. */
+        private void animateSelectedIcon(View before, View selected) {
+            if (!animationsOn() || HushgramPause.isPaused()) return;
+            ImageView icon = findTabIcon(selected);
+            if (icon == null) return;
+            float baseX = icon.getTranslationX();
+            float baseScaleX = icon.getScaleX();
+            float baseScaleY = icon.getScaleY();
+            float direction = selected.getLeft() >= before.getLeft() ? 1f : -1f;
+            icon.animate().cancel();
+            icon.setTranslationX(baseX + direction * dp(2));
+            icon.setScaleX(baseScaleX * 0.96f);
+            icon.setScaleY(baseScaleY * 0.96f);
+            icon.animate().translationX(baseX).scaleX(baseScaleX).scaleY(baseScaleY)
+                    .setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
+        }
+
+        @Nullable private ImageView findTabIcon(View view) {
+            if (view instanceof ImageView) return (ImageView) view;
+            if (!(view instanceof ViewGroup)) return null;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ImageView found = findTabIcon(group.getChildAt(i));
+                if (found != null) return found;
+            }
+            return null;
         }
 
         /**
@@ -3016,7 +3046,9 @@ public final class GlassTabBar {
 
     static boolean animationsOn() {
         Boolean forTests = animationsOnForTests;
-        return forTests != null ? forTests : ValueAnimator.areAnimatorsEnabled();
+        if (forTests != null) return forTests;
+        return ValueAnimator.areAnimatorsEnabled()
+                && (!Utils.settingsReady() || !Settings.GLASS_TAB_BAR_REDUCED_MOTION.get());
     }
 
     /**

@@ -30,7 +30,8 @@ final class PlaybackCategory {
         if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.TAP_TO_PLAY)
                 || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.REEL_SOUND)
-                || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
+                || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.MEDIA_QUALITY_INDICATOR)
+                || build.contains(PatchFamily.DATA_SAVER)
                 || build.contains(PatchFamily.STOP_LOOPING) || build.contains(PatchFamily.BACKGROUND_PLAY)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"), SettingsIcons.PLAYBACK,
                     L10n.t("Media quality, auto-play and controls."));
@@ -84,6 +85,11 @@ final class PlaybackCategory {
                         L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open.")));
                 playback.addPreference(playbackQualityRow(context));
                 playback.addPreference(qualityTabRow(context));
+            }
+            if (build.contains(PatchFamily.MEDIA_QUALITY_INDICATOR)) {
+                playback.addPreference(toggle(context, Settings.MEDIA_QUALITY_INDICATOR, L10n.t("Media quality indicator"),
+                        L10n.t("Briefly shows the actual video resolution when Instagram changes stream quality. "
+                                + "Works on feed videos and Reels. Turn it off to hide the badge.")));
             }
             if (build.contains(PatchFamily.DATA_SAVER)) {
                 playback.addPreference(toggle(context, Settings.DATA_SAVER, L10n.t("Data saver"),

@@ -754,6 +754,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting VIBRATE_HIDDEN_CHAT_MESSAGES =
             new BooleanSetting("hushgram_vibrate_hidden_chat_messages", FALSE, false);
 
+    /** Leaves hidden direct-chat accounts out of Instagram people search and search suggestions. */
+    public static final BooleanSetting HIDE_HIDDEN_CHATS_FROM_SEARCH =
+            new BooleanSetting("hushgram_hide_hidden_chats_from_search", TRUE);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
@@ -1540,6 +1544,10 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting GLASS_TAB_BAR_HAPTICS =
             new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /** Stops the tab bar's highlight, compacting, hide/show and icon-transition animations. Off to start. */
+    public static final BooleanSetting GLASS_TAB_BAR_REDUCED_MOTION =
+            new BooleanSetting("hushgram_glass_tab_bar_reduced_motion", FALSE, false, parent(GLASS_TAB_BAR));
 
     /**
      * Scrolling a list down slides the tab bar off the bottom of the screen, and scrolling up, reaching the
@@ -3278,6 +3286,10 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<PlaybackQuality> PLAYBACK_QUALITY =
             new EnumSetting<>("hushgram_playback_quality", PlaybackQuality.AUTO, parent(DEFAULT_PLAYBACK_QUALITY));
+
+    /** Briefly shows the video stream's actual resolution when Instagram changes quality. Off to start. */
+    public static final BooleanSetting MEDIA_QUALITY_INDICATOR =
+            new BooleanSetting("hushgram_media_quality_indicator", FALSE);
 
     /**
      * Photos in the feed, carousels and posts opened from a profile load at the largest size the
