@@ -35,16 +35,25 @@ val developerFlagOverridesPatch = bytecodePatch(
     execute {
         MobileConfigReadFingerprint.apply {
             val methods = classDef.methods
-            // Parameters உள்ள முதல் method-ஐ கண்டுபிடித்து, அதன் முதல் parameter-ன் type-ஐ எடுக்கவும்
-            val sourceType = methods.first { it.parameters.isNotEmpty() }.parameters[0].type
             val booleanReaders = methods.filter {
-                it.returnType == "Z" && it.parameters.size == 3 && it.parameters[0].type == sourceType
+                it.implementation != null && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+                    it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf("J")
             }
             val longReaders = methods.filter {
-                it.returnType == "J" && it.parameters.size == 3 && it.parameters[0].type == sourceType
+                it.implementation != null && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+                    it.returnType == "J" && it.parameterTypes.map(CharSequence::toString) == listOf("J")
             }
             if (booleanReaders.size != 1 || longReaders.size != 1) {
-                throw PatchException("Developer flag values: expected one boolean and one long MobileConfig reader")
+                val candidates = methods.filter { method ->
+                    method.returnType == "Z" || method.returnType == "J"
+                }.joinToString { method ->
+                    "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}"
+                }
+                throw PatchException(
+                    "Developer flag values: expected one implemented (J)Z and one (J)J reader in " +
+                        "${classDef.type}; found ${booleanReaders.size} boolean and ${longReaders.size} long. " +
+                        "Typed candidates: $candidates",
+                )
             }
             booleanReaders.single().apply {
                 val isStatic = AccessFlags.STATIC.isSet(accessFlags)

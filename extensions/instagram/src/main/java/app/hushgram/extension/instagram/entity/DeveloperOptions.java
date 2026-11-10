@@ -72,11 +72,11 @@ public final class DeveloperOptions {
     /** Finds a Quick Experiment parameter name by the numeric IDs shown in MetaConfig. */
     public static String parameterName(int config, int index, String fallback) {
         if (config < 0 || index < 0) return fallback;
-        String name = names().parameters.get(((long) config << 32) | (index & 0xffffffffL));
-        if (name == null) {
-            DeveloperFlagNames.loadSaved();
-            name = DeveloperFlagNames.parameterName(config, index);
-        }
+        // An explicitly imported exact-ID mapping should be searchable even when Instagram
+        // already supplies a label for this parameter. Instagram's active name is the fallback.
+        DeveloperFlagNames.loadSaved();
+        String name = DeveloperFlagNames.parameterName(config, index);
+        if (name == null) name = names().parameters.get(((long) config << 32) | (index & 0xffffffffL));
         if (name == null) name = recommendedNames().parameters.get(((long) config << 32) | (index & 0xffffffffL));
         return name == null || name.trim().isEmpty() ? fallback : name;
     }
@@ -84,11 +84,9 @@ public final class DeveloperOptions {
     /** Finds a Quick Experiment config name by the numeric ID shown in MetaConfig. */
     public static String configName(int config, String fallback) {
         if (config < 0) return fallback;
-        String name = names().configs.get(config);
-        if (name == null) {
-            DeveloperFlagNames.loadSaved();
-            name = DeveloperFlagNames.configName(config);
-        }
+        DeveloperFlagNames.loadSaved();
+        String name = DeveloperFlagNames.configName(config);
+        if (name == null) name = names().configs.get(config);
         if (name == null) name = recommendedNames().configs.get(config);
         return name == null || name.trim().isEmpty() ? fallback : name;
     }
