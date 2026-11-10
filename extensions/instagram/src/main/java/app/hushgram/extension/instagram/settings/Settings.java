@@ -1439,8 +1439,7 @@ public class Settings extends BaseSettings {
      * ({@link app.hushgram.extension.instagram.misc.PhoneLayout}). Instagram decides its layout as
      * it starts, so a change needs a restart. Off to start.
      */
-    public static final BooleanSetting PHONE_LAYOUT =
-            new BooleanSetting("hushgram_phone_layout", FALSE, true);
+    
 
     /**
      * Instagram's tab bar is drawn as a floating, rounded glass pill

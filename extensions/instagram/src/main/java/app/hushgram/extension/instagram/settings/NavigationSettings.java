@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import android.graphics.ColorFilter;
+
 import android.app.Activity;
 import android.os.Build;
 import android.graphics.PorterDuff;

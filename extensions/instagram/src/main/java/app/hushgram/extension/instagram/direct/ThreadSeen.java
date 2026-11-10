@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import app.hushgram.extension.instagram.settings.GhostMode;
+
 import android.content.Context;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;

@@ -4285,12 +4285,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return text.toString().trim();
     }
 
-    /** What the unfollowers row says for [record]. */
-    static String unfollowersSummary(Unfollowers.Record record) {
-        if (record.checked <= 0) {
-            return L10n.t("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and "
-                    + "scroll to the end. The next time you do, anyone missing shows here.");
-        }
         java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
         StringBuilder text = new StringBuilder();
         int shown = 0;
