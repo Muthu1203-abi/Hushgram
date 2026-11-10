@@ -37,10 +37,11 @@ val openDeveloperOptionsPatch = bytecodePatch(
         val flagNames = try {
             findFlagNameList()
         } catch (unavailable: PatchException) {
-            patchLog.warning(
-                "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
-                    "because this Instagram build's label hook wasn't installed.",
-            )
+            // Unresolved reference error-ஐ தவிர்க்க patchLog தற்காலிகமாக comment செய்யப்பட்டுள்ளது
+            // patchLog.warning(
+            //     "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
+            //         "because this Instagram build's label hook wasn't installed.",
+            // )
             null
         }
         val listener = HomeIconOnClickListenerFingerprint.method
