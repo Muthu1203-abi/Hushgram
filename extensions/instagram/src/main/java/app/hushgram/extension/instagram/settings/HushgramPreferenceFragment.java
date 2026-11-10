@@ -4262,8 +4262,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return mark(row, SettingsIcons.PERSON);
     }
 
-    /** What the history row says for [changes], newest first. */
-   static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
+/** What the history row says for [changes], newest first. */
+    static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
         if (changes.isEmpty()) {
             return L10n.t("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers "
                     + "list to the end, changes since the last time are added here.");
@@ -4284,26 +4284,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (changes.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
         return text.toString().trim();
     }
-
-        java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
-        StringBuilder text = new StringBuilder();
-        int shown = 0;
-        for (FollowerHistory.Change change : changes) {
-            if (shown == UNFOLLOWERS_SHOWN) break;
-            String who = change.username.isEmpty() ? L10n.f("Account %1$s", change.id) : "@" + change.username;
-            String when = day.format(new java.util.Date(change.when));
-            String line = change.kind == FollowerHistory.UNFOLLOWED ? L10n.f("%1$s unfollowed you, %2$s", who, when)
-                    : change.kind == FollowerHistory.FOLLOWED_AGAIN ? L10n.f("%1$s followed you again, %2$s", who, when)
-                    : L10n.f("%1$s started following you, %2$s", who, when);
-            text.append(line).append('\n');
-            shown++;
-        }
-        if (changes.size() > UNFOLLOWERS_SHOWN) text.append(L10n.t("Only the newest 50 are shown.")).append('\n');
-        return text.toString().trim();
-    }
-
-    /** What the unfollowers row says for [record]. */
-    static String unfollowersSummary(Unfollowers.Record record) {
         if (record.checked <= 0) {
             return L10n.t("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and "
                     + "scroll to the end. The next time you do, anyone missing shows here.");
