@@ -19,7 +19,7 @@ import app.hushgram.extension.shared.Utils;
 public final class DeveloperFlagNames {
     private static final String PREFS = "hushgram_developer_flag_names";
     private static final String KEY = "json";
-    private static final int MAX_BYTES = 256 * 1024;
+    private static final int MAX_BYTES = 4 * 1024 * 1024;
     private static volatile Map<Integer, String> configs = new HashMap<>();
     private static volatile Map<Long, String> parameters = new HashMap<>();
 
@@ -30,15 +30,36 @@ public final class DeveloperFlagNames {
         return parameters.get(((long) config << 32) | (parameter & 0xffffffffL));
     }
 
-    /** Validates all codes before replacing the saved map. Accepts Rex's [{name,code}] format. */
+    /** Validates all codes before replacing the saved map. Accepts Rex objects and Instagram ID-name rows. */
     public static synchronized int importJson(String source) throws Exception {
         if (source == null || source.getBytes("UTF-8").length > MAX_BYTES) throw new IllegalArgumentException("File too large");
         JSONArray rows = new JSONArray(source);
-        if (rows.length() > 1000) throw new IllegalArgumentException("Too many flags");
+        if (rows.length() > 10000) throw new IllegalArgumentException("Too many flags");
         Map<Integer, String> nextConfigs = new HashMap<>();
         Map<Long, String> nextParameters = new HashMap<>();
         JSONArray clean = new JSONArray();
+        boolean idNameRows = rows.length() > 0 && rows.opt(0) instanceof String;
         for (int i = 0; i < rows.length(); i++) {
+            if (idNameRows) {
+                if (!(rows.opt(i) instanceof String)) throw new IllegalArgumentException("Mixed flag JSON formats");
+                String raw = rows.optString(i, "");
+                String[] fields = raw.split(":", -1);
+                if (fields.length < 4 || fields.length % 2 != 0 || fields[1].trim().isEmpty()) {
+                    throw new IllegalArgumentException("Invalid ID-name entry");
+                }
+                int config = Integer.parseInt(fields[0]);
+                if (config < 0 || fields[1].length() > 256) throw new IllegalArgumentException("Invalid config ID");
+                nextConfigs.putIfAbsent(config, fields[1].trim());
+                for (int field = 2; field + 1 < fields.length; field += 2) {
+                    int parameter = Integer.parseInt(fields[field]);
+                    String name = fields[field + 1].trim();
+                    if (parameter < 0 || name.isEmpty() || name.length() > 256) {
+                        throw new IllegalArgumentException("Invalid parameter mapping");
+                    }
+                    nextParameters.putIfAbsent(((long) config << 32) | (parameter & 0xffffffffL), name);
+                }
+                continue;
+            }
             JSONObject row = rows.optJSONObject(i);
             if (row == null) throw new IllegalArgumentException("Invalid flag entry");
             String name = row.optString("name", "").trim();
@@ -63,7 +84,8 @@ public final class DeveloperFlagNames {
         Context context = Utils.getContext();
         if (context == null) throw new IllegalStateException("App context unavailable");
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (!prefs.edit().putString(KEY, clean.toString()).commit()) throw new IllegalStateException("Could not save flags");
+        String savedJson = idNameRows ? source : clean.toString();
+        if (!prefs.edit().putString(KEY, savedJson).commit()) throw new IllegalStateException("Could not save flags");
         configs = nextConfigs;
         parameters = nextParameters;
         return rows.length();

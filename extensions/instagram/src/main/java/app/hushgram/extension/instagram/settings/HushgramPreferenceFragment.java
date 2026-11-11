@@ -1995,7 +1995,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         byte[] buffer = new byte[4096];
                         int count;
                         while ((count = input.read(buffer)) != -1) {
-                            if (output.size() + count > 256 * 1024) throw new java.io.IOException("File too large");
+                            if (output.size() + count > 4 * 1024 * 1024) throw new java.io.IOException("File too large");
                             output.write(buffer, 0, count);
                         }
                         int imported = valuesFile

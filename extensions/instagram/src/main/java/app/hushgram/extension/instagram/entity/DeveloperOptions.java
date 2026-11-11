@@ -129,6 +129,7 @@ public final class DeveloperOptions {
                         }
                     }
                 }
+                loadIdNameMapping(configs, parameters);
             } catch (Exception e) {
                 Logger.printException(() -> "Could not load recommended developer-option labels", e);
             }
@@ -191,6 +192,37 @@ public final class DeveloperOptions {
             Logger.printException(() -> "Could not extract Instagram developer option IDs", e);
         }
         return mappings;
+    }
+
+    /** Loads the supplied Instagram ID-to-name map: config:name:index:paramName[:index:paramName...]. */
+    private static void loadIdNameMapping(Map<Integer, String> configs, Map<Long, String> parameters) throws Exception {
+        try (InputStream stream = DeveloperOptions.class.getClassLoader().getResourceAsStream("id_name_mapping.json")) {
+            if (stream == null) return;
+            java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = stream.read(buffer)) != -1) output.write(buffer, 0, count);
+            JSONArray rows = new JSONArray(output.toString("UTF-8"));
+            for (int i = 0; i < rows.length(); i++) {
+                String row = rows.optString(i, "");
+                String[] fields = row.split(":", -1);
+                if (fields.length < 4 || fields.length % 2 != 0) continue;
+                try {
+                    int config = Integer.parseInt(fields[0]);
+                    if (config < 0 || fields[1].trim().isEmpty()) continue;
+                    configs.putIfAbsent(config, fields[1].trim());
+                    for (int field = 2; field + 1 < fields.length; field += 2) {
+                        int index = Integer.parseInt(fields[field]);
+                        String name = fields[field + 1].trim();
+                        if (index >= 0 && !name.isEmpty()) {
+                            parameters.putIfAbsent(((long) config << 32) | (index & 0xffffffffL), name);
+                        }
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Ignore malformed rows without preventing the other known labels from loading.
+                }
+            }
+        }
     }
 
     @Override

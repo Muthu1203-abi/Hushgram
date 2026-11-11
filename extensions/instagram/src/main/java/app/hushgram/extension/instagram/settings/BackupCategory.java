@@ -50,6 +50,23 @@ final class BackupCategory {
         page.undoConfiguration.setTitle(L10n.t("Undo settings import"));
         // Undo puts the earlier settings back for a while, which the history clock says better than a bin.
         backup.addPreference(mark(page.undoConfiguration, SettingsIcons.UPDATES));
+
+        Row importDeveloperFlags = new Row(context);
+        importDeveloperFlags.setKey("hushgram_import_developer_flag_names");
+        importDeveloperFlags.setPersistent(false);
+        importDeveloperFlags.setTitle(L10n.t("Import developer flag names"));
+        importDeveloperFlags.setSummary(L10n.t("Choose a JSON file with flag names and IDs, like [{\"name\":\"Flag name\",\"code\":\"12345::6\"}]. Matching flags in Instagram's Developer Options will show those names."));
+        importDeveloperFlags.setOnPreferenceClickListener(p -> { page.pickDeveloperFlags(true); return true; });
+        backup.addPreference(mark(importDeveloperFlags, SettingsIcons.DOWNLOADS));
+
+        Row exportDeveloperFlags = new Row(context);
+        exportDeveloperFlags.setKey("hushgram_export_developer_flag_names");
+        exportDeveloperFlags.setPersistent(false);
+        exportDeveloperFlags.setTitle(L10n.t("Export developer flag names"));
+        exportDeveloperFlags.setSummary(L10n.t("Save the current developer flag name mappings as JSON."));
+        exportDeveloperFlags.setOnPreferenceClickListener(p -> { page.pickDeveloperFlags(false); return true; });
+        backup.addPreference(mark(exportDeveloperFlags, SettingsIcons.EXPORT));
+
         page.showConfiguration();
     }
 }
