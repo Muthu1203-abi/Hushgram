@@ -298,6 +298,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Media quality indicator patch. */
+    public static boolean mediaQualityIndicator() {
+        return false;
+    }
+
     public static boolean friendshipStatus() {
         return false;
     }

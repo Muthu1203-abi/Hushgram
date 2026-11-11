@@ -49,6 +49,8 @@ internal val developerOptionNamesPatch = bytecodePatch {
         val item = mutableClassDefBy(ENTITY_ITEM)
         item.methods.single { it.name == "getUniversalIdHelperClass" }
             .replaceString("X.0B3D", universalIdCall.definingClass.binaryClassName())
+        item.methods.single { it.name == "getUniversalId" }
+            .replaceString("A00", universalIdCall.name)
     }
 }
 

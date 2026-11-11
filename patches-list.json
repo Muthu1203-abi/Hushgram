@@ -1970,6 +1970,47 @@
       "options": []
     },
     {
+      "name": "Hide hidden chats from search",
+      "description": "Leaves accounts whose direct chats are hidden out of people search and the search screen's Suggested for you list.",
+      "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "Instagram settings",
+        "Lock your messages"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Hide highlights",
       "description": "Takes the row of story highlights off profiles, yours and other people's. Bios, counts and posts stay. Starts off. Turn it on in Instagram settings > Profiles.",
       "category": "Profiles",
@@ -3642,6 +3683,46 @@
       "name": "Mark one-time photos and videos",
       "description": "Puts a border and Instagram's own view once icon on a one-time photo or video in a chat, so you can tell it before you open it. Only how the chat looks changes. Nothing is saved, replayed, marked seen or sent. Starts off. Turn it on in Instagram settings > Messages.",
       "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "Instagram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Media quality indicator",
+      "description": "Briefly shows the actual resolution of a feed video or Reel when Instagram changes its stream quality. Turn it on in HushGram settings > Playback.",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",

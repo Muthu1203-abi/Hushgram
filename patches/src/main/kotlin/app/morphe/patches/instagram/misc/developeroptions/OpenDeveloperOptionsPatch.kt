@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.util.findFreeRegister
 import app.morphe.util.registersUsed
@@ -37,11 +38,10 @@ val openDeveloperOptionsPatch = bytecodePatch(
         val flagNames = try {
             findFlagNameList()
         } catch (unavailable: PatchException) {
-            // Unresolved reference error-ஐ தவிர்க்க patchLog தற்காலிகமாக comment செய்யப்பட்டுள்ளது
-            // patchLog.warning(
-            //     "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
-            //         "because this Instagram build's label hook wasn't installed.",
-            // )
+            patchLog.warning(
+                "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
+                    "because this Instagram build's label hook wasn't installed.",
+            )
             null
         }
         val listener = HomeIconOnClickListenerFingerprint.method

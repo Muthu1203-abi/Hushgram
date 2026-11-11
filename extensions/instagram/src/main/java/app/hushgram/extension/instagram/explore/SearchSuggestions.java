@@ -90,11 +90,6 @@ public final class SearchSuggestions {
         return items(items, SearchSuggestions::switchedOn);
     }
 
-    /** Patch-filled getter for Instagram's User.username(). */
-    public static String username(Object user) {
-        return null;
-    }
-
     /** Filters direct user lists used by people search and the search screen's suggested accounts. */
     public static List<?> hiddenChatUsers(List<?> users) {
         if (users == null || users.isEmpty()) return users;
@@ -118,12 +113,6 @@ public final class SearchSuggestions {
     /** Search suggestion models can wrap a User; inspect their small payload tree without assuming its class. */
     @Nullable private static String usernameOf(Object value, Set<String> hidden, int depth, Set<Object> seen) {
         if (value == null || depth > 4 || !seen.add(value)) return null;
-        try {
-            String direct = username(value);
-            if (hidden.contains(normalizeUsername(direct))) return direct;
-        } catch (Throwable notUser) {
-            // Search rows may wrap User rather than being a User themselves.
-        }
         if (value instanceof Collection<?>) {
             for (Object child : (Collection<?>) value) {
                 String found = usernameOf(child, hidden, depth + 1, seen);
@@ -148,14 +137,19 @@ public final class SearchSuggestions {
             Field[] fields = type.getDeclaredFields();
             for (int i = 0; i < fields.length && i < 32; i++) {
                 Field field = fields[i];
-                if (Modifier.isStatic(field.getModifiers()) || field.getType().isPrimitive()
-                        || field.getType() == String.class || field.getType().isEnum()) continue;
+                if (Modifier.isStatic(field.getModifiers()) || field.getType().isPrimitive() || field.getType().isEnum()) continue;
                 try {
                     field.setAccessible(true);
-                    String found = usernameOf(field.get(value), hidden, depth + 1, seen);
-                    if (found != null) return found;
+                    Object fieldValue = field.get(value);
+                    if (fieldValue instanceof String) {
+                        String candidate = (String) fieldValue;
+                        if (hidden.contains(normalizeUsername(candidate))) return candidate;
+                    } else if (fieldValue != null) {
+                        String found = usernameOf(fieldValue, hidden, depth + 1, seen);
+                        if (found != null) return found;
+                    }
                 } catch (Throwable inaccessible) {
-                    // One unreadable implementation detail doesn't keep other search rows from being filtered.
+                    // One unreadable implementation detail doesn't keep other values from being checked.
                 }
             }
         }

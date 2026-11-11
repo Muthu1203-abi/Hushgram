@@ -18,9 +18,7 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -30,11 +28,8 @@ private const val PATCH = "Hide hidden chats from search"
 private const val SEARCH_USERS = "user_search_results"
 private const val THREAD_RESULTS = "thread_search_results"
 private const val SUGGESTED_USERS = "SUGGESTED_USERS"
-private const val USER_TYPE = "Lcom/instagram/user/model/User;"
 private const val EXTENSION = "$EXTENSION_PACKAGE/explore/SearchSuggestions;"
 private const val FILTER_USERS = "$EXTENSION->hiddenChatUsers(Ljava/util/List;)Ljava/util/List;"
-private const val USER_GETTER = "username"
-private const val STRING = "Ljava/lang/String;"
 private const val LIST = "Ljava/util/List;"
 
 @Suppress("unused")
@@ -49,7 +44,6 @@ val hideHiddenChatsFromSearchPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("hiddenChatSearch")
-        val userNameGetter = findUsernameGetter()
         val searchUsers = findSearchUsersParser()
         val suggestions = findSearchSuggestions()
         val suggestionSite = findSuggestedUsersList(suggestions)
@@ -73,38 +67,12 @@ val hideHiddenChatsFromSearchPatch = bytecodePatch(
             """.trimIndent(),
         )
 
-        val usernameStub = mutableClassDefBy(EXTENSION).methods.single {
-            it.name == "username" && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == STRING &&
-                it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
-        }
-        usernameStub.addInstructions(
-            0,
-            """
-                if-eqz p0, :none
-                check-cast p0, $USER_TYPE
-                invoke-virtual { p0 }, $USER_TYPE->${userNameGetter.name}()${userNameGetter.returnType}
-                move-result-object p0
-                return-object p0
-                :none
-                const/4 p0, 0x0
-                return-object p0
-            """.trimIndent(),
-        )
         enableStatus("hiddenChatSearch")
     }
 }
 
 private data class SearchUsersSite(val method: MutableMethod, val index: Int, val listRegister: Int)
 private data class SuggestedUsersSite(val index: Int, val register: Int)
-
-private fun BytecodePatchContext.findUsernameGetter(): Method {
-    val user = classDefByOrNull(USER_TYPE) ?: refuse("Instagram's User model is missing")
-    val getters = user.methods.filter {
-        it.name == USER_GETTER && it.returnType == STRING && it.parameterTypes.isEmpty() &&
-            AccessFlags.PUBLIC.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags)
-    }
-    return getters.singleOrNull() ?: refuse("expected one public User.username() getter, found ${getters.size}")
-}
 
 /** Finds the exact list Instagram fills for the users/search endpoint, before it stores that list. */
 private fun BytecodePatchContext.findSearchUsersParser(): SearchUsersSite {
