@@ -31,6 +31,8 @@ private const val SUGGESTED_USERS = "SUGGESTED_USERS"
 private const val EXTENSION = "$EXTENSION_PACKAGE/explore/SearchSuggestions;"
 private const val FILTER_USERS = "$EXTENSION->hiddenChatUsers(Ljava/util/List;)Ljava/util/List;"
 private const val LIST = "Ljava/util/List;"
+private const val STRING = "Ljava/lang/String;"
+
 
 @Suppress("unused")
 val hideHiddenChatsFromSearchPatch = bytecodePatch(
