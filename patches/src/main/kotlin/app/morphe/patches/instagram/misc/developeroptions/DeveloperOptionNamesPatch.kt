@@ -34,24 +34,36 @@ internal val developerOptionNamesPatch = bytecodePatch {
             }
         }.singleOrNull() ?: throw PatchException("Developer option names: the MobileConfig ID converter is missing or ambiguous")
 
-        val quickExperiments = ExperimentsValueBuilderFingerprint.classDef
+        val quickExperiments = try {
+            ExperimentsValueBuilderFingerprint.classDef
+        } catch (ambiguous: IllegalArgumentException) {
+            throw PatchException("Developer option names: Quick Experiments builder fingerprint matched more than one class")
+        }
         val getAllExperiments = quickExperiments.methods.firstOrNull { it.returnType == "Ljava/util/List;" }
             ?: throw PatchException("Developer option names: Instagram's Quick Experiments list getter was not found")
 
         val options = mutableClassDefBy(ENTITY_OPTIONS)
-        options.methods.single { it.name == "getQuickExperimentHelperClass" }
+        options.methods.one("DeveloperOptions.getQuickExperimentHelperClass") { it.name == "getQuickExperimentHelperClass" }
             .replaceString("X.Sb1", quickExperiments.type.binaryClassName())
-        options.methods.single { it.name == "getAllExperiments" }
+        options.methods.one("DeveloperOptions.getAllExperiments") { it.name == "getAllExperiments" }
             .replaceString("A06", getAllExperiments.name)
-        options.methods.single { it.name == "getExperimentItemHelperClass" }
+        options.methods.one("DeveloperOptions.getExperimentItemHelperClass") { it.name == "getExperimentItemHelperClass" }
             .replaceString("X.BSw", schemaMethod.definingClass.binaryClassName())
 
         val item = mutableClassDefBy(ENTITY_ITEM)
-        item.methods.single { it.name == "getUniversalIdHelperClass" }
+        item.methods.one("DeveloperOptionsItem.getUniversalIdHelperClass") { it.name == "getUniversalIdHelperClass" }
             .replaceString("X.0B3D", universalIdCall.definingClass.binaryClassName())
-        item.methods.single { it.name == "getUniversalId" }
+        item.methods.one("DeveloperOptionsItem.getUniversalId(long)") {
+            it.name == "getUniversalId" && it.parameterTypes.map(Any::toString) == listOf("J")
+        }
             .replaceString("A00", universalIdCall.name)
     }
+}
+
+private fun <T> Collection<T>.one(label: String, predicate: (T) -> Boolean): T {
+    val matches = filter(predicate)
+    return matches.singleOrNull()
+        ?: throw PatchException("Developer option names: expected one $label method, found ${matches.size}")
 }
 
 private fun String.binaryClassName(): String = removePrefix("L").removeSuffix(";").replace('/', '.')
