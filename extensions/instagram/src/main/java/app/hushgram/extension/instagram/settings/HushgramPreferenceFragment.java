@@ -775,7 +775,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
                     belongs |= family == PatchFamily.PURE_BLACK && L10n.t("Pure black dark mode").equals(row.getTitle());
-                    belongs |= family == PatchFamily.VERSION_CODE && L10n.t("No Play Store updates").equals(row.getTitle());
                     if (!belongs) continue;
                     aliases.append(' ').append(family.patchName);
                     if (family == PatchFamily.FOLLOWING_FEED) aliases.append(" following home feed");

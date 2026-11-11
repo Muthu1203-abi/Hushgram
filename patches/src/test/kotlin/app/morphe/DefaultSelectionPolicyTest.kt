@@ -18,10 +18,8 @@ import org.junit.Test
  */
 class DefaultSelectionPolicyTest {
     private val keptOut = mapOf(
-        "Change version code" to "Raises the version code for good: going back means uninstalling, " +
-            "and every later build needs it too.",
-        "Install next to Instagram" to "Moves the build to a package of its own, so it installs as a second app " +
-            "with its own data and sign-in instead of updating the Instagram already on the phone.",
+        "Import/export developer flag values" to "Applies imported hidden Instagram settings by ID; wrong values can change app behavior.",
+        "Open developer options" to "Exposes Instagram's developer controls, which can change behavior for this account.",
         "Pure black dark mode" to "Rewrites Instagram's colors when you patch, with no switch to turn it off.",
         "View DM photos and videos anonymously" to "A test feature until the sender's side is checked " +
             "with two accounts.",

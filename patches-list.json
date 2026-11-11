@@ -446,46 +446,6 @@
       "options": []
     },
     {
-      "name": "Change version code",
-      "description": "Stops Google Play from offering Meta's updates over your patched Instagram. Going back to the normal Instagram later means uninstalling first, which deletes its data. Later HushGram builds need this patch too. Works as soon as you patch it in, with no switch.",
-      "category": "Updates",
-      "use": false,
-      "dependencies": [
-        "BytecodePatch",
-        "Instagram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "454.0.0.54.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "454.0.0.54.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386014758,
-                "ARMEABI_V7A": 386014757,
-                "X86": 386014759,
-                "X86_64": 386014760
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Chat history tools",
       "description": "Tap the clock button at the top of a chat, or long press its name, to jump to its first message or to a date, or to save the chat as a text file. The chat loads its older messages on its own, with a count and a Cancel button. Both start off. Turn them on in HushGram settings > Messages.",
       "category": "Messages",
@@ -3128,74 +3088,6 @@
         }
       ],
       "options": []
-    },
-    {
-      "name": "Install next to Instagram",
-      "description": "Installs this build as a second Instagram beside your normal one, with its own data and sign-in. Pick its package name and app name in the patch's options, and whether its icon gets a HushGram badge. Works as soon as you patch it in, with no switch.",
-      "category": "Updates",
-      "use": false,
-      "dependencies": [
-        "BytecodePatch",
-        "ResourcePatch"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "454.0.0.54.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "454.0.0.54.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386014758,
-                "ARMEABI_V7A": 386014757,
-                "X86": 386014759,
-                "X86_64": 386014760
-              }
-            }
-          ]
-        }
-      ],
-      "options": [
-        {
-          "key": "packageName",
-          "title": "Package name",
-          "description": "The second Instagram's package. Each part starts with a letter, with dots between the parts, and it can't be Instagram's own.",
-          "required": true,
-          "type": "kotlin.String",
-          "default": "com.instagram.android.hush",
-          "values": null
-        },
-        {
-          "key": "appName",
-          "title": "App name",
-          "description": "The name under the second Instagram's icon. It starts with a letter and holds up to 50 characters.",
-          "required": true,
-          "type": "kotlin.String",
-          "default": "Instagram Clone",
-          "values": null
-        },
-        {
-          "key": "markIcon",
-          "title": "Mark the icon",
-          "description": "Puts a small HushGram badge on the second Instagram's home screen icon, so the two are easy to tell apart. Instagram's other icons you can pick in its settings get it too.",
-          "required": false,
-          "type": "kotlin.Boolean",
-          "default": false,
-          "values": null
-        }
-      ]
     },
     {
       "name": "Keep Home's top bar",

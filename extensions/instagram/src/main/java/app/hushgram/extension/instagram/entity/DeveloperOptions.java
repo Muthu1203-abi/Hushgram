@@ -72,13 +72,17 @@ public final class DeveloperOptions {
     /** Finds a Quick Experiment parameter name by the numeric IDs shown in MetaConfig. */
     public static String parameterName(int config, int index, String fallback) {
         if (config < 0 || index < 0) return fallback;
-        // An explicitly imported exact-ID mapping should be searchable even when Instagram
-        // already supplies a label for this parameter. Instagram's active name is the fallback.
+        // Instagram sometimes supplies generated labels such as "_22". Treat those as missing,
+        // so the exact-ID JSON mapping gets a chance to provide the real parameter name.
         DeveloperFlagNames.loadSaved();
         String name = DeveloperFlagNames.parameterName(config, index);
-        if (name == null) name = names().parameters.get(((long) config << 32) | (index & 0xffffffffL));
-        if (name == null) name = recommendedNames().parameters.get(((long) config << 32) | (index & 0xffffffffL));
-        return name == null || name.trim().isEmpty() ? fallback : name;
+        if (usableLabel(name)) return name;
+        long key = ((long) config << 32) | (index & 0xffffffffL);
+        name = names().parameters.get(key);
+        if (usableLabel(name)) return name;
+        name = recommendedNames().parameters.get(key);
+        if (usableLabel(name)) return name;
+        return fallback;
     }
 
     /** Finds a Quick Experiment config name by the numeric ID shown in MetaConfig. */
@@ -86,9 +90,15 @@ public final class DeveloperOptions {
         if (config < 0) return fallback;
         DeveloperFlagNames.loadSaved();
         String name = DeveloperFlagNames.configName(config);
-        if (name == null) name = names().configs.get(config);
-        if (name == null) name = recommendedNames().configs.get(config);
-        return name == null || name.trim().isEmpty() ? fallback : name;
+        if (usableLabel(name)) return name;
+        name = names().configs.get(config);
+        if (usableLabel(name)) return name;
+        name = recommendedNames().configs.get(config);
+        return usableLabel(name) ? name : fallback;
+    }
+
+    private static boolean usableLabel(String name) {
+        return name != null && !name.trim().isEmpty() && !name.trim().matches("_[0-9]+");
     }
 
     /** Rex IG Lite's curated 453 recommendations are labels only; exact numeric ID matches are used. */

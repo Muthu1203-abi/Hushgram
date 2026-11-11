@@ -221,8 +221,7 @@ public final class LaunchScreen {
     }
 
     /**
-     * Android 13's splash screen theme. The theme is found by name in the app's own resource package,
-     * which is still Instagram's when Install next to Instagram renamed the app.
+     * Android 13's splash screen theme. The theme is found by name in Instagram's resource package.
      */
     static final class AndroidSplash implements Splash {
         @Override public int theme(Activity activity) {

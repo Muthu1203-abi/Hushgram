@@ -154,7 +154,6 @@ public final class FamilyNames {
     public static final String DATA_SAVER = "Data saver";
     public static final String TRANSLATED_START = "Start on x86 devices";
     public static final String PURE_BLACK = "Pure black dark mode";
-    public static final String VERSION_CODE = "Change version code";
 
     private FamilyNames() {
     }

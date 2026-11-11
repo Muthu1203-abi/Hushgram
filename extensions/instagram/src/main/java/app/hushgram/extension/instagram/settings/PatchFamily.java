@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import app.hushgram.extension.instagram.misc.VersionCode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -266,8 +265,7 @@ public enum PatchFamily {
             Settings.MEDIA_QUALITY_INDICATOR),
     DATA_SAVER(FamilyNames.DATA_SAVER, "dataSaver", null, Settings.DATA_SAVER),
     TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
-    PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode"),
-    VERSION_CODE(FamilyNames.VERSION_CODE, "versionCode", "the raised version code");
+    PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode");
 
     /** The name Morphe Manager lists the patch under. */
     public final String patchName;
@@ -484,7 +482,6 @@ public enum PatchFamily {
                 } else if (family == FRIENDSHIP_STATUS && !unfollowersInBuild()) {
                     lines.add("  Recent unfollowers: not in this build (Instagram's follow list pager didn't match)");
                 }
-                if (family == VERSION_CODE) lines.add("  " + VersionCode.reportLine());
                 if (family == SANITIZE_SHARING_LINKS || family == TRANSLATED_START) {
                     try {
                         String encoded = (String) SettingsStatus.class.getMethod(family.statusMethod + "Coverage").invoke(null);
