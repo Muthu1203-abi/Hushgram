@@ -51,6 +51,7 @@ internal const val CLEAR_MODE_LEFT = "$CLEAR_MODE->left(Ljava/lang/Object;Ljava/
 internal const val CLEAR_MODE_CURRENT = "$CLEAR_MODE->current(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val CLEAR_MODE_PAGED = "$CLEAR_MODE->paged()V"
 internal const val CLEAR_MODE_BUILT = "$CLEAR_MODE->built(Ljava/lang/Object;)V"
+internal const val CLEAR_MODE_HIDE_BUTTON = "$CLEAR_MODE->hideExitButton(Ljava/lang/Object;)Z"
 internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
 internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(FF)F"
 internal const val CLEAR_MODE_SETTLED = "$CLEAR_MODE->settled(Ljava/lang/Object;Ljava/lang/Object;)V"
@@ -658,6 +659,12 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
             move-object/from16 v0, p0
             iget-object v0, v0, ${found.buttonReel}
             invoke-static { v0 }, $CLEAR_MODE_BUILT
+            invoke-static { v0 }, $CLEAR_MODE_HIDE_BUTTON
+            move-result v0
+            if-eqz v0, :show_exit_button
+            const/4 v0, 0x0
+            return-object v0
+            :show_exit_button
         """,
     )
     // A row or reel state that isn't there yet counts as clear mode off. The labels sit mid-method,

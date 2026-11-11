@@ -308,6 +308,9 @@ public final class ReelClearMode {
 
     private static volatile boolean startPosted;
 
+    /** A one-time start requested from the Reels tab's long-press quality picker. */
+    private static volatile boolean quickStarting;
+
     /** The handler the last Reels viewer was set up with, weakly, to tell a new viewer from it. */
     @Nullable
     private static volatile WeakReference<Object> viewer;
@@ -562,6 +565,18 @@ public final class ReelClearMode {
         }
     }
 
+    /** Hide Instagram's low-positioned exit control while our persistent clear mode is active. */
+    public static boolean hideExitButton(@Nullable Object item) {
+        try {
+            if (!on() || !wanted || item == null) return false;
+            String id = access.id(item);
+            return id != null && id.equals(shown);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "clear mode exit button visibility", failure);
+            return false;
+        }
+    }
+
     /**
      * The hook, in the Reels viewer's setup right after it handed the handler its turn-on action.
      * With Start every reel in clear mode on, the handler is kept, weakly, for the first reel with
@@ -742,10 +757,12 @@ public final class ReelClearMode {
         try {
             startPosted = false;
             WeakReference<Object> held = starting;
+            boolean quick = quickStarting;
             if (held == null || wanted || retryUntil != 0 || carrying) return;
             Object handler = held.get();
-            if (handler == null || !startsOn()) {
+            if (handler == null || (!quick && !startsOn()) || !on()) {
                 starting = null;
+                quickStarting = false;
                 return;
             }
             Object reason = access.reason(handler);
@@ -772,6 +789,7 @@ public final class ReelClearMode {
                         + (found == NOTHING ? "Instagram didn't look for a reel" : "found " + found) + ")");
                 return;
             }
+            quickStarting = false;
             HookStatus.bound(FAMILY, "clear mode");
             wanted = true;
             source = reason;
@@ -891,6 +909,25 @@ public final class ReelClearMode {
         return Utils.settingsReady() && Settings.KEEP_REEL_CLEAR_MODE.get();
     }
 
+    /** Starts clear mode on the current Reels page, then carries it through each next reel. */
+    public static boolean startFromQuickPicker() {
+        try {
+            if (!on() || wanted || starting != null || retryUntil != 0) return false;
+            WeakReference<Object> currentViewer = viewer;
+            if (currentViewer == null || currentViewer.get() == null) return false;
+            starting = currentViewer;
+            quickStarting = true;
+            startPosted = true;
+            access.post(ReelClearMode::start);
+            return true;
+        } catch (Throwable failure) {
+            starting = null;
+            quickStarting = false;
+            HookStatus.threw(FAMILY, "clear mode quick start", failure);
+            return false;
+        }
+    }
+
     private static boolean startsOn() {
         return on() && Settings.START_REEL_CLEAR_MODE.get();
     }
@@ -947,6 +984,7 @@ public final class ReelClearMode {
     static void forget() {
         drop();
         starting = null;
+        quickStarting = false;
         startPosted = false;
         viewer = null;
         declined = false;

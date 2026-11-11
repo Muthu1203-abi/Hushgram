@@ -10,6 +10,7 @@ import android.app.AlertDialog;
 import androidx.annotation.Nullable;
 
 import app.hushgram.extension.instagram.media.PlaybackQuality;
+import app.hushgram.extension.instagram.reels.ReelClearMode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -44,13 +45,23 @@ final class QualityPicker {
         try {
             if (activity == null || activity.isFinishing() || activity.isDestroyed() || !offered()) return false;
             PlaybackQuality[] qualities = PlaybackQuality.values();
-            CharSequence[] labels = new CharSequence[qualities.length];
+            boolean offerClearMode = PatchFamily.REEL_DECLUTTER.inBuild() && Settings.KEEP_REEL_CLEAR_MODE.get();
+            CharSequence[] labels = new CharSequence[qualities.length + (offerClearMode ? 1 : 0)];
             for (int i = 0; i < qualities.length; i++) labels[i] = HushgramPreferenceFragment.playbackQualityLabel(qualities[i]);
+            if (offerClearMode) labels[qualities.length] = L10n.t("Clear mode — play reels one after another");
             int checked = Settings.PLAYBACK_QUALITY.savedValue().ordinal();
             AlertDialog dialog = new AlertDialog.Builder(activity)
                     .setTitle(L10n.t("Playback quality"))
                     .setSingleChoiceItems(labels, checked, (shown, which) -> {
-                        choose(qualities[which]);
+                        if (which == qualities.length && offerClearMode) {
+                            if (ReelClearMode.startFromQuickPicker()) {
+                                Utils.showToastShort(L10n.t("Clear mode started; it will continue on the next reels."));
+                            } else {
+                                Utils.showToastShort(L10n.t("Clear mode could not start on this reel."));
+                            }
+                        } else {
+                            choose(qualities[which]);
+                        }
                         shown.dismiss();
                     })
                     .setNegativeButton(L10n.t("Cancel"), null)
