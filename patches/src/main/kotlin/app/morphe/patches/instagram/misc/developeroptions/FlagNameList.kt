@@ -11,6 +11,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.util.cloneMutable
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -53,7 +54,13 @@ internal class FlagRow(val at: Int, val entry: Int, val parameter: Int, val conf
 
 /** The list builder and its rows, with the stub bodies assembled and nothing yet changed. */
 internal class PreparedFlagReaders(val bodies: List<Pair<String, String>>)
-internal class FlagNameList(val builder: String, val rows: List<FlagRow>, val stubs: PreparedFlagReaders)
+internal class FlagNameGetter(val method: String, val parameter: Boolean)
+internal class FlagNameList(
+    val builder: String?,
+    val rows: List<FlagRow>,
+    val getters: List<FlagNameGetter>,
+    val stubs: PreparedFlagReaders,
+)
 
 /**
  * Finds Instagram's MetaConfig list builder and the rows it makes. The schema entry is the record
@@ -64,14 +71,14 @@ internal class FlagNameList(val builder: String, val rows: List<FlagRow>, val st
  * between. A row that doesn't trace refuses the lot.
  */
 internal fun BytecodePatchContext.findFlagNameList(): FlagNameList {
-    val getters = mutableListOf<Method>()
+    val schemaGetters = mutableListOf<Method>()
     classesLoadingString(NAME_LOADER).forEach { clazz ->
-        clazz.methods.filterTo(getters) { method ->
+        clazz.methods.filterTo(schemaGetters) { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() && method.returnType.startsWith("L") &&
                 loadsString(method, NAME_LOADER) && loadsString(method, NAME_FAILURE)
         }
     }
-    val getter = getters.one("MetaConfig schema getter")
+    val getter = schemaGetters.one("MetaConfig schema getter")
     val constructor = getter.code().mapNotNull { it.method() }.filter {
         it.name == "<init>" && it.parameterTypes.map(Any::toString) == RECORD_ARGS && it.returnType == "V"
     }.distinctBy(Any::toString).one("MetaConfig schema entry constructor")
@@ -85,9 +92,30 @@ internal fun BytecodePatchContext.findFlagNameList(): FlagNameList {
                 method.code().any { it.opcode == Opcode.INVOKE_DIRECT && it.method()?.isRow() == true }
         }
     }
-    val builder = builders.one("MetaConfig list builder")
-    val rows = flagRows(builder, roles)
-    return FlagNameList(builder.reference(), rows, prepareFlagStubs(entry.type, roles))
+    val stubs = prepareFlagStubs(entry.type, roles)
+    if (builders.size > 1) refuse("expected one MetaConfig list builder, found ${builders.size}")
+    val builder = builders.singleOrNull()
+    if (builder != null) return FlagNameList(builder.reference(), flagRows(builder, roles), emptyList(), stubs)
+
+    // Newer Instagram builds render MetaConfig rows through their schema's label getters rather
+    // than one static List builder. Hook those getters so the visible labels and Instagram's
+    // existing SearchView both receive the resolved names.
+    val getters = findFlagNameGetters(entry, roles)
+    return FlagNameList(null, emptyList(), getters, stubs)
+}
+
+private fun findFlagNameGetters(entry: ClassDef, roles: FlagFields): List<FlagNameGetter> {
+    val candidates = entry.methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;"
+    }
+    val parameter = candidates.filter { method ->
+        method.code().any { it.reads(roles.name) } && method.code().any { it.reads(roles.index) }
+    }.singleOrNull() ?: refuse("expected one MetaConfig parameter-label getter")
+    val config = candidates.filter { method ->
+        method.code().any { it.reads(roles.configName) } && method.code().any { it.reads(roles.config) }
+    }.singleOrNull() ?: refuse("expected one MetaConfig config-label getter")
+    if (parameter.toString() == config.toString()) refuse("MetaConfig parameter and config labels use the same getter")
+    return listOf(FlagNameGetter(parameter.reference(), true), FlagNameGetter(config.reference(), false))
 }
 
 /** The schema entry's fields the rows' labels come from, by their constructor roles. */
@@ -196,18 +224,52 @@ private fun BytecodePatchContext.prepareFlagStubs(entry: String, roles: FlagFiel
  * places found for the others don't move. Only called once [findFlagNameList] traced every row.
  */
 internal fun BytecodePatchContext.applyFlagNameList(list: FlagNameList) {
-    val owner = list.builder.substringBefore("->")
-    val builder = mutableClassDefBy(owner).methods.single { it.reference() == list.builder }
-    for (row in list.rows.sortedByDescending { it.at }) {
-        builder.addInstructions(
-            row.at,
-            """
-                invoke-static { v${row.entry}, v${row.parameter} }, $FLAG_PARAMETER_LABEL
-                move-result-object v${row.parameter}
-                invoke-static { v${row.entry}, v${row.config} }, $FLAG_CONFIG_LABEL
-                move-result-object v${row.config}
-            """.trimIndent(),
-        )
+    if (list.builder != null) {
+        val owner = list.builder.substringBefore("->")
+        val builder = mutableClassDefBy(owner).methods.single { it.reference() == list.builder }
+        for (row in list.rows.sortedByDescending { it.at }) {
+            builder.addInstructions(
+                row.at,
+                """
+                    invoke-static { v${row.entry}, v${row.parameter} }, $FLAG_PARAMETER_LABEL
+                    move-result-object v${row.parameter}
+                    invoke-static { v${row.entry}, v${row.config} }, $FLAG_CONFIG_LABEL
+                    move-result-object v${row.config}
+                """.trimIndent(),
+            )
+        }
+    } else {
+        for (getter in list.getters) {
+            val owner = getter.method.substringBefore("->")
+            val mutableOwner = mutableClassDefBy(owner)
+            val original = mutableOwner.methods.single { it.reference() == getter.method }
+            val originalRegisterCount = original.implementation?.registerCount ?: refuse("${getter.method} has no implementation")
+            // Keep the original schema object in a fresh local. DEX compilers may reuse the
+            // original `this` register for the StringBuilder used to create `_22`.
+            val method = original.cloneMutable(additionalRegisters = 2)
+            mutableOwner.methods.apply { remove(original); add(method) }
+            val instance = originalRegisterCount
+            method.addInstructions(0, "move-object/from16 v$instance, p0")
+            val code = method.implementation!!.instructions.toList()
+            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+            if (returns.isEmpty()) refuse("${getter.method} has no string return")
+            if (instance !in 0..15 || returns.any {
+                    val result = (code[it] as? OneRegisterInstruction)?.registerA ?: return@any true
+                    result !in 0..15 || result == instance
+                }
+            ) refuse("${getter.method} reuses registers needed by the name lookup")
+            for (at in returns.asReversed()) {
+                val result = (code[at] as OneRegisterInstruction).registerA
+                val lookup = if (getter.parameter) FLAG_PARAMETER_LABEL else FLAG_CONFIG_LABEL
+                method.addInstructions(
+                    at,
+                    """
+                        invoke-static { v$instance, v$result }, $lookup
+                        move-result-object v$result
+                    """.trimIndent(),
+                )
+            }
+        }
     }
     val readers = mutableClassDefBy("$EXTENSION_PACKAGE/misc/DeveloperOptions;")
     list.stubs.bodies.forEach { (name, body) ->
@@ -229,7 +291,10 @@ private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: M
         val put = instruction as? TwoRegisterInstruction ?: refuse("schema entry field assignment is unreadable")
         val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
             ?: refuse("schema entry field assignment has no field")
-        val slot = put.registerB - self - 1
+        // For iput instructions registerA holds the constructor argument being assigned;
+        // registerB is always `this`. Using registerB makes every slot resolve to -1 and
+        // prevents the schema fields from being identified.
+        val slot = put.registerA - self - 1
         if (slot !in RECORD_ARGS.indices) return@forEach
         val expectedOpcode = when (RECORD_ARGS[slot]) {
             "I" -> Opcode.IPUT
@@ -248,11 +313,16 @@ private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: M
     if (missing.isNotEmpty()) {
         refuse("schema entry constructor is missing required field roles ${missing.joinToString()}")
     }
+    // Instagram's record constructor takes (parameter name, config name, config ID, other
+    // fields..., parameter index, booleans...). These argument roles are deliberately resolved
+    // from the writes above: swapping role 2 with role 8 still produces plausible integer reads,
+    // but asks the exact-ID name map for `parameterIndex::configId`, so imported names silently
+    // fall back to labels such as `_22`.
     return FlagFields(
-        configName = assigned.getValue(0),
-        name = assigned.getValue(1),
-        index = assigned.getValue(2),
-        config = assigned.getValue(8),
+        configName = assigned.getValue(1),
+        name = assigned.getValue(0),
+        index = assigned.getValue(8),
+        config = assigned.getValue(2),
     )
 }
 

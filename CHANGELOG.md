@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* Developer flag names accept Instagram's `id_name_mapping` JSON directly, including UTF-8 BOM files. Exact ID mappings and Instagram's own labels are checked before the expensive active-experiment scan, avoiding unnecessary work while opening Developer Options. The patch also requires its name-label hook, so it cannot silently install with numeric-only labels.
+
 ## 0.0.19 (2026-11-06)
 
 ### Features

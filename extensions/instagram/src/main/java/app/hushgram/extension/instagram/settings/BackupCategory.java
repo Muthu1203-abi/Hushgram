@@ -55,7 +55,7 @@ final class BackupCategory {
         importDeveloperFlags.setKey("hushgram_import_developer_flag_names");
         importDeveloperFlags.setPersistent(false);
         importDeveloperFlags.setTitle(L10n.t("Import developer flag names"));
-        importDeveloperFlags.setSummary(L10n.t("Choose a JSON file with flag names and IDs, like [{\"name\":\"Flag name\",\"code\":\"12345::6\"}]. Matching flags in Instagram's Developer Options will show those names."));
+        importDeveloperFlags.setSummary(L10n.t("Choose a Rex JSON file like [{\"name\":\"Flag name\",\"code\":\"12345::6\"}], or Instagram's id_name_mapping JSON like [\"100318:config_name:0:param_name\"]. Matching IDs will show these names in Developer Options after restarting Instagram."));
         importDeveloperFlags.setOnPreferenceClickListener(p -> { page.pickDeveloperFlags(true); return true; });
         backup.addPreference(mark(importDeveloperFlags, SettingsIcons.DOWNLOADS));
 

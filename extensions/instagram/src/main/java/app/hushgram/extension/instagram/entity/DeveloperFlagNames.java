@@ -33,7 +33,10 @@ public final class DeveloperFlagNames {
     /** Validates all codes before replacing the saved map. Accepts Rex objects and Instagram ID-name rows. */
     public static synchronized int importJson(String source) throws Exception {
         if (source == null || source.getBytes("UTF-8").length > MAX_BYTES) throw new IllegalArgumentException("File too large");
-        JSONArray rows = new JSONArray(source);
+        // JSON files saved by Windows tools may begin with a UTF-8 BOM. Android's JSONArray
+        // parser does not consistently ignore it, so remove it before parsing and persisting.
+        String json = source.startsWith("\uFEFF") ? source.substring(1) : source;
+        JSONArray rows = new JSONArray(json);
         if (rows.length() > 10000) throw new IllegalArgumentException("Too many flags");
         Map<Integer, String> nextConfigs = new HashMap<>();
         Map<Long, String> nextParameters = new HashMap<>();
@@ -84,7 +87,7 @@ public final class DeveloperFlagNames {
         Context context = Utils.getContext();
         if (context == null) throw new IllegalStateException("App context unavailable");
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String savedJson = idNameRows ? source : clean.toString();
+        String savedJson = idNameRows ? json : clean.toString();
         if (!prefs.edit().putString(KEY, savedJson).commit()) throw new IllegalStateException("Could not save flags");
         configs = nextConfigs;
         parameters = nextParameters;

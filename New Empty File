@@ -1,0 +1,48 @@
+git add .
+git init
+git add .
+git commit -m "Init"
+bash gradlew :patches:generatePatchesList :patches:buildAndroid --no-daemon
+
+
+Package: com.instagram.android
+Version: 454.0.0.54.77
+Patches: 155
+Failed patch: Open developer options
+Source: HushGram 0.0.19
+Manager: 2.5.0
+Patcher: 2.3.0
+Libraries: kept
+Android: 15 (API 35)
+Device: vivo V2246
+Memory: 2.44 GB / 7.78 GB
+Storage: 54.40 GB / 109.20 GB
+
+app.morphe.patcher.patch.PatchException: The patch "Open developer options" depends on "DeveloperOptionNamesPatch.developerOptionNamesPatch", which raised an exception
+Caused by: app.morphe.patcher.patch.PatchException: Collection contains more than one matching element.
+Caused by: java.lang.IllegalArgumentException: Collection contains more than one matching element.
+	at app.morphe.patches.instagram.misc.developeroptions.DeveloperOptionNamesPatchKt.developerOptionNamesPatch$lambda$0$0(DeveloperOptionNamesPatch.kt:148)
+	at app.morphe.patcher.patch.Patch.execute(Patch.kt:160)
+	at app.morphe.patcher.patch.BytecodePatch.execute$morphe_patcher(Patch.kt:357)
+
+Package: com.instagram.android
+Version: 454.0.0.54.77
+Patches: 156
+Failed patch: Import/export developer flag values
+Source: HushGram 0.0.19
+Manager: 2.5.0
+Patcher: 2.3.0
+Libraries: kept
+Android: 15 (API 35)
+Device: vivo V2246
+Memory: 2.24 GB / 7.78 GB
+Storage: 54.97 GB / 109.20 GB
+
+app.morphe.patcher.patch.PatchException: The patch "Import/export developer flag values" depends on "DeveloperOptionNamesPatch.developerOptionNamesPatch", which raised an exception
+Caused by: app.morphe.patcher.patch.PatchException: Collection contains more than one matching element.
+Caused by: java.lang.IllegalArgumentException: Collection contains more than one matching element.
+	at app.morphe.patches.instagram.misc.developeroptions.DeveloperOptionNamesPatchKt.developerOptionNamesPatch$lambda$0$0(DeveloperOptionNamesPatch.kt:148)
+	at app.morphe.patcher.patch.Patch.execute(Patch.kt:160)
+	at app.morphe.patcher.patch.BytecodePatch.execute$morphe_patcher(Patch.kt:357)
+
+

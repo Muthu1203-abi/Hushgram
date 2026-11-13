@@ -77,10 +77,11 @@ public final class DeveloperOptions {
         DeveloperFlagNames.loadSaved();
         String name = DeveloperFlagNames.parameterName(config, index);
         if (usableLabel(name)) return name;
+        if (usableLabel(fallback)) return fallback;
         long key = ((long) config << 32) | (index & 0xffffffffL);
-        name = names().parameters.get(key);
-        if (usableLabel(name)) return name;
         name = recommendedNames().parameters.get(key);
+        if (usableLabel(name)) return name;
+        name = names().parameters.get(key);
         if (usableLabel(name)) return name;
         return fallback;
     }
@@ -91,9 +92,10 @@ public final class DeveloperOptions {
         DeveloperFlagNames.loadSaved();
         String name = DeveloperFlagNames.configName(config);
         if (usableLabel(name)) return name;
-        name = names().configs.get(config);
-        if (usableLabel(name)) return name;
+        if (usableLabel(fallback)) return fallback;
         name = recommendedNames().configs.get(config);
+        if (usableLabel(name)) return name;
+        name = names().configs.get(config);
         return usableLabel(name) ? name : fallback;
     }
 
@@ -111,6 +113,8 @@ public final class DeveloperOptions {
             Map<Integer, String> configs = new HashMap<>();
             Map<Long, String> parameters = new HashMap<>();
             try (InputStream stream = DeveloperOptions.class.getClassLoader().getResourceAsStream("rex_recommended_flags_v3.json")) {
+                // Exact Instagram IDs are authoritative over the older curated recommendations.
+                loadIdNameMapping(configs, parameters);
                 if (stream != null) {
                     byte[] bytes = new byte[stream.available()];
                     int offset = 0;
@@ -139,7 +143,6 @@ public final class DeveloperOptions {
                         }
                     }
                 }
-                loadIdNameMapping(configs, parameters);
             } catch (Exception e) {
                 Logger.printException(() -> "Could not load recommended developer-option labels", e);
             }

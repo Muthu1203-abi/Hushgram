@@ -10,7 +10,6 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.util.findFreeRegister
 import app.morphe.util.registersUsed
@@ -32,18 +31,9 @@ val openDeveloperOptionsPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
-        // Label replacement is an enhancement to Instagram's own Developer Options screen. If a
-        // build changes the schema row, keep the entry-point patch usable and leave its native
-        // numeric labels alone rather than failing the whole patch.
-        val flagNames = try {
-            findFlagNameList()
-        } catch (unavailable: PatchException) {
-            patchLog.warning(
-                "${unavailable.message}. Developer Options will still open, but flag names will remain numeric " +
-                    "because this Instagram build's label hook wasn't installed.",
-            )
-            null
-        }
+        // Don't silently ship a working entry point with numeric labels: importing a mapping only
+        // helps when this build's MetaConfig rows are hooked to the name lookup.
+        val flagNames = findFlagNameList()
         val listener = HomeIconOnClickListenerFingerprint.method
         val openerClass = DeveloperOptionCallWithCallableFingerprint.classDef
         val openerInstance = openerClass.fields.singleOrNull {
@@ -78,6 +68,6 @@ val openDeveloperOptionsPatch = bytecodePatch(
                 """.trimIndent(),
             )
         }
-        if (flagNames != null) applyFlagNameList(flagNames)
+        applyFlagNameList(flagNames)
     }
 }
