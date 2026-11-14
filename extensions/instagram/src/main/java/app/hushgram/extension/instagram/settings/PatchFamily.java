@@ -266,6 +266,8 @@ public enum PatchFamily {
             Settings.MEDIA_QUALITY_INDICATOR),
     DATA_SAVER(FamilyNames.DATA_SAVER, "dataSaver", null, Settings.DATA_SAVER),
     TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
+    OPEN_DEVELOPER_OPTIONS(FamilyNames.OPEN_DEVELOPER_OPTIONS, "developerOptions", null,
+            Settings.DEVELOPER_OPTIONS, Settings.DIRECTLY_OPEN_METACONFIG),
     PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode");
 
     /** The name Morphe Manager lists the patch under. */

@@ -3503,4 +3503,16 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SIGN_IN_NOTICE_HIDDEN =
             new BooleanSetting("hushgram_sign_in_notice_hidden", FALSE, false, false);
 
+    /**
+     * Unlocks Instagram's developer options by long pressing the Home tab icon.
+     */
+    public static final BooleanSetting DEVELOPER_OPTIONS =
+            new BooleanSetting("hushgram_developer_options", TRUE);
+
+    /**
+     * Directly opens MetaConfig / Quick Experiments instead of the Developer Options root menu
+     * when long pressing the Home icon.
+     */
+    public static final BooleanSetting DIRECTLY_OPEN_METACONFIG =
+            new BooleanSetting("hushgram_directly_open_metaconfig", FALSE, parent(DEVELOPER_OPTIONS));
 }

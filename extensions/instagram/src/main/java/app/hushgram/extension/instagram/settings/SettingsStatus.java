@@ -725,4 +725,9 @@ public final class SettingsStatus {
     public static boolean liveSeen() {
         return false;
     }
+
+    /** Rewritten by the Open developer options patch. */
+    public static boolean developerOptions() {
+        return false;
+    }
 }

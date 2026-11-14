@@ -51,6 +51,13 @@ final class BackupCategory {
         // Undo puts the earlier settings back for a while, which the history clock says better than a bin.
         backup.addPreference(mark(page.undoConfiguration, SettingsIcons.UPDATES));
 
+        if (build.contains(PatchFamily.OPEN_DEVELOPER_OPTIONS)) {
+            backup.addPreference(toggle(context, Settings.DEVELOPER_OPTIONS, L10n.t("Developer options"),
+                    L10n.t("Unlocks developer options by long pressing the Home icon.")));
+            backup.addPreference(toggle(context, Settings.DIRECTLY_OPEN_METACONFIG, L10n.t("Directly open MetaConfig"),
+                    L10n.t("Directly opens MetaConfig / Quick Experiments instead of the Developer Options menu when long pressing Home.")));
+        }
+
         Row importDeveloperFlags = new Row(context);
         importDeveloperFlags.setKey("hushgram_import_developer_flag_names");
         importDeveloperFlags.setPersistent(false);

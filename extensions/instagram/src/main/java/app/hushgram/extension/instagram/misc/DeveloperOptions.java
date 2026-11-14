@@ -4,9 +4,21 @@
  */
 package app.hushgram.extension.instagram.misc;
 
-/** Read-only bridge used to label MetaConfig rows from Instagram's active Quick Experiments. */
+import app.hushgram.extension.instagram.settings.Settings;
+
+/** Read-only bridge used to label MetaConfig rows from Instagram's active Quick Experiments and control developer options access. */
 public final class DeveloperOptions {
     private DeveloperOptions() {
+    }
+
+    /** Whether long-pressing the Home icon opens developer options. */
+    public static boolean enableDevOptions() {
+        return Settings.DEVELOPER_OPTIONS.value();
+    }
+
+    /** Whether long-pressing the Home icon directly opens MetaConfig / Quick Experiments. */
+    public static boolean directlyOpenMetaConfig() {
+        return Settings.DIRECTLY_OPEN_METACONFIG.value();
     }
 
     /** Returns Instagram's known parameter name, keeping its fallback for entries not in the experiment list. */

@@ -18,6 +18,13 @@ internal object HomeIconOnClickListenerFingerprint : Fingerprint(
     strings = listOf("click", "activity"),
 )
 
+/** FragmentNavigator transition implementation method. */
+internal object FragmentNavigatorTransitionFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf("Ljava/lang/Integer;"),
+    strings = listOf("FragmentNavigator.transitionInternal", "FragmentNavigator", "Fragment is null when attempting transition"),
+)
+
 /** The internal developer-options opener, identified by its error toast key. */
 internal object DeveloperOptionCallWithCallableFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.STATIC, AccessFlags.FINAL, AccessFlags.PUBLIC),
