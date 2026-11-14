@@ -452,6 +452,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedAutoScroll() {
+        return false;
+    }
+
     public static boolean homeTopBar() {
         return false;
     }

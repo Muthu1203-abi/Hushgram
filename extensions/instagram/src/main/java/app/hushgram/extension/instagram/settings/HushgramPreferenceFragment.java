@@ -4807,6 +4807,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How long a photo or carousel stays before Home moves on, from a slider in seconds under Auto scroll in Home (#660). */
+    static SliderRow feedAutoScrollTimeRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.FEED_AUTO_SCROLL_SECONDS, 1, L10n.t("%1$d seconds"));
+        row.setTitle(L10n.t("Time on each post"));
+        row.setText(String.valueOf(Settings.FEED_AUTO_SCROLL_SECONDS.savedValue()));
+        return row;
+    }
+
     /**
      * Instagram's font, the phone's or a font file (#166, #5). Choosing A font file opens the file
      * picker, and the choice is kept only once a picked file loads as a font.

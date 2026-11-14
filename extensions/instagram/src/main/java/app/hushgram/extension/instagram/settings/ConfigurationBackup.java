@@ -208,6 +208,9 @@ public final class ConfigurationBackup {
         if (PatchFamily.STORY_MENTIONS.inBuild()) settings.put(Settings.STORY_MENTIONS_LOOK.key, Settings.STORY_MENTIONS_LOOK);
         if (PatchFamily.CAROUSEL_ARROWS.inBuild()) settings.put(Settings.CAROUSEL_PILL_LOOK.key, Settings.CAROUSEL_PILL_LOOK);
         if (PatchFamily.FEED_SEEK_BAR.inBuild()) settings.put(Settings.FEED_SEEK_BAR_LOOK.key, Settings.FEED_SEEK_BAR_LOOK);
+        if (PatchFamily.FEED_AUTO_SCROLL.inBuild()) {
+            settings.put(Settings.FEED_AUTO_SCROLL_SECONDS.key, Settings.FEED_AUTO_SCROLL_SECONDS);
+        }
         if (PatchFamily.STORY_SEEK_BAR.inBuild()) settings.put(Settings.STORY_SEEK_BAR_LOOK.key, Settings.STORY_SEEK_BAR_LOOK);
         if (PatchFamily.FRIENDSHIP_STATUS.inBuild()) settings.put(Settings.FOLLOW_LABEL_PLACE.key, Settings.FOLLOW_LABEL_PLACE);
         if (PatchFamily.FULL_SCREEN_BARS.inBuild()) settings.put(Settings.FULL_SCREEN_HIDES.key, Settings.FULL_SCREEN_HIDES);

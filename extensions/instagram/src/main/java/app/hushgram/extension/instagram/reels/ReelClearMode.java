@@ -565,18 +565,6 @@ public final class ReelClearMode {
         }
     }
 
-    /** Hide Instagram's low-positioned exit control while our persistent clear mode is active. */
-    public static boolean hideExitButton(@Nullable Object item) {
-        try {
-            if (!on() || !wanted || item == null) return false;
-            String id = access.id(item);
-            return id != null && id.equals(shown);
-        } catch (Throwable failure) {
-            HookStatus.threw(FAMILY, "clear mode exit button visibility", failure);
-            return false;
-        }
-    }
-
     /**
      * The hook, in the Reels viewer's setup right after it handed the handler its turn-on action.
      * With Start every reel in clear mode on, the handler is kept, weakly, for the first reel with

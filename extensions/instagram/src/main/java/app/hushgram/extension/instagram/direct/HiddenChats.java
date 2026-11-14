@@ -237,30 +237,6 @@ public final class HiddenChats {
         }
     }
 
-    /** An unread snapshot includes only chats Instagram considers unread; keep its ids for this account. */
-    private static void rememberUnread(String account, List<Object> summaries) {
-        if (account == null || account.isEmpty()) return;
-        loadDismissedUnread();
-        Set<String> unread = new HashSet<>();
-        if (summaries != null) {
-            for (Object summary : summaries) {
-                String id = idOf(summary);
-                if (id != null) unread.add(id);
-            }
-        }
-        synchronized (unreadByAccount) {
-            unreadByAccount.put(account, unread);
-            Set<String> dismissed = dismissedUnreadByAccount.get(account);
-            if (dismissed != null) {
-                // Keep the dismissal until a new message push clears it. Instagram can replay an
-                // older unread snapshot after reporting the conversation as read; pruning the
-                // dismissal from that snapshot made the dot return despite there being no new message.
-                saveDismissedUnreadLocked();
-            }
-        }
-        refreshHiddenUnreadDot();
-    }
-
     /** Keeps unread hidden chat ids noticed on a dropped push until Instagram's next unread snapshot. */
     private static void rememberHiddenPush(Collection<String> pushIds, String account, Set<String> hidden) {
         if (account == null || account.isEmpty()) return;
@@ -316,7 +292,7 @@ public final class HiddenChats {
         if (hidden.isEmpty()) return false;
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.get(account);
-            if (unread == null) return false;
+            if (unread == null || unread.isEmpty()) return false;
             Set<String> dismissed = dismissedUnreadByAccount.get(account);
             for (String id : unread) {
                 if (hidden.contains(id) && (dismissed == null || !dismissed.contains(id))) return true;
@@ -495,7 +471,6 @@ public final class HiddenChats {
     public static ArrayList<Object> filter(ArrayList<Object> summaries) {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
-            rememberUnread(ChatAccounts.active(), summaries);
             if (summaries == null || summaries.isEmpty()) return summaries;
             Set<String> hidden = ids();
             if (hidden.isEmpty()) return summaries;
@@ -1047,6 +1022,11 @@ public final class HiddenChats {
         boolean saved = change(rows -> ChatList.removed(rows, account, id));
         if (saved) {
             synchronized (unreadByAccount) {
+                Set<String> unread = unreadByAccount.get(account);
+                if (unread != null) {
+                    unread.remove(id);
+                    if (unread.isEmpty()) unreadByAccount.remove(account);
+                }
                 Set<String> dismissed = dismissedUnreadByAccount.get(account);
                 if (dismissed != null) {
                     dismissed.remove(id);
@@ -1108,10 +1088,12 @@ public final class HiddenChats {
         loadDismissedUnread();
         synchronized (unreadByAccount) {
             Set<String> unread = unreadByAccount.get(account);
-            if (unread != null && unread.contains(id)) {
-                dismissedUnreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>()).add(id);
-                saveDismissedUnreadLocked();
+            if (unread != null) {
+                unread.remove(id);
+                if (unread.isEmpty()) unreadByAccount.remove(account);
             }
+            dismissedUnreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>()).add(id);
+            saveDismissedUnreadLocked();
         }
     }
 
