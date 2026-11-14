@@ -3514,5 +3514,5 @@ public class Settings extends BaseSettings {
      * when long pressing the Home icon.
      */
     public static final BooleanSetting DIRECTLY_OPEN_METACONFIG =
-            new BooleanSetting("hushgram_directly_open_metaconfig", FALSE, parent(DEVELOPER_OPTIONS));
+            new BooleanSetting("hushgram_directly_open_metaconfig", TRUE, parent(DEVELOPER_OPTIONS));
 }

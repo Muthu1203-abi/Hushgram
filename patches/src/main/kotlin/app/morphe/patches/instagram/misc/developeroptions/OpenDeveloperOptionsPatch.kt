@@ -19,6 +19,8 @@ import app.morphe.util.getFreeRegisterProvider
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val DEVELOPER_OPTIONS_BRIDGE = "$EXTENSION_PACKAGE/misc/DeveloperOptions;"
 private const val QE_FRAGMENT_DESCRIPTOR = "Lcom/instagram/debug/quickexperiment/QuickExperimentCategoriesFragment;"
@@ -68,16 +70,23 @@ val openDeveloperOptionsPatch = bytecodePatch(
 
         val fragmentSetMethod = fragmentClass.methods.firstOrNull { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                method.parameterTypes.map(Any::toString) == listOf("Landroidx/fragment/app/Fragment;")
+                method.parameterTypes.map(Any::toString) == listOf("Landroidx/fragment/app/Fragment;") &&
+                method.implementation?.instructions?.any { inst ->
+                    ((inst as? ReferenceInstruction)?.reference as? MethodReference)?.let { mr ->
+                        mr.parameterTypes.map(Any::toString) == listOf("Landroid/os/Bundle;", "Landroidx/fragment/app/Fragment;")
+                    } ?: false
+                } == true
         } ?: throw PatchException("Open developer options: FragmentNavigator setFragment method not found")
 
-        val fragmentCallMethod = fragmentClass.methods.firstOrNull { method ->
+        val fragmentCallMethod = fragmentClass.methods.lastOrNull { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
                 method.parameterTypes.isEmpty() &&
                 method.implementation?.instructions?.any { it.opcode == Opcode.SGET_OBJECT } == true &&
-                method.implementation?.instructions?.any { it.opcode == Opcode.RETURN_VOID } == true
-        } ?: fragmentClass.methods.firstOrNull { method ->
-            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes.isEmpty()
+                method.implementation?.instructions?.any { inst ->
+                    ((inst as? ReferenceInstruction)?.reference as? MethodReference)?.let { mr ->
+                        mr.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Integer;")
+                    } ?: false
+                } == true
         } ?: throw PatchException("Open developer options: FragmentNavigator commit method not found")
 
         val userSessionCastType = fragmentConstructor.parameterTypes[1]
