@@ -13,12 +13,12 @@ public final class DeveloperOptions {
 
     /** Whether long-pressing the Home icon opens developer options. */
     public static boolean enableDevOptions() {
-        return Settings.DEVELOPER_OPTIONS.value();
+        return Settings.DEVELOPER_OPTIONS.get();
     }
 
     /** Whether long-pressing the Home icon directly opens MetaConfig / Quick Experiments. */
     public static boolean directlyOpenMetaConfig() {
-        return Settings.DIRECTLY_OPEN_METACONFIG.value();
+        return Settings.DIRECTLY_OPEN_METACONFIG.get();
     }
 
     /** Returns Instagram's known parameter name, keeping its fallback for entries not in the experiment list. */
