@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.misc;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
+import android.app.Activity;
 
 /** Read-only bridge used to label MetaConfig rows from Instagram's active Quick Experiments and control developer options access. */
 public final class DeveloperOptions {
@@ -16,7 +17,8 @@ public final class DeveloperOptions {
     }
 
     /** Whether long-pressing the Home icon opens developer options. */
-    public static boolean enableDevOptions() {
+    public static boolean enableDevOptions(Activity activity) {
+        app.hushgram.extension.instagram.download.DeveloperFlagMapping.checkMappings(activity);
         return Settings.DEVELOPER_OPTIONS.get();
     }
 

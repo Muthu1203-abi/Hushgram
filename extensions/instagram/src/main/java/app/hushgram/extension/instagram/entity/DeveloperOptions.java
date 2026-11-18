@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 
 /** Reads the active Quick Experiment list from Instagram's internal MobileConfig classes. */
 public final class DeveloperOptions {
@@ -74,10 +75,8 @@ public final class DeveloperOptions {
         if (config < 0 || index < 0) return fallback;
         // Instagram sometimes supplies generated labels such as "_22" or a numeric ID. Treat
         // those as missing so the exact-ID JSON mapping gets a chance to provide the real name.
-        DeveloperFlagNames.loadSaved();
-        String name = DeveloperFlagNames.parameterName(config, index);
-        if (usableLabel(name)) return name;
         if (usableLabel(fallback)) return fallback;
+        String name;
         long key = ((long) config << 32) | (index & 0xffffffffL);
         name = recommendedNames().parameters.get(key);
         if (usableLabel(name)) return name;
@@ -89,10 +88,8 @@ public final class DeveloperOptions {
     /** Finds a Quick Experiment config name by the numeric ID shown in MetaConfig. */
     public static String configName(int config, String fallback) {
         if (config < 0) return fallback;
-        DeveloperFlagNames.loadSaved();
-        String name = DeveloperFlagNames.configName(config);
-        if (usableLabel(name)) return name;
         if (usableLabel(fallback)) return fallback;
+        String name;
         name = recommendedNames().configs.get(config);
         if (usableLabel(name)) return name;
         name = names().configs.get(config);
@@ -209,7 +206,13 @@ public final class DeveloperOptions {
 
     /** Loads the supplied Instagram ID-to-name map: config:name:index:paramName[:index:paramName...]. */
     private static void loadIdNameMapping(Map<Integer, String> configs, Map<Long, String> parameters) throws Exception {
-        try (InputStream stream = DeveloperOptions.class.getClassLoader().getResourceAsStream("id_name_mapping.json")) {
+        android.content.Context context = Utils.getContext();
+        java.io.File downloaded = context == null ? null
+                : app.hushgram.extension.instagram.download.DeveloperFlagMapping.mappingFile(context);
+        InputStream selected = downloaded != null && downloaded.isFile() && downloaded.length() > 10 * 1024
+                ? new java.io.FileInputStream(downloaded)
+                : DeveloperOptions.class.getClassLoader().getResourceAsStream("id_name_mapping.json");
+        try (InputStream stream = selected) {
             if (stream == null) return;
             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
             byte[] buffer = new byte[8192];

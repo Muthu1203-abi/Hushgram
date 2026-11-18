@@ -249,10 +249,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
     private static final int EXPORT_CONFIGURATION = 0x4847;
     private static final int IMPORT_CONFIGURATION = 0x4848;
-    private static final int EXPORT_DEVELOPER_FLAGS = 0x4854;
-    private static final int IMPORT_DEVELOPER_FLAGS = 0x4855;
     private static final int EXPORT_DEVELOPER_OVERRIDES = 0x4856;
     private static final int IMPORT_DEVELOPER_OVERRIDES = 0x4857;
+    private static final int IMPORT_DEVELOPER_MAPPING = 0x4858;
     private static final int PICK_FONT = 0x484d;
     private static final int PICK_STORY_FONT = 0x484e;
     private static final int PICK_STORY_EMOJI = 0x484f;
@@ -280,8 +279,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     };
     @Nullable Row importConfiguration;
     @Nullable Row undoConfiguration;
-    @Nullable Row exportDeveloperFlags;
-    @Nullable Row importDeveloperFlags;
     @Nullable Row exportDeveloperOverrides;
     @Nullable Row importDeveloperOverrides;
     /** Lock these settings (#301), and the rows it greyed out while the settings are locked. */
@@ -516,7 +513,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         clearPositions = null;
         exportDiagnostics = null;
         exportConfiguration = importConfiguration = undoConfiguration = null;
-        exportDeveloperFlags = importDeveloperFlags = null;
         exportDeveloperOverrides = importDeveloperOverrides = null;
         recovery = null;
         interruptedSaves = null;
@@ -1931,14 +1927,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    void pickDeveloperFlags(boolean importing) {
-        pickDeveloperDocument(importing ? IMPORT_DEVELOPER_FLAGS : EXPORT_DEVELOPER_FLAGS, importing,
-                "Instagram-flags.json");
-    }
-
     void pickDeveloperOverrides(boolean importing) {
         pickDeveloperDocument(importing ? IMPORT_DEVELOPER_OVERRIDES : EXPORT_DEVELOPER_OVERRIDES, importing,
                 "Instagram-flag-overrides.json");
+    }
+
+    void pickDeveloperMapping() {
+        pickDeveloperDocument(IMPORT_DEVELOPER_MAPPING, true, "id_name_mapping.json");
     }
 
     private void pickDeveloperDocument(int request, boolean importing, String fileName) {
@@ -1965,15 +1960,37 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         super.onActivityResult(code, result, data);
         if (code != documentCode) return;
         int request = documentRequest;
-        if (request == IMPORT_DEVELOPER_FLAGS || request == EXPORT_DEVELOPER_FLAGS ||
-                request == IMPORT_DEVELOPER_OVERRIDES || request == EXPORT_DEVELOPER_OVERRIDES) {
+        if (request == IMPORT_DEVELOPER_MAPPING) {
+            documentRequest = documentCode = 0;
+            if (result != Activity.RESULT_OK || data == null || data.getData() == null
+                    || !"content".equals(data.getData().getScheme())) return;
+            Context context = getContext();
+            if (context == null) return;
+            try (java.io.InputStream input = context.getContentResolver().openInputStream(data.getData());
+                 java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+                if (input == null) throw new java.io.IOException();
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    if (output.size() + count > 8 * 1024 * 1024) throw new java.io.IOException("File too large");
+                    output.write(buffer, 0, count);
+                }
+                int imported = app.hushgram.extension.instagram.download.DeveloperFlagMapping
+                        .importMapping(context, output.toByteArray());
+                Utils.showToastLong(L10n.f("Imported %1$d mapping entries. Restart Instagram to show names in MetaConfig.", imported));
+            } catch (Exception failure) {
+                Utils.showToastLong(L10n.t("That mapping file couldn't be read. No changes were made."));
+            }
+            return;
+        }
+        if (request == IMPORT_DEVELOPER_OVERRIDES || request == EXPORT_DEVELOPER_OVERRIDES) {
             documentRequest = documentCode = 0;
             if (result != Activity.RESULT_OK || data == null || data.getData() == null
                     || !"content".equals(data.getData().getScheme())) return;
             Uri uri = data.getData();
             Context context = getContext();
             if (context == null) return;
-            boolean importing = request == IMPORT_DEVELOPER_FLAGS || request == IMPORT_DEVELOPER_OVERRIDES;
+            boolean importing = request == IMPORT_DEVELOPER_OVERRIDES;
             boolean valuesFile = request == IMPORT_DEVELOPER_OVERRIDES || request == EXPORT_DEVELOPER_OVERRIDES;
             if (importing && SettingsLock.locked()) {
                 sayLocked();
@@ -1981,12 +1998,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             try {
                 if (!importing) {
-                    String json = valuesFile
-                            ? app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.exportJson()
-                            : app.hushgram.extension.instagram.entity.DeveloperFlagNames.exportJson();
+                    String json = app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.exportJson();
                     writeConfiguration(context.getContentResolver(), uri,
                             json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                    Utils.showToastLong(L10n.t(valuesFile ? "Developer flag values exported." : "Developer flag names exported."));
+                    Utils.showToastLong(L10n.t("Developer flag values exported."));
                 } else {
                     try (java.io.InputStream input = context.getContentResolver().openInputStream(uri);
                          java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
@@ -1997,12 +2012,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             if (output.size() + count > 4 * 1024 * 1024) throw new java.io.IOException("File too large");
                             output.write(buffer, 0, count);
                         }
-                        int imported = valuesFile
-                                ? app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.importJson(output.toString("UTF-8"))
-                                : app.hushgram.extension.instagram.entity.DeveloperFlagNames.importJson(output.toString("UTF-8"));
-                        Utils.showToastLong(L10n.f(valuesFile
-                                ? "Imported %1$d developer flag values. Restart Instagram to apply them."
-                                : "Imported %1$d developer flag names. Restart Instagram to apply them.", imported));
+                        int imported = app.hushgram.extension.instagram.entity.DeveloperFlagOverrides.importJson(output.toString("UTF-8"));
+                        Utils.showToastLong(L10n.f("Imported %1$d developer flag values. Restart Instagram to apply them.", imported));
                     }
                 }
             } catch (Exception failure) {

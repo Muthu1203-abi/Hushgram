@@ -176,7 +176,7 @@ val openDeveloperOptionsPatch = bytecodePatch(
                 addInstructionsWithLabels(
                     2,
                     """
-                        invoke-static {}, $DEVELOPER_OPTIONS_BRIDGE->enableDevOptions()Z
+                        invoke-static {v$activityRegister}, $DEVELOPER_OPTIONS_BRIDGE->enableDevOptions(Landroid/app/Activity;)Z
                         move-result v$freeRegister
                         if-eqz v$freeRegister, :no_dev
 

@@ -56,23 +56,14 @@ final class BackupCategory {
                     L10n.t("Unlocks developer options by long pressing the Home icon.")));
             backup.addPreference(toggle(context, Settings.DIRECTLY_OPEN_METACONFIG, L10n.t("Directly open MetaConfig"),
                     L10n.t("Directly opens MetaConfig / Quick Experiments instead of the Developer Options menu when long pressing Home.")));
+            Row mapping = new Row(context);
+            mapping.setKey("hushgram_upload_developer_mapping");
+            mapping.setPersistent(false);
+            mapping.setTitle(L10n.t("Upload developer names mapping"));
+            mapping.setSummary(L10n.t("Choose Instagram's id_name_mapping JSON. Restart Instagram after upload to show names in MetaConfig."));
+            mapping.setOnPreferenceClickListener(p -> { page.pickDeveloperMapping(); return true; });
+            backup.addPreference(mark(mapping, SettingsIcons.DOWNLOADS));
         }
-
-        Row importDeveloperFlags = new Row(context);
-        importDeveloperFlags.setKey("hushgram_import_developer_flag_names");
-        importDeveloperFlags.setPersistent(false);
-        importDeveloperFlags.setTitle(L10n.t("Import developer flag names"));
-        importDeveloperFlags.setSummary(L10n.t("Choose a Rex JSON file like [{\"name\":\"Flag name\",\"code\":\"12345::6\"}], or Instagram's id_name_mapping JSON like [\"100318:config_name:0:param_name\"]. Matching IDs will show these names in Developer Options after restarting Instagram."));
-        importDeveloperFlags.setOnPreferenceClickListener(p -> { page.pickDeveloperFlags(true); return true; });
-        backup.addPreference(mark(importDeveloperFlags, SettingsIcons.DOWNLOADS));
-
-        Row exportDeveloperFlags = new Row(context);
-        exportDeveloperFlags.setKey("hushgram_export_developer_flag_names");
-        exportDeveloperFlags.setPersistent(false);
-        exportDeveloperFlags.setTitle(L10n.t("Export developer flag names"));
-        exportDeveloperFlags.setSummary(L10n.t("Save the current developer flag name mappings as JSON."));
-        exportDeveloperFlags.setOnPreferenceClickListener(p -> { page.pickDeveloperFlags(false); return true; });
-        backup.addPreference(mark(exportDeveloperFlags, SettingsIcons.EXPORT));
 
         page.showConfiguration();
     }
