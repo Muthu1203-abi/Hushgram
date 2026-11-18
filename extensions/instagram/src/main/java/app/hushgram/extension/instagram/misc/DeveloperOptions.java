@@ -10,9 +10,6 @@ import android.app.Activity;
 
 /** Read-only bridge used to label MetaConfig rows from Instagram's active Quick Experiments and control developer options access. */
 public final class DeveloperOptions {
-    private static final String CONFIG_ID_FIELD = "A09";
-    private static final String PARAMETER_ID_FIELD = "A08";
-
     private DeveloperOptions() {
     }
 
@@ -28,24 +25,16 @@ public final class DeveloperOptions {
     }
 
     /** Returns Instagram's known parameter name, keeping its fallback for entries not in the experiment list. */
-    public static String parameterLabel(Object entry, String fallback) {
-        int config = getFlagConfigNative(entry);
-        int index = getFlagIndexNative(entry);
+    public static String parameterLabel(Object entry, String fallback, String configIdField, String indexIdField) {
+        int config = readId(entry, configIdField);
+        int index = readId(entry, indexIdField);
         return app.hushgram.extension.instagram.entity.DeveloperOptions.parameterName(config, index, fallback);
     }
 
     /** Returns Instagram's known config name, keeping its fallback when this config is unknown. */
-    public static String configLabel(Object entry, String fallback) {
-        int config = getFlagConfigNative(entry);
+    public static String configLabel(Object entry, String fallback, String configIdField) {
+        int config = readId(entry, configIdField);
         return app.hushgram.extension.instagram.entity.DeveloperOptions.configName(config, fallback);
-    }
-
-    static int getFlagConfigNative(Object entry) {
-        return readId(entry, CONFIG_ID_FIELD);
-    }
-
-    static int getFlagIndexNative(Object entry) {
-        return readId(entry, PARAMETER_ID_FIELD);
     }
 
     private static int readId(Object entry, String fieldName) {
