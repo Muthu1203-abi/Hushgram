@@ -46,7 +46,7 @@ val openDeveloperOptionsPatch = bytecodePatch(
     execute {
         runCatching {
             enableStatus("developerOptions")
-        }
+        }.getOrThrow()
         runCatching {
             val listener = HomeIconOnClickListenerFingerprint.matchAllOrNull()?.firstOrNull()?.method
                 ?: throw PatchException("Open developer options: Home long-click listener was not found")
@@ -205,6 +205,6 @@ val openDeveloperOptionsPatch = bytecodePatch(
                     ExternalLabel("no_dev", firstInvokeInstruction),
                 )
             }
-        }
+        }.getOrThrow()
     }
 }

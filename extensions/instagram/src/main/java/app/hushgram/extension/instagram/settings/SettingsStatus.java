@@ -327,6 +327,16 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Open developer options so its controls appear only when that patch is installed. */
+    public static boolean developerOptions() {
+        return false;
+    }
+
+    /** Rewritten by Media quality indicator so its switch appears only when that patch is installed. */
+    public static boolean mediaQualityIndicator() {
+        return false;
+    }
+
     /** Rewritten by the Keep playing in the background patch. */
     public static boolean backgroundPlay() {
         return false;
