@@ -25,20 +25,24 @@ final class BackupCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         PreferenceCategory backup = category(screen, L10n.t("Settings backup"), SettingsIcons.TOOLS,
-                L10n.t("Save your Instagram choices to a file, or bring them back."));
+                L10n.t("Save your HushGram choices to a file, or bring them back."));
         page.exportConfiguration = new Row(context);
         page.exportConfiguration.setKey("hushgram_export_configuration");
         page.exportConfiguration.setPersistent(false);
-        page.exportConfiguration.setTitle(L10n.t("Export Instagram settings"));
-        page.exportConfiguration.setSummary(L10n.t("Choose a file for your installed patches' settings. Accounts and history stay on this device."));
+        page.exportConfiguration.setTitle(L10n.t("Export HushGram settings"));
+        // With the profile picture patch in, the file carries the saved profiles too.
+        page.exportConfiguration.setSummary(build.contains(PatchFamily.PROFILE_PICTURE)
+                ? L10n.t("Choose a file for your installed patches' settings and saved profiles. Your login and history "
+                        + "stay on this device.")
+                : L10n.t("Choose a file for your installed patches' settings. Accounts and history stay on this device."));
         page.exportConfiguration.setOnPreferenceClickListener(p -> { page.pickConfiguration(false); return true; });
         backup.addPreference(mark(page.exportConfiguration, SettingsIcons.EXPORT));
         backup.addPreference(toggle(context, Settings.DATE_SETTINGS_EXPORT, L10n.t("Date in backup file names"),
-                L10n.t("Add the current date and time when exporting settings. Off keeps Instagram-settings.json.")));
+                L10n.t("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.")));
         page.importConfiguration = new Row(context);
         page.importConfiguration.setKey("hushgram_import_configuration");
         page.importConfiguration.setPersistent(false);
-        page.importConfiguration.setTitle(L10n.t("Import Instagram settings"));
+        page.importConfiguration.setTitle(L10n.t("Import HushGram settings"));
         page.importConfiguration.setSummary(L10n.t("Choose a settings file. All valid choices apply together, and ones "
                 + "this version doesn't know are skipped. The Undo row shows how long you can undo."));
         page.importConfiguration.setOnPreferenceClickListener(p -> { page.pickConfiguration(true); return true; });
@@ -50,12 +54,11 @@ final class BackupCategory {
         page.undoConfiguration.setTitle(L10n.t("Undo settings import"));
         // Undo puts the earlier settings back for a while, which the history clock says better than a bin.
         backup.addPreference(mark(page.undoConfiguration, SettingsIcons.UPDATES));
-
         if (build.contains(PatchFamily.OPEN_DEVELOPER_OPTIONS)) {
             backup.addPreference(toggle(context, Settings.DEVELOPER_OPTIONS, L10n.t("Developer options"),
-                    L10n.t("Unlocks developer options by long pressing the Home icon.")));
+                    L10n.t("Unlocks Instagram's developer options by long pressing the Home tab.")));
             backup.addPreference(toggle(context, Settings.DIRECTLY_OPEN_METACONFIG, L10n.t("Directly open MetaConfig"),
-                    L10n.t("Directly opens MetaConfig / Quick Experiments instead of the Developer Options menu when long pressing Home.")));
+                    L10n.t("Open MetaConfig directly when long pressing Home.")));
             Row mapping = new Row(context);
             mapping.setKey("hushgram_upload_developer_mapping");
             mapping.setPersistent(false);
@@ -64,7 +67,6 @@ final class BackupCategory {
             mapping.setOnPreferenceClickListener(p -> { page.pickDeveloperMapping(); return true; });
             backup.addPreference(mark(mapping, SettingsIcons.DOWNLOADS));
         }
-
         page.showConfiguration();
     }
 }

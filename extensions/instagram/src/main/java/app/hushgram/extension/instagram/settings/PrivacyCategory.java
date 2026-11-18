@@ -7,11 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearViewingHistory;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.viewingHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostTabRow;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostIndicatorColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.placeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.proxyServerRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sharingDomainRow;
@@ -43,12 +39,16 @@ final class PrivacyCategory {
             privacy.add(page.ghostPicks);
             page.ghostTab = ghostTabRow(context);
             privacy.add(page.ghostTab);
-            privacy.add(ghostIndicatorColorRow(context));
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
             privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),
                     L10n.t("Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an "
                             + "ad would have been.")));
+        }
+        if (build.contains(PatchFamily.HIDE_PLUS_UPSELL)) {
+            privacy.add(toggle(context, Settings.HIDE_PLUS_UPSELL, L10n.t("Hide Instagram Plus prompts"),
+                    L10n.t("Takes Instagram's offers to try Plus out of chats, stories and menus. Nothing that "
+                            + "comes with Plus is turned on.")));
         }
         if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
             privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),
@@ -84,25 +84,14 @@ final class PrivacyCategory {
                     L10n.t("Instagram's reminder to review whether it can process your data for ads stops opening "
                             + "by itself. Your ad choice doesn't change, and nothing is answered for you.")));
         }
-        if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
-            privacy.add(toggle(context, Settings.VIEWING_HISTORY, L10n.t("Keep a viewing history"),
-                    L10n.t("Remembers the posts, reels, stories and profiles that come up on screen, and who posted "
-                            + "them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is "
-                            + "asked of Instagram. Turn it off and it stops at once. Clear it below.")));
-            Preference history = viewingHistoryRow(context);
-            privacy.add(history);
-            HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);
-            clear.setKey(HushgramPreferenceFragment.CLEAR_VIEWING_HISTORY);
-            clear.setPersistent(false);
-            clear.actsAtOnce = true;
-            clear.setTitle(L10n.t("Clear viewing history"));
-            clear.setSummary(L10n.t("Forgets every post, reel, story and profile on the list, for all your accounts. "
-                    + "The switch stays as it is."));
-            clear.setOnPreferenceClickListener(p -> {
-                clearViewingHistory(p, history);
-                return true;
-            });
-            privacy.add(mark(clear, SettingsIcons.DELETE));
+        if (build.contains(PatchFamily.PHOTO_LOCATIONS)) {
+            privacy.add(toggle(context, Settings.KEEP_PHOTO_LOCATIONS, L10n.t("Keep photo locations from Instagram"),
+                    L10n.t("Instagram can't read where the photos and videos in your gallery were taken.")));
+        }
+        if (build.contains(PatchFamily.BLOCKED_SEARCH)) {
+            privacy.add(toggle(context, Settings.BLOCKED_SEARCH, L10n.t("Search blocked accounts"),
+                    L10n.t("Adds a search box above your blocked accounts in Instagram's settings. It finds them "
+                            + "by username or name, and loads the rest of your list as you type.")));
         }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,

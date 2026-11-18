@@ -7,7 +7,6 @@ package app.hushgram.extension.instagram.direct;
 import androidx.annotation.Nullable;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
-import app.hushgram.extension.instagram.settings.NavigationSettings;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -104,10 +103,7 @@ public final class ChatAccounts {
         String was = known;
         known = account;
         if (was != null && !was.equals(account)) ChatLocks.accountChanged(account);
-        if (!account.equals(before)) {
-            HiddenChats.changedSoon();
-            NavigationSettings.refreshGhostTabIndicator();
-        }
+        if (!account.equals(before)) HiddenChats.changedSoon();
     }
 
     /** An id as Instagram answers it, or null for one that's empty or couldn't be a single id on a list. */

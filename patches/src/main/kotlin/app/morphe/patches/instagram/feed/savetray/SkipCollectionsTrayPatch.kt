@@ -80,10 +80,10 @@ internal fun MutableMethod.skipTray() {
 val skipCollectionsTrayPatch = bytecodePatch(
     name = "Skip the collections tray",
     description = "Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to " +
-        "start a collection. Starts off. Turn it on in Instagram settings > Feed.",
+        "start a collection. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
-    category("Interaction")
+    category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

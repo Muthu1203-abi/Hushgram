@@ -36,7 +36,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * What Hide profile tabs does to the list of tab keys Instagram builds for a profile: it drops the
  * keys the setting for that profile names (your own or someone else's), never the grid, never by
- * position, and gives Instagram's list back untouched when nothing is picked, Instagram is paused or
+ * position, and gives Instagram's list back untouched when nothing is picked, HushGram is paused or
  * the list isn't one it knows.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -214,11 +214,23 @@ public class ProfileTabsTest {
         assertEquals(Arrays.asList(GRID, REELS, REPOSTS), ProfileTabs.tabs(BUILDER, USER, all()));
     }
 
-    /** All three picked leaves the grid alone, which Instagram draws without a strip. */
+    /** Every tab picked leaves the grid alone, which Instagram draws without a strip. */
     @Test
     public void allThreePickedLeavesTheGrid() {
         Settings.HIDDEN_PROFILE_TABS.save(ProfileTabs.join(new LinkedHashSet<>(ProfileTabs.OFFERED)));
         assertEquals(Collections.singletonList(GRID), friends(all()));
+    }
+
+    /** A creator's Subscriptions tab (#721), which Instagram puts right after the grid, goes by its own key. */
+    @Test
+    public void subscriptionsGoesByItsKey() {
+        String subscriptions = "profile_fan_club_grid";
+        assertEquals(subscriptions, ProfileTabs.OFFERED.get(0));
+        Settings.HIDDEN_PROFILE_TABS.save(subscriptions);
+        assertEquals(Arrays.asList(GRID, REELS, TAGGED), friends(Arrays.asList(GRID, subscriptions, REELS, TAGGED)));
+        List<String> without = Arrays.asList(GRID, REELS, TAGGED);
+        assertSame("a profile without it keeps its list", without, friends(without));
+        assertEquals(subscriptions + "," + TAGGED, ProfileTabs.join(ProfileTabs.parse(TAGGED + "," + subscriptions)));
     }
 
     /** Someone else's profile often has fewer tabs, and a tab it lacks is never added or missed. */

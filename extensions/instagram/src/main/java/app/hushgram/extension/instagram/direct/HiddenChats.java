@@ -4,50 +4,23 @@
  */
 package app.hushgram.extension.instagram.direct;
 
-import android.app.Activity;
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
-import android.os.SystemClock;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.os.VibratorManager;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.function.UnaryOperator;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
-import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * The chats "Lock your messages" hides, one at a time.
@@ -58,9 +31,8 @@ import org.json.JSONObject;
  * {@link #searchHits}), out of the recent searches it lists before you type ({@link #recents}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
  * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): the
  * account a chat was hidden on, its thread id and the name it had there. The ids never leave the
- * phone. A chat's long-press menu hides or shows it ({@link #menuOpening}); HushGram settings also
- * add the chat you opened last and take a chat off the list, for the account in front
- * ({@link ChatAccounts}) and no other.
+ * phone. HushGram settings add the chat you opened last and take a chat off the list, for the
+ * account in front ({@link ChatAccounts}) and no other.
  *
  * <p>Each account's inbox, search and badge leave out the chats hidden on that account. A push is
  * dropped for a chat hidden on the account it was sent to. While no account is known (before the
@@ -74,6 +46,10 @@ import org.json.JSONObject;
  * <p>A chat ticked or unticked in HushGram settings shows in the inbox as soon as you're back
  * ({@link #changed}): each inbox that drew its rows is handed Instagram's own list again without the
  * chats hidden now, and draws them again.
+ *
+ * <p>Double-tap Messages shows the hidden chats in the inbox by themselves, after the phone's lock
+ * or the PIN ({@link #reveal}), until the next double tap or until you leave Instagram ({@link
+ * #conceal}) (#661). Search, the folder counts, the unread badge and pushes leave them out all along.
  *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
@@ -119,286 +95,31 @@ public final class HiddenChats {
 
     static volatile Redrawer redrawer = HiddenChats::redraw;
 
-    /** True while the Messages inbox is showing only chats hidden for the active account. */
-    private static volatile boolean hiddenOnlyInbox;
-    /** The hide/show action appended to the chat menu that is currently opening. */
-    private static volatile String menuButton;
-    private static volatile boolean menuButtonHides;
-    private static final String INBOX_ICON_TAG = "hushgram_hidden_inbox_icon";
-    private static final String INBOX_TITLE_BOX = "action_bar_title_notifications_container";
-    private static final String INBOX_TITLE = "igds_action_bar_title";
-    private static final WeakHashMap<View, Boolean> watchedDecor = new WeakHashMap<>();
-    private static final String MESSAGES_TAB = "direct_tab";
-    private static final WeakHashMap<View, Boolean> unreadDotWatched = new WeakHashMap<>();
-    private static final WeakHashMap<View, GradientDrawable> unreadDots = new WeakHashMap<>();
-    private static final Map<String, Set<String>> unreadByAccount = new HashMap<>();
-    /** Unread ids already present when a chat was hidden, or cleared when it was opened. */
-    private static final Map<String, Set<String>> dismissedUnreadByAccount = new HashMap<>();
-    /** Whether dismissed IDs have been restored from the phone's private settings. */
-    private static boolean dismissedUnreadLoaded;
-    private static volatile WeakReference<Activity> lastActivity = new WeakReference<>(null);
-    private static long lastHiddenMessageHapticAt;
-
-    private static final String[] HIDE_MENU_BUTTONS = {"HIDE_FROM_PRIMARY", "HIDE_FROM_MESSAGES"};
-    private static final String[] SHOW_MENU_BUTTONS = {"SHOW_IN_PRIMARY", "SHOW_IN_MESSAGES"};
+    /** The inbox shows the hidden chats, and only them, until {@link #conceal}. */
+    private static volatile boolean revealed;
 
     private HiddenChats() {
     }
 
-    /** Adds an available Instagram hide/show action to the chat's long-press menu. */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static List menuOpening(List buttons, Object menu) {
-        menuButton = null;
-        try {
-            if (!Utils.settingsReady() || HushgramPause.isPaused() || buttons == null || buttons.isEmpty() || menu == null) {
-                return buttons;
-            }
-            Object session = sessionIn(menu);
-            String account = session == null ? null : InstagramChats.accountId(session);
-            if (account == null || account.isEmpty()) return buttons;
+    // ---------------------------------------------------------------- shown by a double tap
 
-            boolean show = hiddenOnly() && account.equals(ChatAccounts.active());
-            Class<? extends Enum> type = (Class<? extends Enum>) buttons.get(0).getClass();
-            Set<String> present = new java.util.HashSet<>();
-            for (Object button : buttons) present.add(String.valueOf(button));
-            for (String candidate : show ? SHOW_MENU_BUTTONS : HIDE_MENU_BUTTONS) {
-                if (present.contains(candidate)) continue;
-                List extended = new ArrayList(buttons);
-                extended.add(Enum.valueOf(type, candidate));
-                menuButton = candidate;
-                menuButtonHides = !show;
-                return extended;
-            }
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chat menu", t);
-        }
-        return buttons;
+    /** The inbox shows the hidden chats now, by themselves. */
+    public static boolean revealed() {
+        return revealed;
     }
 
-    /** Handles the hide/show menu action. True keeps Instagram from handling that action. */
-    public static boolean onMenuButton(Object session, Object button, Object key) {
-        try {
-            String selected = menuButton;
-            if (selected == null || button == null || !selected.equals(String.valueOf(button)) || session == null || key == null) {
-                return false;
-            }
-            String account = InstagramChats.accountId(session);
-            String id = InstagramChats.threadId(key);
-            if (account == null || account.isEmpty() || id == null || id.isEmpty()) return false;
-            boolean hide = menuButtonHides;
-            menuButton = null;
-            boolean saved = hide ? add(account, id, "") : remove(account, id);
-            if (!saved) return true;
-            Utils.showToastShort(L10n.t(hide ? "Chat hidden" : "Chat shown again"));
-            return true;
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chat menu", t);
-            return false;
-        }
+    /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
+    static void reveal() {
+        revealed = true;
+        changedSoon();
     }
 
-    /** Keeps a lock icon beside Messages' title while the inbox is showing hidden chats. */
-    public static void watchInboxIndicator(Activity activity) {
-        try {
-            if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-            View decor = activity.getWindow().getDecorView();
-            synchronized (watchedDecor) {
-                if (watchedDecor.put(decor, Boolean.TRUE) != null) return;
-            }
-            int boxId = activity.getResources().getIdentifier(INBOX_TITLE_BOX, "id", activity.getPackageName());
-            int titleId = activity.getResources().getIdentifier(INBOX_TITLE, "id", activity.getPackageName());
-            if (boxId == 0 || titleId == 0) return;
-            decor.getViewTreeObserver().addOnPreDrawListener(() -> {
-                if (hiddenOnlyInbox || hasInboxIndicator(decor, boxId)) syncInboxIndicator(decor, boxId, titleId);
-                return true;
-            });
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden inbox indicator", t);
-        }
-    }
-
-    /** Watches the Messages tab for a red in-app dot for unread hidden chats. */
-    public static void watchHiddenUnreadDot(Activity activity) {
-        try {
-            if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-            lastActivity = new WeakReference<>(activity);
-            View decor = activity.getWindow().getDecorView();
-            synchronized (unreadDotWatched) {
-                if (unreadDotWatched.put(decor, Boolean.TRUE) != null) return;
-            }
-            int tabId = activity.getResources().getIdentifier(MESSAGES_TAB, "id", activity.getPackageName());
-            if (tabId == 0) return;
-            decor.getViewTreeObserver().addOnPreDrawListener(() -> {
-                syncHiddenUnreadDot(decor, tabId);
-                return true;
-            });
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread dot", t);
-        }
-    }
-
-    /** Keeps unread hidden chat ids noticed on a dropped push until Instagram's next unread snapshot. */
-    private static void rememberHiddenPush(Collection<String> pushIds, String account, Set<String> hidden) {
-        if (account == null || account.isEmpty()) return;
-        loadDismissedUnread();
-        synchronized (unreadByAccount) {
-            Set<String> unread = unreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>());
-            for (String id : pushIds) {
-                if (hidden.contains(id)) {
-                    unread.add(id);
-                    Set<String> dismissed = dismissedUnreadByAccount.get(account);
-                    if (dismissed != null) {
-                        dismissed.remove(id);
-                        if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
-                    }
-                }
-            }
-            saveDismissedUnreadLocked();
-        }
-        vibrateForHiddenMessageInApp();
-        refreshHiddenUnreadDot();
-    }
-
-    /** Haptic-only feedback for a hidden message; never vibrates while Instagram is in the background. */
-    private static void vibrateForHiddenMessageInApp() {
-        if (!Utils.settingsReady() || !Settings.VIBRATE_HIDDEN_CHAT_MESSAGES.get()) return;
-        Activity activity = Utils.getActivity();
-        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-        View decor = activity.getWindow().getDecorView();
-        decor.post(() -> {
-            try {
-                if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus()) return;
-                long now = SystemClock.elapsedRealtime();
-                synchronized (HiddenChats.class) {
-                    if (lastHiddenMessageHapticAt != 0L && now - lastHiddenMessageHapticAt < 1200L) return;
-                    lastHiddenMessageHapticAt = now;
-                }
-                Vibrator vibrator = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                        ? activity.getSystemService(VibratorManager.class).getDefaultVibrator()
-                        : (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
-                if (vibrator == null || !vibrator.hasVibrator()) return;
-                vibrator.vibrate(VibrationEffect.createOneShot(35L, VibrationEffect.DEFAULT_AMPLITUDE));
-            } catch (Throwable t) {
-                HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden message haptic", t);
-            }
-        });
-    }
-
-    static boolean hasHiddenUnread() {
-        loadDismissedUnread();
-        String account = ChatAccounts.active();
-        if (account == null || account.isEmpty()) return false;
-        Set<String> hidden = idsFor(account);
-        if (hidden.isEmpty()) return false;
-        synchronized (unreadByAccount) {
-            Set<String> unread = unreadByAccount.get(account);
-            if (unread == null || unread.isEmpty()) return false;
-            Set<String> dismissed = dismissedUnreadByAccount.get(account);
-            for (String id : unread) {
-                if (hidden.contains(id) && (dismissed == null || !dismissed.contains(id))) return true;
-            }
-        }
-        return false;
-    }
-
-    /** Refreshes the tab dot on the UI thread after an unread snapshot or a hidden-chat change. */
-    private static void refreshHiddenUnreadDot() {
-        Activity activity = lastActivity.get();
-        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-        View decor = activity.getWindow().getDecorView();
-        decor.post(() -> {
-            try {
-                int tabId = activity.getResources().getIdentifier(MESSAGES_TAB, "id", activity.getPackageName());
-                if (tabId != 0) syncHiddenUnreadDot(decor, tabId);
-            } catch (Throwable t) {
-                HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread dot", t);
-            }
-        });
-    }
-
-    /** Uses the tab's overlay so its ordinary Instagram unread count remains intact. */
-    private static void syncHiddenUnreadDot(View decor, int tabId) {
-        try {
-            View tab = decor.findViewById(tabId);
-            if (tab == null || !tab.isShown()) return;
-            GradientDrawable dot = unreadDots.get(tab);
-            if (!hasHiddenUnread()) {
-                if (dot != null) {
-                    tab.getOverlay().remove(dot);
-                    unreadDots.remove(tab);
-                }
-                return;
-            }
-            if (dot == null) {
-                dot = new GradientDrawable();
-                dot.setShape(GradientDrawable.OVAL);
-                dot.setColor(Color.rgb(255, 48, 64));
-                dot.setStroke(dp(tab, 1), Color.WHITE);
-                unreadDots.put(tab, dot);
-                tab.getOverlay().add(dot);
-            }
-            int size = dp(tab, 8);
-            int x = tab.getWidth() / 2 + dp(tab, 9);
-            int y = dp(tab, 4);
-            if (x + size > tab.getWidth()) x = Math.max(0, tab.getWidth() - size - dp(tab, 4));
-            dot.setBounds(x, y, x + size, y + size);
-            tab.invalidate();
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread dot", t);
-        }
-    }
-
-    private static int dp(View view, int value) {
-        return Math.round(value * view.getResources().getDisplayMetrics().density);
-    }
-
-    private static boolean hasInboxIndicator(View decor, int boxId) {
-        View box = decor.findViewById(boxId);
-        return box instanceof ViewGroup && ((ViewGroup) box).findViewWithTag(INBOX_ICON_TAG) != null;
-    }
-
-    private static void syncInboxIndicator(View decor, int boxId, int titleId) {
-        try {
-            View box = decor.findViewById(boxId);
-            if (!(box instanceof LinearLayout)) return;
-            LinearLayout row = (LinearLayout) box;
-            View existing = row.findViewWithTag(INBOX_ICON_TAG);
-            if (!hiddenOnlyInbox) {
-                if (existing != null) row.removeView(existing);
-                return;
-            }
-            View title = row.findViewById(titleId);
-            if (existing != null || !(title instanceof TextView)) return;
-            TextView text = (TextView) title;
-            ImageView icon = new ImageView(row.getContext());
-            icon.setTag(INBOX_ICON_TAG);
-            icon.setImageResource(android.R.drawable.ic_lock_lock);
-            icon.setColorFilter(text.getCurrentTextColor(), PorterDuff.Mode.SRC_IN);
-            icon.setContentDescription(L10n.t("Hidden inbox"));
-            int size = Math.max(1, Math.round(text.getTextSize() * 1.1f));
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
-            params.gravity = Gravity.CENTER_VERTICAL;
-            params.setMarginStart(Math.round(text.getTextSize() * 0.3f));
-            row.addView(icon, row.indexOfChild(title) + 1, params);
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden inbox indicator", t);
-        }
-    }
-
-    /** Reads the session field the inbox menu object keeps, without naming Instagram's obfuscated class. */
-    private static Object sessionIn(Object owner) {
-        for (Class<?> type = owner.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (!field.getType().getName().equals("com.instagram.common.session.UserSession")) continue;
-                try {
-                    field.setAccessible(true);
-                    return field.get(owner);
-                } catch (Throwable ignored) {
-                    return null;
-                }
-            }
-        }
-        return null;
+    /** The inbox goes back to every chat but the hidden ones. False when they weren't shown. */
+    static boolean conceal() {
+        if (!revealed) return false;
+        revealed = false;
+        changedSoon();
+        return true;
     }
 
     /**
@@ -415,10 +136,9 @@ public final class HiddenChats {
     /**
      * Asked with the inbox's holder and the list of chats it is about to keep and turn into rows,
      * each time Instagram hands it one: the one read from the phone at start, a fresh page from the
-     * server, a pull to refresh, a switch of folder tab. In the regular inbox, hidden chats are left
-     * out. In hidden-only mode, every chat except the hidden ones is left out. Instagram's own list
-     * is left as it was, so the inbox's state, its next page and what it saves to the phone still
-     * have every chat.
+     * server, a pull to refresh, a switch of folder tab. A list with no hidden chat in it comes back
+     * as it is, and otherwise a copy without the hidden ones does. Instagram's own list is left as it
+     * was, so the inbox's state, its next page and what it saves to the phone still have every chat.
      * The holder is remembered weakly with Instagram's own list, so a change to the hidden chats can
      * draw it again ({@link #changed}).
      */
@@ -427,15 +147,29 @@ public final class HiddenChats {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             Set<String> hidden = ids();
             List<String> pins = PinnedChats.ids();
-            boolean onlyHidden = hiddenOnly();
-            remember(holder, summaries, hidden, pins, onlyHidden);
+            boolean shown = revealed && !hidden.isEmpty();
+            remember(holder, summaries, hidden, pins, shown);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            if (onlyHidden) return only(summaries, hidden);
-            return PinnedChats.first(without(summaries, hidden, LEFT_OUT), pins);
+            return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, LEFT_OUT), pins);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
         }
+    }
+
+    /** A new list of the summaries whose chats are [hidden], in their order. */
+    private static List<Object> only(List<Object> summaries, Set<String> hidden) {
+        ArrayList<Object> kept = new ArrayList<>();
+        for (Object summary : summaries) {
+            String id = idOf(summary);
+            if (id != null && hidden.contains(id)) kept.add(summary);
+        }
+        return kept;
+    }
+
+    /** What an inbox draws from [summaries]: the hidden chats alone while [shown], else every other chat, pins first. */
+    private static List<Object> drawnRows(List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+        return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, null), pins);
     }
 
     /**
@@ -483,23 +217,30 @@ public final class HiddenChats {
         }
     }
 
+    /**
+     * Asked with the thread summaries Instagram's unread badge snapshot has just read, when it reads
+     * them through the thread store's helper that wraps them so nothing can change them (456). A
+     * list with no hidden chat in it comes back as it is. Otherwise a copy without the hidden ones
+     * does, wrapped the same way.
+     */
+    public static List<Object> badge(List<Object> summaries) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (summaries == null || summaries.isEmpty()) return summaries;
+            List<Object> shown = without(summaries, ids(), LEFT_OUT_BADGE);
+            return shown == summaries ? summaries : Collections.unmodifiableList(shown);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, BADGE_FILTER, t);
+            return summaries;
+        }
+    }
+
     /** A new list of the summaries whose chats aren't hidden, in their order. */
     private static ArrayList<Object> shown(List<Object> summaries, Set<String> hidden) {
         ArrayList<Object> shown = new ArrayList<>(summaries.size());
         for (Object summary : summaries) {
             String id = idOf(summary);
             if (id == null || !hidden.contains(id)) shown.add(summary);
-        }
-        return shown;
-    }
-
-    /** The chats on the hidden list, in Instagram's order; rows without a readable id stay private. */
-    private static List<Object> only(List<Object> summaries, Set<String> hidden) {
-        if (hidden.isEmpty() || summaries.isEmpty()) return Collections.emptyList();
-        ArrayList<Object> shown = new ArrayList<>(summaries.size());
-        for (Object summary : summaries) {
-            String id = idOf(summary);
-            if (id != null && hidden.contains(id)) shown.add(summary);
         }
         return shown;
     }
@@ -532,14 +273,15 @@ public final class HiddenChats {
         final List<Object> summaries;
         Set<String> hidden;
         List<String> pins;
-        boolean onlyHidden;
+        /** It drew the hidden chats by themselves. */
+        boolean shown;
 
-        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean onlyHidden) {
+        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
             this.holder = new WeakReference<>(holder);
             this.summaries = summaries;
             this.hidden = hidden;
             this.pins = pins;
-            this.onlyHidden = onlyHidden;
+            this.shown = shown;
         }
     }
 
@@ -551,53 +293,21 @@ public final class HiddenChats {
      * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
      * settings aren't ready, so nothing is drawn again then either.
      */
-    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins,
-                                 boolean onlyHidden) {
+    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
         if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
         synchronized (drawn) {
             for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                 Object kept = it.next().holder.get();
                 if (kept == null || kept == holder) it.remove();
             }
-            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins, onlyHidden));
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins, shown));
         }
-    }
-
-    /** Switches the inbox filter and redraws the open inbox from Instagram's retained full chat list. */
-    public static void toggleHiddenOnlyInbox() {
-        if (!Utils.settingsReady() || HushgramPause.isPaused() || ChatAccounts.active() == null
-                || !Settings.DOUBLE_TAP_HIDDEN_CHATS.get()) return;
-        hiddenOnlyInbox = !hiddenOnlyInbox;
-        changed();
-    }
-
-    /** Leaving Messages ends the temporary hidden-only view; returning to Messages starts on the usual inbox. */
-    static void showRegularInbox() {
-        if (!hiddenOnlyInbox) return;
-        hiddenOnlyInbox = false;
-        changed();
-    }
-
-    /** Whether a temporary hidden-only inbox is active, clearing it if its setting is no longer valid. */
-    static boolean isShowingHiddenOnlyInbox() {
-        return hiddenOnly();
-    }
-
-    /** Private-inbox mode is valid only for the signed-in account and while its switch is active. */
-    private static boolean hiddenOnly() {
-        if (!hiddenOnlyInbox) return false;
-        if (!Utils.settingsReady() || HushgramPause.isPaused() || ChatAccounts.active() == null
-                || !Settings.DOUBLE_TAP_HIDDEN_CHATS.get()) {
-            hiddenOnlyInbox = false;
-            return false;
-        }
-        return true;
     }
 
     /**
      * Asked after the hidden chats were saved. Each inbox holder Instagram still has, whose rows the
-     * change affects, is handed its list again with the current inbox filter and draws its rows from
-     * it ({@link #redraw}). Nothing runs while HushGram is paused or its
+     * change adds a chat to or takes one from, is handed its list again without the chats hidden now
+     * and draws its rows from it ({@link #redraw}). Nothing runs while HushGram is paused or its
      * settings aren't ready, for a holder whose rows stay the same (nothing hidden before or after,
      * the same chats hidden, or a chat that isn't in its list), or for one Instagram dropped. No
      * listener or timer is left behind: this runs once for each change and is done.
@@ -611,7 +321,7 @@ public final class HiddenChats {
                 if (drawn.isEmpty()) return;
                 Set<String> now = ids();
                 List<String> nowPins = PinnedChats.ids();
-                boolean nowOnlyHidden = hiddenOnly();
+                boolean nowShown = revealed && !now.isEmpty();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -619,12 +329,12 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
-                    if (one.hidden.equals(now) && one.pins.equals(nowPins) && one.onlyHidden == nowOnlyHidden) continue;
-                    List<Object> before = rows(one.summaries, one.hidden, one.pins, one.onlyHidden);
-                    List<Object> after = rows(one.summaries, now, nowPins, nowOnlyHidden);
+                    if (one.hidden.equals(now) && one.pins.equals(nowPins) && one.shown == nowShown) continue;
+                    List<Object> before = drawnRows(one.summaries, one.hidden, one.pins, one.shown);
+                    List<Object> after = drawnRows(one.summaries, now, nowPins, nowShown);
                     one.hidden = now;
                     one.pins = nowPins;
-                    one.onlyHidden = nowOnlyHidden;
+                    one.shown = nowShown;
                     if (sameRows(before, after)) continue;
                     holders.add(holder);
                     lists.add(after);
@@ -641,11 +351,6 @@ public final class HiddenChats {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
         }
-    }
-
-    private static List<Object> rows(List<Object> summaries, Set<String> hidden, List<String> pins,
-                                     boolean onlyHidden) {
-        return onlyHidden ? only(summaries, hidden) : PinnedChats.first(without(summaries, hidden, null), pins);
     }
 
     /** The same summaries in the same order. */
@@ -837,18 +542,12 @@ public final class HiddenChats {
      * Counted when it is, so the diagnostic report shows pushes that were dropped.
      */
     static boolean hides(Collection<String> pushIds, @Nullable String account) {
-        return hides(pushIds, account, true);
-    }
-
-    /** Drops a push for a hidden chat; only a confirmed message push may add the in-app unread dot. */
-    static boolean hides(Collection<String> pushIds, @Nullable String account, boolean messagePush) {
         try {
             Set<String> hidden = idsFor(account);
             if (hidden.isEmpty()) return false;
             for (String id : pushIds) {
                 if (hidden.contains(id)) {
                     HookStatus.counted(FamilyNames.MESSAGES_LOCK, SILENCED);
-                    if (messagePush) rememberHiddenPush(pushIds, account, hidden);
                     return true;
                 }
             }
@@ -924,36 +623,6 @@ public final class HiddenChats {
         return saved(ChatAccounts.active());
     }
 
-    /** Usernames named by this account's hidden chats, for public search and suggestions only. */
-    public static Set<String> searchUsernames() {
-        try {
-            if (!Utils.settingsReady() || !Settings.HIDE_HIDDEN_CHATS_FROM_SEARCH.get()) return Collections.emptySet();
-            String account = ChatAccounts.active();
-            if (empty(account)) return Collections.emptySet();
-            Set<String> names = new HashSet<>();
-            for (ChatList.Row row : rows(false)) {
-                if (!row.protects(account) || row.name == null) continue;
-                String name = row.name.trim();
-                while (name.startsWith("@")) name = name.substring(1).trim();
-                name = name.toLowerCase(Locale.ROOT);
-                if (validUsername(name)) names.add(name);
-            }
-            return names.isEmpty() ? Collections.emptySet() : names;
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.HIDDEN_CHAT_SEARCH, "hidden chat search names", failure);
-            return Collections.emptySet();
-        }
-    }
-
-    private static boolean validUsername(String name) {
-        if (name.isEmpty() || name.length() > 30) return false;
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '_')) return false;
-        }
-        return true;
-    }
-
     /** Every account's hidden chats, as they are now or, with [chosen], as chosen whether paused or not. */
     private static List<ChatList.Row> rows(boolean chosen) {
         try {
@@ -999,11 +668,7 @@ public final class HiddenChats {
     public static boolean add(@Nullable String account, String id, String name) {
         if (empty(account) || empty(id)) return false;
         boolean saved = change(rows -> ChatList.added(rows, account, id, name));
-        if (saved) {
-            dismissUnread(account, id);
-            changedSoon();
-            refreshHiddenUnreadDot();
-        }
+        if (saved) changedSoon();
         return saved;
     }
 
@@ -1020,23 +685,7 @@ public final class HiddenChats {
     public static boolean remove(@Nullable String account, String id) {
         if (empty(account) || empty(id)) return false;
         boolean saved = change(rows -> ChatList.removed(rows, account, id));
-        if (saved) {
-            synchronized (unreadByAccount) {
-                Set<String> unread = unreadByAccount.get(account);
-                if (unread != null) {
-                    unread.remove(id);
-                    if (unread.isEmpty()) unreadByAccount.remove(account);
-                }
-                Set<String> dismissed = dismissedUnreadByAccount.get(account);
-                if (dismissed != null) {
-                    dismissed.remove(id);
-                    if (dismissed.isEmpty()) dismissedUnreadByAccount.remove(account);
-                    saveDismissedUnreadLocked();
-                }
-            }
-            changedSoon();
-            refreshHiddenUnreadDot();
-        }
+        if (saved) changedSoon();
         return saved;
     }
 
@@ -1073,69 +722,6 @@ public final class HiddenChats {
     /** Another account came to the front: the list is parsed again for it. */
     static void accountChanged() {
         parsed = null;
-        hiddenOnlyInbox = false;
-        refreshHiddenUnreadDot();
-    }
-
-    /** Opening a hidden chat clears its in-app dot without sending or changing Instagram read receipts. */
-    static void opened(String account, String id) {
-        if (empty(account) || empty(id)) return;
-        dismissUnread(account, id);
-        refreshHiddenUnreadDot();
-    }
-
-    private static void dismissUnread(String account, String id) {
-        loadDismissedUnread();
-        synchronized (unreadByAccount) {
-            Set<String> unread = unreadByAccount.get(account);
-            if (unread != null) {
-                unread.remove(id);
-                if (unread.isEmpty()) unreadByAccount.remove(account);
-            }
-            dismissedUnreadByAccount.computeIfAbsent(account, ignored -> new HashSet<>()).add(id);
-            saveDismissedUnreadLocked();
-        }
-    }
-
-    /** Restores per-account read acknowledgements so stale unread snapshots stay dismissed after restart. */
-    private static void loadDismissedUnread() {
-        synchronized (unreadByAccount) {
-            if (dismissedUnreadLoaded) return;
-            dismissedUnreadLoaded = true;
-            try {
-                JSONObject saved = new JSONObject(Settings.HIDDEN_CHAT_UNREAD_DISMISSED.savedValue());
-                java.util.Iterator<String> accounts = saved.keys();
-                while (accounts.hasNext()) {
-                    String account = accounts.next();
-                    JSONArray ids = saved.optJSONArray(account);
-                    if (ids == null) continue;
-                    Set<String> kept = new HashSet<>();
-                    for (int i = 0; i < ids.length(); i++) {
-                        String id = ids.optString(i, "");
-                        if (!id.isEmpty()) kept.add(id);
-                    }
-                    if (!kept.isEmpty()) dismissedUnreadByAccount.put(account, kept);
-                }
-            } catch (Throwable ignored) {
-                dismissedUnreadByAccount.clear();
-            }
-        }
-    }
-
-    /** Caller holds unreadByAccount. The value is device-local and excluded from settings exports. */
-    private static void saveDismissedUnreadLocked() {
-        try {
-            JSONObject saved = new JSONObject();
-            for (Map.Entry<String, Set<String>> entry : dismissedUnreadByAccount.entrySet()) {
-                if (entry.getValue().isEmpty()) continue;
-                JSONArray ids = new JSONArray();
-                for (String id : entry.getValue()) ids.put(id);
-                saved.put(entry.getKey(), ids);
-            }
-            Settings.HIDDEN_CHAT_UNREAD_DISMISSED.save(saved.toString());
-        } catch (Throwable ignored) {
-            // The in-memory state still works for this process if storage is unavailable.
-        }
     }
 
     private static boolean empty(String text) {
@@ -1148,12 +734,7 @@ public final class HiddenChats {
         searchReader = HiddenChats::targetThreadId;
         redrawer = HiddenChats::redraw;
         parsed = null;
-        hiddenOnlyInbox = false;
-        synchronized (unreadByAccount) {
-            unreadByAccount.clear();
-            dismissedUnreadByAccount.clear();
-            dismissedUnreadLoaded = false;
-        }
+        revealed = false;
         synchronized (drawn) {
             drawn.clear();
         }

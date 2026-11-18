@@ -36,7 +36,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The Instagram settings row on Instagram's Settings and activity screen. */
+/** The HushGram settings row on Instagram's Settings and activity screen. */
 @RunWith(RobolectricTestRunner.class)
 public class SettingsScreenRowTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
@@ -85,7 +85,7 @@ public class SettingsScreenRowTest {
         View row = column.getChildAt(0);
         assertEquals(SettingsScreenRow.TAG, row.getTag());
         assertTrue("the row doesn't take taps", row.isClickable());
-        assertEquals("Instagram settings", ((TextView) ((ViewGroup) row).getChildAt(1)).getText().toString());
+        assertEquals("HushGram settings", ((TextView) ((ViewGroup) row).getChildAt(1)).getText().toString());
         assertSame("Instagram's screen isn't last", screen, column.getChildAt(2));
         assertEquals("Instagram's screen doesn't fill what's left", 1f,
                 ((LinearLayout.LayoutParams) screen.getLayoutParams()).weight, 0f);

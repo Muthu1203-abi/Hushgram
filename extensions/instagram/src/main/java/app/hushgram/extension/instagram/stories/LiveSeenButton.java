@@ -19,7 +19,6 @@ import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
-import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -96,7 +95,7 @@ public final class LiveSeenButton {
 
     /** Whether the button shows: lives watched anonymously and its own switch on. Both read off while paused. */
     static boolean switchedOn() {
-        return Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_LIVE_ANONYMOUSLY) && Settings.MARK_LIVE_SEEN.get();
+        return Utils.settingsReady() && Settings.VIEW_LIVE_ANONYMOUSLY.get() && Settings.MARK_LIVE_SEEN.get();
     }
 
     static void resetForTests() {
@@ -104,13 +103,13 @@ public final class LiveSeenButton {
     }
 
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     /** The header's three-dot menu under [root], in a row of buttons, reporting a build without it while the button is wanted. */
     @Nullable
     private static View menu(View root, boolean wanted) {
-        int id = IDS.resolve(root.getResources(), root.getContext().getPackageName(), MENU, false);
+        int id = IDS.resolve(root.getResources(), Utils.resourcePackage(root.getContext()), MENU, false);
         View found = id == 0 ? null : root.findViewById(id);
         ViewParent parent = found == null ? null : found.getParent();
         if (!(parent instanceof LinearLayout)) {

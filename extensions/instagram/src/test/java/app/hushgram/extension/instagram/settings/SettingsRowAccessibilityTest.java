@@ -527,17 +527,21 @@ public class SettingsRowAccessibilityTest {
         assertRoleLabel(row(preference), preference);
     }
 
-    @Test public void missingFamiliesAndRemovedInformationalRowsStayAbsent() throws Exception {
+    @Test public void missingFamiliesAndInformationalRowsOfferNoFeatureAction() throws Exception {
         open();
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ONLY_FOLLOWING.key));
         assertNull(page.getPreferenceScreen().findPreference("hushgram_status"));
-        assertNull(page.getPreferenceScreen().findPreference("action_report_problem"));
-        assertNull(page.getPreferenceScreen().findPreference("action_support_hushgram"));
-        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
-            Preference preference = page.getPreferenceScreen().getPreference(i);
-            assertFalse("About category must stay removed", "About".contentEquals(preference.getTitle()));
-        }
+        Preference status = page.about.getPreference(0);
+        assertEquals("Version", status.getTitle());
+        assertFalse(status.isSelectable());
+        View view = row(status);
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        assertNotEquals(Button.class.getName(), node.getClassName());
+        assertFalse(node.isCheckable());
+        assertFalse(clickable(node));
+        node.recycle();
+        assertFalse(view.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -679,7 +683,7 @@ public class SettingsRowAccessibilityTest {
         Preference header = null;
         for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
             Preference candidate = page.getPreferenceScreen().getPreference(i);
-            if ("Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
+            if (candidate.getTitle() != null && "Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
         }
         assertNotNull(header);
         View button = row(header);

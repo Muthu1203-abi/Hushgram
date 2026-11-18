@@ -46,7 +46,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * With a Instagram PIN behind the locks, every setting that would weaken one asks the PIN, the
+ * With a HushGram PIN behind the locks, every setting that would weaken one asks the PIN, the
  * phone's lock never stands in for it, and a wrong PIN leaves the setting as it was. The rows are
  * the ones on the settings screen, reached by search and by the full list as well.
  */
@@ -67,6 +67,8 @@ public class PinBypassTest {
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         Settings.LOCK_MESSAGES.save(true);
         Settings.LOCK_APP.save(true);
+        Settings.LOCK_SAVED.save(true);
+        Settings.LOCK_EACH_CHAT.save(true);
         Settings.UNLOCK_WITH.save(UnlockWith.PIN);
         assertTrue(PinLock.set(PIN));
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.MESSAGES_LOCK);
@@ -87,6 +89,8 @@ public class PinBypassTest {
         BaseSettings.PAUSED.save(false);
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
+        Settings.LOCK_SAVED.resetToDefault();
+        Settings.LOCK_EACH_CHAT.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
         Settings.LOCK_PIN.resetToDefault();
@@ -145,6 +149,16 @@ public class PinBypassTest {
     @Test
     public void turningLockAllOfInstagramOffAsksThePin() {
         checkSwitch(Settings.LOCK_APP.key, "Lock all of Instagram");
+    }
+
+    @Test
+    public void turningLockSavedOffAsksThePin() {
+        checkSwitch(Settings.LOCK_SAVED.key, "Lock Saved");
+    }
+
+    @Test
+    public void turningAskForEachChatOffAsksThePin() {
+        checkSwitch(Settings.LOCK_EACH_CHAT.key, "Ask for each chat");
     }
 
     private void checkSwitch(String key, String query) {
@@ -211,7 +225,7 @@ public class PinBypassTest {
 
     @Test
     public void changingThePinAsksTheCurrentOneFirst() {
-        eachRoute("hushgram_change_pin_row", "Instagram PIN", () -> {
+        eachRoute("hushgram_change_pin_row", "HushGram PIN", () -> {
             Preference row = row("hushgram_change_pin_row");
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             AlertDialog ask = dialog();

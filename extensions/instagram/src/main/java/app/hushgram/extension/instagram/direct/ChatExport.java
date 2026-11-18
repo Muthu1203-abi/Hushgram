@@ -32,7 +32,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * folder instead.
  */
 public final class ChatExport {
-    static final String FOLDER = "Instagram";
+    static final String FOLDER = "HushGram";
     private static final String MIME = "text/plain";
     /** The most characters of a chat's name that go in the file name, so a toast naming it fits. */
     static final int TITLE_CHARS = 14;
@@ -46,7 +46,7 @@ public final class ChatExport {
         if (clean.length() > TITLE_CHARS) clean = clean.substring(0, TITLE_CHARS).trim();
         while (clean.endsWith(".")) clean = clean.substring(0, clean.length() - 1).trim();
         String stamp = new SimpleDateFormat("yyyy-MM-dd HHmm", Locale.US).format(new Date(millis));
-        return "Instagram chat " + (clean.isEmpty() ? "" : clean + " ") + stamp + ".txt";
+        return "HushGram chat " + (clean.isEmpty() ? "" : clean + " ") + stamp + ".txt";
     }
 
     /** Whether this phone keeps the file in the app's own folder rather than the public Download folder. */

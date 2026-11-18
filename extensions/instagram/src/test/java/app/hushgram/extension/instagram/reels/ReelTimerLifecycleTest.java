@@ -46,7 +46,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Full screen Reels and Home, and Find the reel you came from, keep no look running once there's
- * nothing for it to do: with the switch off, while Instagram is paused, when the screen goes away,
+ * nothing for it to do: with the switch off, while HushGram is paused, when the screen goes away,
  * and while nothing on the screen changes (#129).
  */
 @RunWith(RobolectricTestRunner.class)

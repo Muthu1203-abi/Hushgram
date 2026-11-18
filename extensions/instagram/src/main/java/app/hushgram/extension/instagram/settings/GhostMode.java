@@ -10,21 +10,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.json.JSONObject;
-
-import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BooleanSetting;
-import app.hushgram.extension.shared.settings.Setting;
 
 /**
- * One switch over the switches that keep what you do on Instagram to yourself. Its on/off choice is
- * stored by Instagram account; a selected feature reads that account's choice while its individual
- * switch values remain the shared fallback. Which ones it turns is your pick ({@link #picked}, #251),
- * all of them to start. Pause still wins.
+ * One switch over the switches that keep what you do on Instagram to yourself. It keeps no value of
+ * its own: it's on while every one of them it turns is on, and flipping it saves the same value to
+ * each. Which ones it turns is your pick ({@link #picked}, #251), all of them to start. Pause still
+ * wins, since each switch reads as off while HushGram is paused.
  */
-public final class GhostMode {
+final class GhostMode {
     private GhostMode() { }
 
     /**
@@ -83,6 +79,7 @@ public final class GhostMode {
         if (build.contains(PatchFamily.ACTIVE_STATUS)) switches.add(Settings.HIDE_ACTIVE_STATUS);
         if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) switches.add(Settings.HIDE_SCREENSHOTS);
         if (build.contains(PatchFamily.BLEND_VISITS)) switches.add(Settings.HIDE_BLEND_VISITS);
+        if (build.contains(PatchFamily.FEED_VIEW_HISTORY)) switches.add(Settings.DONT_SEND_FEED_VIEW_HISTORY);
         return switches;
     }
 
@@ -91,79 +88,20 @@ public final class GhostMode {
         return switches.size() >= 2;
     }
 
-    /** The account's saved master choice, or the switches' current state before it has one. */
+    /** On while every ghost switch is saved on. */
     static boolean on(List<BooleanSetting> switches) {
-        if (Setting.isPaused()) return false;
-        String account = ChatAccounts.active();
-        Boolean saved = accountState(account);
-        if (saved != null) return saved;
         return !switches.isEmpty() && all(switches, true);
     }
 
-    /** Effective value for a selected Ghost mode switch on the account currently in front. */
-    public static boolean enabled(BooleanSetting setting) {
-        if (Setting.isPaused()) return false;
-        Set<String> keys = pickedKeys();
-        // An empty pick list means every Ghost switch. The account's master choice must therefore
-        // apply to those switches too; otherwise the long press saves successfully but each row
-        // still reads its shared value and reports that it could not change them all.
-        if (keys.isEmpty() ? !isGhostSwitch(setting) : !keys.contains(setting.key)) return setting.get();
-        Boolean saved = accountState(ChatAccounts.active());
-        return saved == null ? setting.get() : saved;
-    }
-
-    private static boolean isGhostSwitch(BooleanSetting setting) {
-        for (BooleanSetting ghostSwitch : switches(java.util.EnumSet.allOf(PatchFamily.class))) {
-            if (ghostSwitch.key.equals(setting.key)) return true;
-        }
-        return false;
-    }
-
-    private static Boolean accountState(String account) {
-        if (account == null || account.isEmpty()) return null;
-        try {
-            JSONObject states = new JSONObject(Settings.GHOST_MODE_ACCOUNT_STATES.savedValue());
-            return states.has(account) ? states.getBoolean(account) : null;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    static boolean saveAccountState(String account, boolean on) {
-        if (account == null || account.isEmpty()) return false;
-        try {
-            String saved = Settings.GHOST_MODE_ACCOUNT_STATES.savedValue();
-            JSONObject states = new JSONObject(saved == null || saved.isEmpty() ? "{}" : saved);
-            states.put(account, on);
-            return Settings.GHOST_MODE_ACCOUNT_STATES.save(states.toString());
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    static boolean setForActiveAccount(boolean on) {
-        String account = ChatAccounts.active();
-        if (account == null) return false;
-        if (!saveAccountState(account, on)) {
-            Utils.showToastShort(L10n.t("Couldn't save Ghost mode for this account."));
-        }
-        return true;
-    }
-
     /**
-     * Saves the opposite of the effective account state, then refreshes the tab outline and toasts
-     * which way it went. Without a known account, it keeps the older behavior of saving each switch.
+     * Saves the opposite of what the switches show now to each of them, so a build that has them all
+     * on turns them all off and any other turns them all on, then toasts which way it went. This is
+     * the flip for a place with no settings page open, so the failure toast names HushGram settings.
+     * Returns the value it saved.
      */
     static boolean flip(List<BooleanSetting> switches) {
         boolean on = !on(switches);
-        String account = ChatAccounts.active();
-        if (account == null) {
-            for (BooleanSetting setting : switches) setting.save(on);
-        } else if (!saveAccountState(account, on)) {
-            Utils.showToastShort(L10n.t("Couldn't save Ghost mode for this account."));
-            return !on;
-        }
-        NavigationSettings.refreshGhostTabIndicator();
+        for (BooleanSetting setting : switches) setting.save(on);
         Utils.showToastShort(message(switches, on,
                 L10n.t("Ghost mode partly changed. Check HushGram settings.")));
         return on;
@@ -180,7 +118,7 @@ public final class GhostMode {
     /** Whether every one of [switches] is saved as [value]. */
     static boolean all(List<BooleanSetting> switches, boolean value) {
         for (BooleanSetting setting : switches) {
-            if (enabled(setting) != value) return false;
+            if (setting.savedValue() != value) return false;
         }
         return true;
     }

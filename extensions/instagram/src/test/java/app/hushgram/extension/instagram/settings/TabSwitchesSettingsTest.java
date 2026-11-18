@@ -143,6 +143,64 @@ public class TabSwitchesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_TAB.key));
     }
 
+    /** #734: Hide the Messages badge sits under Tab bar right after Hide the Messages tab, starts off and asks for a restart. */
+    @Test public void hideTheMessagesBadgeIsATabBarRowAfterHideTheMessagesTab() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.HIDE_MESSAGES_BADGE.key);
+        assertNotNull(toggle);
+        assertEquals("Hide the Messages badge", String.valueOf(toggle.getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), toggle);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int at = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            if (section.getPreference(i) == toggle) at = i;
+        }
+        assertTrue(at > 0);
+        assertEquals(Settings.HIDE_MESSAGES_TAB.key, section.getPreference(at - 1).getKey());
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.HIDE_MESSAGES_BADGE.defaultValue);
+        assertTrue(Settings.HIDE_MESSAGES_BADGE.rebootApp);
+        assertTrue(String.valueOf(toggle.getSummary()).contains("unread count off the Messages button"));
+        assertTrue(PatchFamily.REELS_TAB.switches.stream().anyMatch(setting -> setting.key.equals(Settings.HIDE_MESSAGES_BADGE.key)));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_BADGE.key));
+    }
+
+    @Test public void withoutThePatchThereIsNoTabIconSize() throws Exception {
+        open();
+        assertNull(row(Settings.TAB_ICON_SIZE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TAB_ICON_SIZE.key));
+    }
+
+    /** #541: the tab icon size is a list under Tab bar, starting at Instagram's size and taking effect without a restart. */
+    @Test public void tabIconSizeIsAChoiceUnderTabBarThatStartsAtInstagramsSize() throws Exception {
+        try {
+            open(PatchFamily.REELS_TAB);
+            Preference found = row(Settings.TAB_ICON_SIZE.key);
+            assertTrue(found instanceof HushgramPreferenceFragment.TabIconSizeRow);
+            HushgramPreferenceFragment.TabIconSizeRow choice = (HushgramPreferenceFragment.TabIconSizeRow) found;
+            assertEquals("Tab icon size", String.valueOf(choice.getTitle()));
+            assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), choice).getTitle()));
+            List<String> entries = new ArrayList<>();
+            for (CharSequence entry : choice.getEntries()) entries.add(String.valueOf(entry));
+            assertEquals(Arrays.asList("Instagram's size", "110%", "120%", "130%", "140%", "150%"), entries);
+            assertEquals("INSTAGRAM", choice.getValue());
+            assertEquals("The icons on the tab bar are the size Instagram gives them.", String.valueOf(choice.getSummary()));
+            assertFalse("the icons change on the next frame", Settings.TAB_ICON_SIZE.rebootApp);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAB_ICON_SIZE.key));
+
+            choice.setValue("PERCENT_130");
+            org.robolectric.shadows.ShadowLooper.idleMainLooper();
+            assertEquals(app.hushgram.extension.instagram.misc.TabIconSize.PERCENT_130, Settings.TAB_ICON_SIZE.savedValue());
+            assertEquals("The icons on the tab bar are 130% of the size Instagram gives them.",
+                    String.valueOf(choice.getSummary()).replaceAll("\\P{ASCII}", ""));
+
+            page.searchSettings("icon size");
+            assertNotNull("a search finds it", row(Settings.TAB_ICON_SIZE.key));
+        } finally {
+            Settings.TAB_ICON_SIZE.resetToDefault();
+        }
+    }
+
     @Test public void theStartTabIsAChoiceUnderTabBarThatStartsAtHome() throws Exception {
         open(PatchFamily.REELS_TAB);
         Preference found = row(Settings.START_TAB.key);

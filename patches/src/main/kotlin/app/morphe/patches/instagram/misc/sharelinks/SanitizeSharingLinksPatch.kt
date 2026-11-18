@@ -69,9 +69,14 @@ internal data class LinkExit(val definingClass: String, val name: String, val sh
     }
 }
 
-/** Every copy to the clipboard: Instagram builds the clip as plain text and sets it here. */
+/**
+ * Every copy to the clipboard: most build the clip as plain text and set it, and the share sheet's
+ * Copy link sets the link as text through the older android.text call (#667).
+ */
 internal val CLIPBOARD_EXITS = listOf(
     LinkExit("Landroid/content/ClipboardManager;", "setPrimaryClip", "(Landroid/content/ClipData;)V", virtual = true),
+    LinkExit("Landroid/text/ClipboardManager;", "setText", "(Ljava/lang/CharSequence;)V", virtual = true),
+    LinkExit("Landroid/content/ClipboardManager;", "setText", "(Ljava/lang/CharSequence;)V", virtual = true),
 )
 
 /** Every system share sheet: the shared text rides in the target intent's EXTRA_TEXT. */
@@ -114,7 +119,7 @@ val sanitizeSharingLinksPatch = bytecodePatch(
     name = "Sanitize sharing links",
     description = "Removes tracking tags from the links you copy or share, and opens bio links without " +
         "Instagram's click tracker. The link still opens the same post, reel, story or profile. On by default. " +
-        "Turn it off in Instagram settings > Ads and privacy.",
+        "Turn it off in HushGram settings > Ads and privacy.",
     default = true,
 ) {
     category("Privacy")

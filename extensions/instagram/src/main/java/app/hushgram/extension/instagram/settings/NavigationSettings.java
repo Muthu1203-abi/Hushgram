@@ -4,15 +4,10 @@
  */
 package app.hushgram.extension.instagram.settings;
 
-import android.graphics.ColorFilter;
-
 import android.app.Activity;
 import android.os.Build;
-import android.graphics.PorterDuff;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.widget.ImageView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -20,7 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.instagram.download.TextGrab;
+import app.hushgram.extension.instagram.feed.FavoritesFeed;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
@@ -29,7 +26,6 @@ public final class NavigationSettings {
     private NavigationSettings() { }
     // Neither side retains a View or Activity. The live View owns its real listener, as before.
     private static final WeakHashMap<View, Binding> nativeBindings = new WeakHashMap<>();
-    private static final WeakHashMap<View, GhostOutline> ghostOutlines = new WeakHashMap<>();
 
     private static final class Binding {
         final String tab;
@@ -115,122 +111,7 @@ public final class NavigationSettings {
             nativeBindings.put(view, next);
         }
         view.setOnLongClickListener(new Press(next, original));
-        refreshGhostTabIndicator();
     }
-
-    /** Tints only the chosen tab's icon while leaving Instagram's glass selection capsule alone. */
-    public static void refreshGhostTabIndicator() {
-        try {
-            NavigationTarget target = Utils.settingsReady() ? Settings.GHOST_TAB_TARGET.get() : NavigationTarget.OFF;
-            boolean on = target != NavigationTarget.OFF && Utils.settingsReady()
-                    && !app.hushgram.extension.shared.settings.HushgramPause.isPaused()
-                    && GhostMode.on(GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild())));
-            List<Map.Entry<View, Binding>> bound;
-            synchronized (nativeBindings) {
-                bound = new ArrayList<>(nativeBindings.entrySet());
-            }
-            for (Map.Entry<View, Binding> entry : bound) {
-                View view = entry.getKey();
-                Binding binding = entry.getValue();
-                if (view == null || binding == null) continue;
-                boolean selected = on && target.name().equals(binding.tab);
-                setGhostOutline(view, selected);
-            }
-        } catch (Throwable t) {
-            Logger.printException(() -> "Navigation settings: could not refresh the Ghost mode tab icon", t);
-        }
-    }
-
-    private static void setGhostOutline(View view, boolean enabled) {
-        synchronized (ghostOutlines) {
-            GhostOutline outline = ghostOutlines.get(view);
-            if (!enabled) {
-                if (outline != null) {
-                    view.removeOnLayoutChangeListener(outline);
-                    outline.restore();
-                    ghostOutlines.remove(view);
-                }
-                return;
-            }
-            if (outline == null) {
-                outline = new GhostOutline(view);
-                ghostOutlines.put(view, outline);
-                view.addOnLayoutChangeListener(outline);
-            }
-            outline.update();
-        }
-    }
-
-    private static final class GhostOutline implements View.OnLayoutChangeListener {
-        private final View tab;
-        private ImageView icon;
-        private ColorFilter originalFilter;
-        private boolean hadFilter;
-
-        GhostOutline(View tab) { this.tab = tab; }
-
-        void update() {
-            ImageView found = iconIn(tab);
-            if (found != icon) {
-                restore();
-                icon = found;
-                if (icon == null) return;
-                originalFilter = icon.getColorFilter();
-                hadFilter = originalFilter != null;
-            }
-            if (icon != null) {
-                int color = Utils.settingsReady()
-                        ? Settings.GHOST_INDICATOR_COLOR.get().color : GhostIndicatorColor.YELLOW.color;
-                icon.setColorFilter(color, PorterDuff.Mode.SRC_IN);
-            }
-        }
-
-        void restore() {
-            if (icon != null) {
-                if (hadFilter) icon.setColorFilter(originalFilter);
-                else icon.clearColorFilter();
-            }
-            icon = null;
-            originalFilter = null;
-            hadFilter = false;
-        }
-
-        @Override public void onLayoutChange(View view, int left, int top, int right, int bottom,
-                int oldLeft, int oldTop, int oldRight, int oldBottom) {
-            update();
-        }
-    }
-
-    private static ImageView iconIn(View root) {
-        if (root instanceof ImageView) {
-            ImageView image = (ImageView) root;
-            if (image.isShown() && image.getDrawable() != null) return image;
-        }
-        if (!(root instanceof ViewGroup)) return null;
-        ImageView best = null;
-        double bestScore = Double.MAX_VALUE;
-        ViewGroup group = (ViewGroup) root;
-        float density = root.getResources().getDisplayMetrics().density;
-        for (int i = 0; i < group.getChildCount(); i++) {
-            ImageView candidate = iconIn(group.getChildAt(i));
-            if (candidate == null) continue;
-            if (candidate.getWidth() < 16f * density || candidate.getHeight() < 16f * density) continue;
-            int[] at = new int[2];
-            candidate.getLocationInWindow(at);
-            int[] rootAt = new int[2];
-            root.getLocationInWindow(rootAt);
-            double dx = at[0] - rootAt[0] + candidate.getWidth() / 2d - root.getWidth() / 2d;
-            double dy = at[1] - rootAt[1] + candidate.getHeight() / 2d - root.getHeight() / 2d;
-            double score = dx * dx + dy * dy
-                    + Math.abs(candidate.getWidth() - candidate.getHeight()) * 4d;
-            if (score < bestScore) {
-                best = candidate;
-                bestScore = score;
-            }
-        }
-        return best;
-    }
-
 
     /**
      * Puts the saved choice on the tabs Instagram has already built, so a change in settings
@@ -259,7 +140,6 @@ public final class NavigationSettings {
                     if (original == null) view.setLongClickable(false);
                 }
             }
-            refreshGhostTabIndicator();
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);
         }
@@ -302,11 +182,28 @@ public final class NavigationSettings {
         }
     }
 
-    /** Whether any long press choice, opening HushGram, the quality picker or Ghost mode, names [tab]. */
+    /**
+     * Whether any long press choice, opening HushGram, the quality picker, Ghost mode, Saved
+     * profiles or Favorites, names [tab].
+     */
     private static boolean selected(Object tab) {
         return Utils.settingsReady()
                 && (Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab) || Settings.QUALITY_TAB_TARGET.get().matches(tab)
-                || Settings.GHOST_TAB_TARGET.get().matches(tab));
+                || Settings.GHOST_TAB_TARGET.get().matches(tab) || Settings.SAVED_PROFILES_TAB_TARGET.get().matches(tab)
+                || Settings.FAVORITES_TAB_TARGET.get().matches(tab));
+    }
+
+    /** Whether a long press on [tab] opens Your saved profiles: chosen for it, with the list switched on. */
+    private static boolean opensSavedProfiles(String tab) {
+        NavigationTarget savedTab = Settings.SAVED_PROFILES_TAB_TARGET.get();
+        return savedTab != NavigationTarget.OFF && savedTab.name().equals(tab)
+                && PatchFamily.PROFILE_PICTURE.inBuild() && SavedProfiles.on();
+    }
+
+    /** Whether a long press on [tab] opens Favorites: chosen for it, in a build that hooked Home's feed switch. */
+    private static boolean opensFavorites(String tab) {
+        NavigationTarget favoritesTab = Settings.FAVORITES_TAB_TARGET.get();
+        return favoritesTab != NavigationTarget.OFF && favoritesTab.name().equals(tab) && PatchFamily.favoritesFeedInBuild();
     }
 
     private static final class Press implements View.OnLongClickListener {
@@ -336,6 +233,11 @@ public final class NavigationSettings {
                 NavigationTarget ghostTab = Settings.GHOST_TAB_TARGET.get();
                 if (ghostTab != NavigationTarget.OFF && ghostTab.name().equals(binding.tab)
                         && GhostModeEntry.press(view)) return true;
+                if (opensSavedProfiles(binding.tab)) {
+                    SavedProfilesPage.openOver(owner);
+                    return true;
+                }
+                if (opensFavorites(binding.tab) && FavoritesFeed.open(owner)) return true;
             }
             return original != null && original.onLongClick(view);
         }
@@ -355,9 +257,10 @@ public final class NavigationSettings {
 
     /**
      * Whether a long press on [tab] is HushGram's right now, as onLongClick decides it: it opens
-     * HushGram, shows the quality picker while the picker offers itself, or turns Ghost mode while
-     * there's a ghost switch to turn. Paused, with Default playback quality off or without the
-     * patches, neither does, and the press is Instagram's.
+     * HushGram, shows the quality picker while the picker offers itself, turns Ghost mode while
+     * there's a ghost switch to turn, opens Saved profiles while that switch is on, or opens
+     * Favorites. Paused, with those switches off or without the patches, none does, and the press is
+     * Instagram's.
      */
     private static boolean takes(String tab) {
         try {
@@ -367,7 +270,8 @@ public final class NavigationSettings {
             NavigationTarget qualityTab = Settings.QUALITY_TAB_TARGET.get();
             if (qualityTab != NavigationTarget.OFF && qualityTab.name().equals(tab) && QualityPicker.offered()) return true;
             NavigationTarget ghostTab = Settings.GHOST_TAB_TARGET.get();
-            return ghostTab != NavigationTarget.OFF && ghostTab.name().equals(tab) && GhostModeEntry.offeredNow();
+            if (ghostTab != NavigationTarget.OFF && ghostTab.name().equals(tab) && GhostModeEntry.offeredNow()) return true;
+            return opensSavedProfiles(tab) || opensFavorites(tab);
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not check a tab's long press", t);
             return false;

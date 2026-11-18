@@ -59,10 +59,10 @@ internal const val HIDE_CREATE = "$THREADS_BUTTON->hideCreateInBar()Z"
 internal const val USER_DETAIL = "Lcom/instagram/profile/fragment/UserDetailFragment;"
 
 /**
- * Instagram 454's id/profile_header_create_button (0x7f0b3077 on 453), the view id of the plus on your own profile,
- * the same in all ten 454 builds (aapt2).
+ * Instagram 456's id/profile_header_create_button (0x7f0b308b on 455, 0x7f0b3054 on 454), the view id of the plus on
+ * your own profile, the same in all four 456 builds (aapt2).
  */
-internal const val CREATE_BUTTON_ID = 0x7f0b3054
+internal const val CREATE_BUTTON_ID = 0x7f0b3092
 
 /** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
 internal const val BANNER_TAP = "tap_threads_banner"
@@ -116,7 +116,7 @@ val hideThreadsButtonPatch = bytecodePatch(
     name = "Hide the Threads button",
     description = "Takes the Threads button off the top of profiles, with switches for the Create button and Share " +
         "profile on your own, and Subscribe and the arrow after the buttons on creators' profiles. The menu and " +
-        "the other buttons stay. Each starts off. Turn them on in Instagram settings > Profiles.",
+        "the other buttons stay. Each starts off. Turn them on in HushGram settings > Profiles.",
     default = true,
 ) {
     category("Profiles")

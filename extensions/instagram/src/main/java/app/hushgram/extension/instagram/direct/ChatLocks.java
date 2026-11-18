@@ -133,8 +133,8 @@ public final class ChatLocks {
             if (open != null) {
                 last = open;
                 lastName = null;
-                HiddenChats.opened(open.account, open.id);
             }
+            MessagesLock.chatOpened(empty(id) ? null : id);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, OPENED, t);
             current = null;
@@ -432,20 +432,7 @@ public final class ChatLocks {
             addId(ids, igThreadId);
             if (ids.isEmpty()) return false;
             String account = ChatAccounts.clean(recipient);
-            // Instagram may hand us a group summary as the primary notification. The summary can
-            // lack message metadata even though its child notifications are actual DMs. Treat the
-            // push as a message when any notification in the group is a message, so a hidden chat
-            // still raises its in-app unread dot when Android receives the grouped form.
-            boolean message = notification != null && MessagesLock.isMessage(notification);
-            if (!message && others != null) {
-                for (Object each : others.values()) {
-                    if (each instanceof Notification && MessagesLock.isMessage((Notification) each)) {
-                        message = true;
-                        break;
-                    }
-                }
-            }
-            if (HiddenChats.hides(ids, account, message)) return true;
+            if (HiddenChats.hides(ids, account)) return true;
             if (!any()) return false;
             String marked = String.join(",", ids);
             mark(notification, marked, account);

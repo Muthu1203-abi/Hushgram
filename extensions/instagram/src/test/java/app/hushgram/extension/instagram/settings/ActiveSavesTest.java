@@ -199,7 +199,7 @@ public class ActiveSavesTest {
 
     /** Only the saves channel switched off: no notification, and the page lists the save as before. */
     @Test public void withOnlyTheSavesChannelOffTheSaveIsStillListed() {
-        notifications().createNotificationChannel(new NotificationChannel("hushgram_saves", "Instagram saves",
+        notifications().createNotificationChannel(new NotificationChannel("hushgram_saves", "HushGram saves",
                 NotificationManager.IMPORTANCE_NONE));
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), false);
         show();
@@ -222,7 +222,7 @@ public class ActiveSavesTest {
         Preference downloads = null;
         for (int position = 0; position < list().getCount(); position++) {
             Preference candidate = (Preference) list().getItemAtPosition(position);
-            if ("Downloads".contentEquals(candidate.getTitle())) downloads = candidate;
+            if (candidate.getTitle() != null && "Downloads".contentEquals(candidate.getTitle())) downloads = candidate;
         }
         assertNotNull("the overview has no Downloads entry", downloads);
         assertTrue(downloads.getOnPreferenceClickListener().onPreferenceClick(downloads));

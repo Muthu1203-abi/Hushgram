@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/** Three crashed starts in a row, the crash report, the marker file and the way back, for Pause Instagram. */
+/** Three crashed starts in a row, the crash report, the marker file and the way back, for Pause HushGram. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 30, 37})
 public class HushgramPauseTest {

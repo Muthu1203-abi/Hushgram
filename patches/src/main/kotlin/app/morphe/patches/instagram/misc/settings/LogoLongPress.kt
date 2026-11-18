@@ -109,7 +109,7 @@ internal fun BytecodePatchContext.hookLogoLongPress(): Boolean {
     val sites = logoLongPressSites()
     val site = sites.singleOrNull() ?: run {
         patchLog.warning(
-            "Instagram settings: ${sites.size} places give the Instagram logo at the top of Home its long press, " +
+            "HushGram settings: ${sites.size} places give the Instagram logo at the top of Home its long press, " +
                 "not one, so the logo doesn't open the settings",
         )
         return false
@@ -118,7 +118,7 @@ internal fun BytecodePatchContext.hookLogoLongPress(): Boolean {
     // Looked for again in the method as it stands now, since another patch may have written into it.
     val index = logoLongPressSitesIn(method).singleOrNull()?.index ?: run {
         patchLog.warning(
-            "Instagram settings: ${site.method.definingClass}->${site.method.name} changed before the logo's long press " +
+            "HushGram settings: ${site.method.definingClass}->${site.method.name} changed before the logo's long press " +
                 "could be found again, so the logo doesn't open the settings",
         )
         return false
@@ -170,7 +170,7 @@ internal fun BytecodePatchContext.hookMergedLogoLongPress(): Boolean {
     val stores = mergedLogoStores()
     val store = stores.singleOrNull() ?: run {
         patchLog.warning(
-            "Instagram settings: ${stores.size} places keep the Instagram logo in Home's newer header, " +
+            "HushGram settings: ${stores.size} places keep the Instagram logo in Home's newer header, " +
                 "not one, so that logo doesn't open the settings",
         )
         return false
@@ -179,7 +179,7 @@ internal fun BytecodePatchContext.hookMergedLogoLongPress(): Boolean {
     // Looked for again in the method as it stands now, since another patch may have written into it.
     val index = mergedLogoStoresIn(method).singleOrNull()?.index ?: run {
         patchLog.warning(
-            "Instagram settings: ${store.method.definingClass}->${store.method.name} changed before the newer header's " +
+            "HushGram settings: ${store.method.definingClass}->${store.method.name} changed before the newer header's " +
                 "logo could be found again, so that logo doesn't open the settings",
         )
         return false

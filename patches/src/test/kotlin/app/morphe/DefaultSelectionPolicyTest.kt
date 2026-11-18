@@ -18,7 +18,10 @@ import org.junit.Test
  */
 class DefaultSelectionPolicyTest {
     private val keptOut = mapOf(
-        "Open developer options" to "Exposes Instagram's developer controls, which can change behavior for this account.",
+        "Change version code" to "Raises the version code for good: going back means uninstalling, " +
+            "and every later build needs it too.",
+        "Install next to Instagram" to "Moves the build to a package of its own, so it installs as a second app " +
+            "with its own data and sign-in instead of updating the Instagram already on the phone.",
         "Pure black dark mode" to "Rewrites Instagram's colors when you patch, with no switch to turn it off.",
         "View DM photos and videos anonymously" to "A test feature until the sender's side is checked " +
             "with two accounts.",
@@ -70,7 +73,7 @@ class DefaultSelectionPolicyTest {
     fun `every description says where its switch is or that there isn't one`() {
         val unexplained = shippedPatches().filter { patch ->
             val description = patch.get("description").asString
-            "HushGram settings" !in description && "Instagram settings" !in description && "no switch" !in description
+            "HushGram settings" !in description && "no switch" !in description
         }.map { it.get("name").asString }
         assertEquals("a description that doesn't say where its switch is", emptyList<String>(), unexplained.sorted())
     }

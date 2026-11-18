@@ -79,7 +79,7 @@ public class DocumentRequestIdentityTest {
             assertFalse(page.findPreference(PICKERS[0]).isEnabled());
             result(page, current, Activity.RESULT_OK, CURRENT);
             assertTrue(currentOutput.size() > 0);
-            assertEquals("Instagram settings exported.", page.findPreference(PICKERS[0]).getSummary());
+            assertEquals("HushGram settings exported.", page.findPreference(PICKERS[0]).getSummary());
         }
     }
 

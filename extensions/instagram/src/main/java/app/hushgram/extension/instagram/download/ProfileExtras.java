@@ -40,7 +40,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 /**
  * Profile extras button: a small button first in the row on the right of a profile's top bar, where
  * the three dots are, that lists HushGram's profile actions (Save profile picture, View profile
- * picture, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
+ * picture, Save profile, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
  * three-dot menu stay as they are ({@link ProfilePicture}); this is a second way to reach them (#234).
  *
  * <p>The patch calls {@link #bound} first thing as the bar fills its rows, and {@link #screen} right
@@ -221,6 +221,8 @@ public final class ProfileExtras {
             Object shown = screen == null ? null : account.of(screen);
             user(bar, shown);
             ViewingHistory.profile(shown);
+            ProfileHistory.seen(shown);
+            SavedProfiles.seen(shown);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account", failure);
         }
@@ -228,6 +230,40 @@ public final class ProfileExtras {
 
     static void user(View bar, Object user) {
         stateOf(bar).user = user;
+    }
+
+    /**
+     * The account of the profile [view] is on, for a long press on its picture ({@link ProfilePictureHold}):
+     * going up from [view], the first parent with a profile bar on screen under it, and that bar's
+     * account. Null when no bar is found, or when the bars there show different accounts or none yet.
+     */
+    @Nullable
+    static Object accountAround(View view) {
+        List<java.util.Map.Entry<View, State>> bars;
+        synchronized (BARS) {
+            bars = new java.util.ArrayList<>(BARS.entrySet());
+        }
+        for (android.view.ViewParent at = view.getParent(); at instanceof ViewGroup; at = at.getParent()) {
+            boolean found = false;
+            Object account = null;
+            for (java.util.Map.Entry<View, State> entry : bars) {
+                View bar = entry.getKey();
+                if (bar == null || !bar.isShown() || !holds((ViewGroup) at, bar)) continue;
+                Object shown = entry.getValue().user;
+                if (found && shown != account) return null;
+                found = true;
+                account = shown;
+            }
+            if (found) return account;
+        }
+        return null;
+    }
+
+    private static boolean holds(ViewGroup group, View view) {
+        for (android.view.ViewParent at = view.getParent(); at != null; at = at.getParent()) {
+            if (at == group) return true;
+        }
+        return false;
     }
 
     /** The screen's one view model field, then the account that model holds; null when either is missing. */
@@ -265,7 +301,7 @@ public final class ProfileExtras {
     static boolean wanted() {
         try {
             return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.PROFILE_EXTRAS_BUTTON.get()
-                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying());
+                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying() || SavedProfiles.on());
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras switch", failure);
             return false;
@@ -359,7 +395,7 @@ public final class ProfileExtras {
                 && ripple.resourceId != 0) {
             button.setBackgroundResource(ripple.resourceId);
         }
-        button.setContentDescription(L10n.t(context, "Instagram profile actions"));
+        button.setContentDescription(L10n.t(context, "HushGram profile actions"));
         final WeakReference<View> owner = new WeakReference<>(bar);
         button.setOnClickListener(view -> press(view, owner.get()));
         return button;

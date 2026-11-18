@@ -108,7 +108,73 @@ public class ReelSeekBarTest {
         assertEquals(-1L, ReelSeekBar.minSeconds(-1L));
         assertFalse(ReelSeekBar.lazy(1));
         assertFalse(ReelSeekBar.lazy(0));
+        assertFalse("a bar that always shows needs no drag", ReelSeekBar.passThrough(0));
+        assertTrue(ReelSeekBar.passThrough(1));
         assertFalse("the hooks were counted", HookStatus.snapshot().isEmpty());
+    }
+
+    /**
+     * Hide the seek bar on reels (#680): no reel is long enough for the bar that always shows, even counted in
+     * milliseconds, every reel gets the kind a sideways drag brings up, and that drag is on even where Instagram
+     * leaves it off. A switch that keeps the bar wins, and paused Instagram's answers stand.
+     */
+    @Test
+    public void hidingItLeavesEveryReelTheBarADragBringsUp() {
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.HIDE_REEL_SEEK_BAR.save(true);
+        try {
+            assertEquals(ReelSeekBar.NO_REEL_SECONDS, ReelSeekBar.minSeconds(30L));
+            assertTrue("still an int in milliseconds", ReelSeekBar.NO_REEL_SECONDS * 1000L <= Integer.MAX_VALUE);
+            assertTrue("longer than an hour-long reel", ReelSeekBar.NO_REEL_SECONDS > 3600L);
+            assertTrue("a short reel the server gave no bar gets the hidden kind", ReelSeekBar.lazy(0));
+            assertTrue(ReelSeekBar.lazy(1));
+            assertTrue("the drag that brings it back is on where Instagram has it off", ReelSeekBar.passThrough(0));
+            assertTrue(ReelSeekBar.passThrough(1));
+
+            Settings.REEL_SEEK_BAR.save(true);
+            assertEquals("Keep a seek bar wins", 1L, ReelSeekBar.minSeconds(30L));
+            assertFalse(ReelSeekBar.lazy(1));
+            assertFalse("Keep a seek bar wins, Instagram's off stands", ReelSeekBar.passThrough(0));
+            Settings.REEL_SEEK_BAR.save(false);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertEquals("paused, Instagram's length stands", 30L, ReelSeekBar.minSeconds(30L));
+            assertFalse("paused, Instagram's no stands", ReelSeekBar.lazy(0));
+            assertFalse("paused, Instagram's off stands", ReelSeekBar.passThrough(0));
+        } finally {
+            Settings.HIDE_REEL_SEEK_BAR.resetToDefault();
+        }
+    }
+
+    /**
+     * Hide the seek bar on reels keeps the strip along a reel's bottom edge on every ordinary reel, short ones too,
+     * since that strip is what the sideways drag lands on, and has the bar show only while touched there, except on
+     * ads, which keep Instagram's answer (#680). Off, a switch that keeps the bar, or paused, the controller's own
+     * checks stand.
+     */
+    @Test
+    public void hidingItKeepsTheStripTheDragLandsOn() {
+        assertFalse("off, Instagram's strip check stands", ReelSeekBar.barsHidden());
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.HIDE_REEL_SEEK_BAR.save(true);
+        try {
+            assertTrue(ReelSeekBar.barsHidden());
+            assertTrue("an ordinary short reel's bar shows only while touched", ReelSeekBar.hiddenTouchOnly(0, 0));
+            assertTrue(ReelSeekBar.hiddenTouchOnly(1, 0));
+            assertFalse("an ad keeps Instagram's no", ReelSeekBar.hiddenTouchOnly(0, 1));
+            assertTrue("and its yes", ReelSeekBar.hiddenTouchOnly(1, 1));
+
+            Settings.REEL_SEEK_BAR.save(true);
+            assertFalse("Keep a seek bar wins", ReelSeekBar.barsHidden());
+            Settings.REEL_SEEK_BAR.save(false);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram's checks stand", ReelSeekBar.barsHidden());
+        } finally {
+            Settings.HIDE_REEL_SEEK_BAR.resetToDefault();
+        }
     }
 
     /**
@@ -170,6 +236,8 @@ public class ReelSeekBarTest {
         assertEquals(what, 0L, ReelSeekBar.minSeconds(0L));
         assertTrue(what, ReelSeekBar.lazy(1));
         assertFalse(what, ReelSeekBar.lazy(0));
+        assertTrue(what, ReelSeekBar.passThrough(1));
+        assertFalse(what, ReelSeekBar.passThrough(0));
         ReelSeekBar.progress(bar, 12_000);
         assertEquals(what, View.GONE, label.getVisibility());
     }
@@ -192,11 +260,19 @@ public class ReelSeekBarTest {
         ReelTimeLabel.update(bar, 11_000, () -> {
             throw new IllegalStateException("settings went away");
         });
+        assertFalse(ReelSeekBar.passThrough(0, () -> false, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+        assertFalse("Instagram's strip and touch checks stand", ReelSeekBar.barsHidden(() -> false, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
 
         assertEquals(View.GONE, label.getVisibility());
         String missing = HookStatus.missing(FamilyNames.REEL_SEEK_BAR).toString();
         assertTrue(missing, missing.contains("'seek bar length'"));
         assertTrue(missing, missing.contains("'hidden seek bar'"));
+        assertTrue(missing, missing.contains("'seek drag'"));
+        assertTrue(missing, missing.contains("'hidden seek bar strip'"));
         assertTrue(missing, missing.contains("'seek bar time'"));
     }
 
@@ -903,6 +979,40 @@ public class ReelSeekBarTest {
         assertEquals("off", 3_000, bar.getProgress());
         assertTrue(HookStatus.report().toString(),
                 HookStatus.report().toString().contains(ReelTimeLabel.COUNT_STARTED_OVER + " 1"));
+        assertNothingFailed();
+    }
+
+    /**
+     * Instagram 454 tags the container clips_scrubber_ only on some screens, so the drag preview found
+     * no reel and showed no picture. The binder now hands over the reel item's id itself: with no tag,
+     * the bar's reel is that id, a new id starts the bar over, and a photo's song length finds its bar by it.
+     */
+    @Test
+    public void aReelBoundByIdWithNoTagIsKnown() {
+        FrameLayout host = host();
+        FrameLayout container = scrubber(host, 55_000, false);
+        SeekBar bar = barIn(container);
+        assertNull("no tag and no id", ReelTimeLabel.reelOf(bar));
+
+        ReelTimeLabel.bindReel(container, "1");
+        ReelSeekBar.bind(container, 0);
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "1", ReelTimeLabel.reelOf(bar));
+        bar.setProgress(20_000);
+        ReelSeekBar.progress(bar, 20_000);
+
+        ReelTimeLabel.bindReel(container, "2");
+        ReelSeekBar.bind(container, 0);
+        assertEquals("another reel starts at 0", 0, bar.getProgress());
+        ReelTimeLabel.sizeBars(ReelTimeLabel.REEL_TAG_PREFIX + "2", 30_000);
+        assertEquals("a photo's song length finds its bar by the id", 30_000, bar.getMax());
+
+        // Tagged too: the binder's id answers, since it's there on every screen.
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "3");
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "2", ReelTimeLabel.reelOf(bar));
+
+        // The stub unfilled, as on a build the patch couldn't fill it in: the id is let go and the tag answers.
+        ReelSeekBar.bindReel(container, new Object());
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "3", ReelTimeLabel.reelOf(bar));
         assertNothingFailed();
     }
 

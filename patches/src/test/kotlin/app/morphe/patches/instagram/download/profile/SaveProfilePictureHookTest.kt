@@ -102,7 +102,7 @@ class SaveProfilePictureHookTest {
         assertEquals("the stub says the row went in", Opcode.RETURN, stub.last().opcode)
 
         // The fixture's item stores its eleventh and sixteenth arguments in each other's field, as 450 does.
-        val names = (0 until 26).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
+        val names = (0 until POPUP_ITEM_ARGUMENTS).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
         assertEquals("the item's fields in argument order", "fixture.PopupItem|" + names.joinToString(","), layout(context))
     }
 
@@ -152,7 +152,7 @@ class SaveProfilePictureHookTest {
     }
 
     @Test
-    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 26 arguments") {
+    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with $POPUP_ITEM_ARGUMENTS arguments") {
         context(popupItemArguments = 24).findProfileMenus()
     }
 
@@ -169,6 +169,17 @@ class SaveProfilePictureHookTest {
     @Test
     fun aPopupWhoseContextIsNotTheHelpersFailsThePatch() = refuses("context isn't read off the newer helper") {
         context(host = host(popupContextFromElsewhere = true)).findProfileMenus()
+    }
+
+    @Test
+    fun aBlockLaidOutAfterTheReadThatRunsBeforeItIsFine() {
+        val menus = context(host = host(earlyTail = true)).findProfileMenus()
+        assertEquals(8, menus.popup.context)
+    }
+
+    @Test
+    fun aContextRewrittenOnTheWayToThePopupFailsThePatch() = refuses("the popup's context before the pop-up list gets its items can be replaced") {
+        context(host = host(contextRewritten = true)).findProfileMenus()
     }
 
     @Test
@@ -230,6 +241,12 @@ class SaveProfilePictureHookTest {
                 for (bridge in PICTURE_BRIDGES) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
+                // Saved profiles shows the name under the username, so the name's bridge has a getter of its own.
+                val getters = listOf("username", "biography", "fullName").associateWith { bridge ->
+                    context.method(INSTAGRAM_MEDIA, bridge).instructions().single { it.opcode == Opcode.INVOKE_VIRTUAL }.referenceText()
+                }
+                assertEquals("${bundle.name}: one getter each, $getters", 3, getters.values.toSet().size)
+                assertTrue("${bundle.name}: the name is read off the account, $getters", getters.getValue("fullName")!!.startsWith("$USER->"))
                 val (item, fields) = layout(context).split("|")
                 val itemClass = context.classDefBy("L${item.replace('.', '/')};")
                 val arguments = itemClass.methods.single { it.name == "<init>" }.parameterTypes.map(Any::toString)
@@ -246,13 +263,19 @@ class SaveProfilePictureHookTest {
 
     /** With the bio's getter gone, every other bridge goes in and the bio's keeps answering null, so only Copy bio is left out. */
     @Test
-    fun aBioThatCantBeToldLeavesOnlyCopyBioOut() {
+    fun aBioThatCantBeToldLeavesOnlyCopyBioOut() = aGetterThatCantBeToldLeavesOnlyItsBridgeOut("biography", "biography")
+
+    /** The same for the name Saved profiles shows: the page goes without it and the rest goes in. */
+    @Test
+    fun aNameThatCantBeToldLeavesOnlyTheNameOut() = aGetterThatCantBeToldLeavesOnlyItsBridgeOut("full_name", "fullName")
+
+    private fun aGetterThatCantBeToldLeavesOnlyItsBridgeOut(field: String, bridgeName: String) {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val models = FixtureDex.classes(bundle, setOf(USER, PROFILE_PICTURE_INFO, IMAGE_URL))
-                val key = "biography".hashCode()
+                val key = field.hashCode()
                 val user = models.getValue(USER).let { user ->
                     ImmutableClassDef(
                         user.type, user.accessFlags, user.superclass, user.interfaces, user.sourceFile, user.annotations, user.fields,
@@ -263,14 +286,14 @@ class SaveProfilePictureHookTest {
                     )
                 }
                 val context = PatchContexts.of(models.values.filter { it.type != USER } + user + ExtensionDex.classDef(INSTAGRAM_MEDIA))
-                val stubBefore = context.method(INSTAGRAM_MEDIA, "biography").instructions().map { it.opcode }
+                val stubBefore = context.method(INSTAGRAM_MEDIA, bridgeName).instructions().map { it.opcode }
 
                 context.profilePictureBridges(PROFILE_PICTURE_PATCH)()
 
-                for (bridge in PICTURE_BRIDGES - "biography") {
+                for (bridge in PICTURE_BRIDGES - bridgeName) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
-                assertEquals("${bundle.name}: the bio's stub", stubBefore, context.method(INSTAGRAM_MEDIA, "biography").instructions().map { it.opcode })
+                assertEquals("${bundle.name}: the $bridgeName stub", stubBefore, context.method(INSTAGRAM_MEDIA, bridgeName).instructions().map { it.opcode })
                 checked++
             }
         }
@@ -328,7 +351,7 @@ class SaveProfilePictureHookTest {
         const val ITEM = "Lfixture/PopupItem;"
         const val CALLBACK = "Lfixture/Click;"
         val PICTURE_BRIDGES = listOf(
-            "profilePicture", "fullSizeProfilePicture", "username", "biography", "profilePictureUrl", "profilePictureWidth",
+            "profilePicture", "fullSizeProfilePicture", "username", "biography", "fullName", "profilePictureUrl", "profilePictureWidth",
             "profilePictureHeight", "candidateUrl", "candidateWidth", "candidateHeight",
         )
         const val PUBLIC_FINAL = 0x0011
@@ -424,7 +447,13 @@ class SaveProfilePictureHookTest {
             twoPopups: Boolean = false,
             popupGap: Boolean = false,
             popupContextFromElsewhere: Boolean = false,
+            earlyTail: Boolean = false,
+            contextRewritten: Boolean = false,
         ): ClassDef {
+            // A block laid out after the context read that writes the context's register and jumps
+            // back above the read, the way 456 lays its tail blocks out.
+            val tail = if (earlyTail) "goto :build\n :early\n const/4 v8, 0x0\n goto :popup\n :build" else ""
+            val rewrite = if (contextRewritten) "if-eqz v5, :keep\n const/4 v8, 0x0\n :keep" else ""
             val popupContext = "iget-object v8, v0, " + (if (popupContextFromElsewhere) BOTTOM else NEWER) + "->context:$CONTEXT"
             val handOver = if (popupGap) "move-object v7, v6\n invoke-virtual { v7, v6 }, $POPUP->take(Ljava/util/List;)V"
                 else "invoke-virtual { v2, v6 }, $POPUP->take(Ljava/util/List;)V"
@@ -459,7 +488,7 @@ class SaveProfilePictureHookTest {
                 invoke-virtual { v1, v0 }, $SHOWER->show($CONTEXT)V
                 return-void
                 :newer
-                if-nez v5, :popup
+                if-nez v5, ${if (earlyTail) ":early" else ":popup"}
                 new-instance v0, $NEWER
                 invoke-direct { v0 }, $NEWER-><init>()V
                 const-string v1, "$newerName"
@@ -475,6 +504,8 @@ class SaveProfilePictureHookTest {
                 new-instance v0, $NEWER
                 invoke-direct { v0 }, $NEWER-><init>()V
                 $popupContext
+                $tail
+                $rewrite
                 new-instance v6, Ljava/util/ArrayList;
                 invoke-direct { v6 }, Ljava/util/ArrayList;-><init>()V
                 const/4 v3, 0x0

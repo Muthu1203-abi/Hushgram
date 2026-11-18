@@ -5,24 +5,34 @@
 package app.morphe.util
 
 import app.morphe.patches.instagram.ads.hideAdsPatch
+import app.morphe.patches.instagram.ads.plus.hidePlusUpsellPatch
+import app.morphe.patches.instagram.coexist.installNextToInstagramPatch
 import app.morphe.patches.instagram.direct.calls.askBeforeCallPatch
+import app.morphe.patches.instagram.direct.reminder.hideKindnessReminderPatch
+import app.morphe.patches.instagram.direct.calls.callBlockerPatch
 import app.morphe.patches.instagram.direct.messagebox.messageBoxPatch
 import app.morphe.patches.instagram.direct.glass.glassChatPatch
 import app.morphe.patches.instagram.direct.plusmenu.chatPlusMenuPatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeRefreshPatch
+import app.morphe.patches.instagram.profile.follow.askBeforeFollowPatch
+import app.morphe.patches.instagram.profile.follow.sentFollowRequestsPatch
 import app.morphe.patches.instagram.direct.instants.hideInstantsPatch
+import app.morphe.patches.instagram.direct.presence.keepOnlineHistoryPatch
+import app.morphe.patches.instagram.stories.viewers.keepStoryViewersPatch
 import app.morphe.patches.instagram.direct.presence.showLastActivePatch
+import app.morphe.patches.instagram.direct.presence.shorterActiveNowPatch
 import app.morphe.patches.instagram.direct.lock.lockMessagesPatch
-import app.morphe.patches.instagram.direct.lock.hideHiddenChatsFromSearchPatch
 import app.morphe.patches.instagram.stories.live.viewLiveAnonymouslyPatch
 import app.morphe.patches.instagram.direct.history.chatHistoryPatch
 import app.morphe.patches.instagram.direct.preview.previewChatsPatch
 import app.morphe.patches.instagram.direct.keep.keepInChatPatch
+import app.morphe.patches.instagram.direct.mediawalk.chatMediaWalkPatch
 import app.morphe.patches.instagram.direct.reels.swipeChatReelsPatch
 import app.morphe.patches.instagram.direct.screenshots.allowScreenshotsPatch
 import app.morphe.patches.instagram.direct.screenshots.dontReportScreenshotsPatch
 import app.morphe.patches.instagram.direct.notes.hideNotesRowPatch
+import app.morphe.patches.instagram.direct.tray.splitNotesRowPatch
 import app.morphe.patches.instagram.direct.search.hideInboxSearchPatch
 import app.morphe.patches.instagram.direct.presence.hideActiveStatusPatch
 import app.morphe.patches.instagram.direct.seen.readWithoutSeenReceiptPatch
@@ -31,6 +41,7 @@ import app.morphe.patches.instagram.direct.suggested.hideInboxSuggestionsPatch
 import app.morphe.patches.instagram.direct.typing.hideTypingPatch
 import app.morphe.patches.instagram.download.reel.downloadReelPatch
 import app.morphe.patches.instagram.download.story.downloadStoryPatch
+import app.morphe.patches.instagram.download.video.askForVp9Patch
 import app.morphe.patches.instagram.download.video.downloadVideoPatch
 import app.morphe.patches.instagram.explore.exploreMenuPatch
 import app.morphe.patches.instagram.explore.hideExploreGridPatch
@@ -42,6 +53,7 @@ import app.morphe.patches.instagram.feed.commentkeyboard.commentKeyboardPatch
 import app.morphe.patches.instagram.feed.audioicon.feedAudioIconPatch
 import app.morphe.patches.instagram.feed.autoscroll.feedAutoScrollPatch
 import app.morphe.patches.instagram.feed.captions.hideCaptionsPatch
+import app.morphe.patches.instagram.feed.commentgifs.hideCommentGifsPatch
 import app.morphe.patches.instagram.feed.comments.hideCommentsPatch
 import app.morphe.patches.instagram.feed.emojirow.hideCommentEmojiRowPatch
 import app.morphe.patches.instagram.feed.feedfollow.hideFeedFollowPatch
@@ -56,6 +68,7 @@ import app.morphe.patches.instagram.feed.swipecreate.stopSwipeToCreatePatch
 import app.morphe.patches.instagram.feed.topbar.keepHomeTopBarPatch
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
 import app.morphe.patches.instagram.feed.time.showPostTimePatch
+import app.morphe.patches.instagram.feed.viewhistory.dontSendFeedViewHistoryPatch
 import app.morphe.patches.instagram.media.background.backgroundPlayPatch
 import app.morphe.patches.instagram.media.hdr.turnOffHdrBoostsPatch
 import app.morphe.patches.instagram.media.loop.stopVideoLoopingPatch
@@ -63,12 +76,12 @@ import app.morphe.patches.instagram.misc.cache.clearMediaCachePatch
 import app.morphe.patches.instagram.misc.location.spoofLocationPatch
 import app.morphe.patches.instagram.misc.proxy.appProxyPatch
 import app.morphe.patches.instagram.misc.consent.skipAdDataReminderPatch
+import app.morphe.patches.instagram.misc.photolocation.keepPhotoLocationsPatch
+import app.morphe.patches.instagram.misc.blocked.searchBlockedAccountsPatch
 import app.morphe.patches.instagram.misc.setupscreens.skipSetupPopupsPatch
 import app.morphe.patches.instagram.misc.notifications.groupNotificationsPatch
 import app.morphe.patches.instagram.media.quality.dataSaverPatch
 import app.morphe.patches.instagram.media.quality.defaultPlaybackQualityPatch
-import app.morphe.patches.instagram.media.quality.mediaQualityIndicatorPatch
-import app.morphe.patches.instagram.misc.developeroptions.openDeveloperOptionsPatch
 import app.morphe.patches.instagram.media.resume.resumeLongVideosPatch
 import app.morphe.patches.instagram.media.taptoplay.tapToPlayPatch
 import app.morphe.patches.instagram.metaai.hideMetaAiPatch
@@ -76,6 +89,7 @@ import app.morphe.patches.instagram.misc.adid.removeAdIdPatch
 import app.morphe.patches.instagram.misc.bottomspace.removeBottomSpacePatch
 import app.morphe.patches.instagram.misc.buildexpiry.removeBuildExpiredPopupPatch
 import app.morphe.patches.instagram.misc.comment.copyCommentPatch
+import app.morphe.patches.instagram.misc.commentsearch.searchCommentsPatch
 import app.morphe.patches.instagram.misc.comment.saveCommentPhotoPatch
 import app.morphe.patches.instagram.download.profile.saveProfilePicturePatch
 import app.morphe.patches.instagram.download.voice.downloadVoiceMessagesPatch
@@ -92,11 +106,15 @@ import app.morphe.patches.instagram.misc.theme.homeHeaderTextPatch
 import app.morphe.patches.instagram.misc.theme.launchScreenPatch
 import app.morphe.patches.instagram.misc.theme.pureBlackPatch
 import app.morphe.patches.instagram.misc.translatedstart.translatedStartPatch
+import app.morphe.patches.instagram.misc.versioncode.changeVersionCodePatch
+import app.morphe.patches.instagram.profile.banners.hideProfileBannersPatch
 import app.morphe.patches.instagram.profile.friendship.friendshipStatusPatch
 import app.morphe.patches.instagram.profile.highlights.hideHighlightsPatch
 import app.morphe.patches.instagram.profile.notes.hideProfileNotesPatch
 import app.morphe.patches.instagram.profile.tabs.hideProfileTabsPatch
+import app.morphe.patches.instagram.profile.gridjump.profileGridJumpPatch
 import app.morphe.patches.instagram.profile.postslist.profilePostsListPatch
+import app.morphe.patches.instagram.profile.reelsort.sortProfileReelsPatch
 import app.morphe.patches.instagram.profile.suggested.hideProfileSuggestionsPatch
 import app.morphe.patches.instagram.profile.threads.hideThreadsButtonPatch
 import app.morphe.patches.instagram.reels.ailabel.hideAiLabeledReelsPatch
@@ -108,15 +126,25 @@ import app.morphe.patches.instagram.reels.cleanup.cleanUpReelsPatch
 import app.morphe.patches.instagram.reels.doubletap.turnOffDoubleTapLikePatch
 import app.morphe.patches.instagram.reels.origin.findReelOriginPatch
 import app.morphe.patches.instagram.reels.partnership.hidePaidPartnershipReelsPatch
+import app.morphe.patches.instagram.reels.live.hideLiveReelsPatch
+import app.morphe.patches.instagram.feed.edits.hideEditsLabelPatch
+import app.morphe.patches.instagram.feed.menuitems.menuItemsPatch
+import app.morphe.patches.instagram.feed.savemenu.saveInPostMenuPatch
+import app.morphe.patches.instagram.feed.watchagain.watchAgainInFeedPatch
 import app.morphe.patches.instagram.reels.scrolling.stopReelsScrollingPatch
+import app.morphe.patches.instagram.reels.profiletabbar.reelProfileTabBarPatch
 import app.morphe.patches.instagram.reels.swipeprofile.swipeToProfilePatch
 import app.morphe.patches.instagram.reels.seekbar.reelSeekBarPatch
+import app.morphe.patches.instagram.reels.links.openReelLinksPatch
+import app.morphe.patches.instagram.reels.abovecomments.reelAboveCommentsPatch
 import app.morphe.patches.instagram.reels.speed.keepReelSpeedPatch
 import app.morphe.patches.instagram.reels.suggested.hideReelsSuggestionsPatch
 import app.morphe.patches.instagram.reels.tab.hideReelsTabPatch
 import app.morphe.patches.instagram.reels.tablayout.tabBarLayoutPatch
 import app.morphe.patches.instagram.reels.tapvolume.reelTapAndVolumePatch
 import app.morphe.patches.instagram.reels.sound.startReelsWithSoundPatch
+import app.morphe.patches.instagram.reels.skip.doubleTapSkipReelsPatch
+import app.morphe.patches.instagram.reels.fastplay.hideReelFastPlayLabelPatch
 import app.morphe.patches.instagram.reels.time.showReelTimePatch
 import app.morphe.patches.instagram.reels.topbar.keepReelsTopBarPatch
 import app.morphe.patches.instagram.direct.viewonce.markViewOncePatch
@@ -141,6 +169,7 @@ import app.morphe.patches.instagram.stories.speed.storySpeedPatch
 import app.morphe.patches.instagram.stories.time.showStoryTimePatch
 import app.morphe.patches.instagram.feed.sound.startFeedVideosWithSoundPatch
 import app.morphe.patches.instagram.feed.tap.tapFeedVideoToPausePatch
+import app.morphe.patches.instagram.feed.hold.holdFeedVideoFastPatch
 import app.morphe.patches.instagram.feed.seekbar.feedSeekBarPatch
 import app.morphe.patches.instagram.feed.rounded.roundedPostCornersPatch
 import app.morphe.patches.instagram.feed.ambient.ambientLightPatch
@@ -150,9 +179,10 @@ import app.morphe.patches.instagram.stories.sound.startStoriesWithSoundPatch
 import app.morphe.patches.instagram.stories.fonts.storyFontsPatch
 import app.morphe.patches.instagram.stories.swipereply.stopSwipeReplyPatch
 import app.morphe.patches.instagram.stories.replybox.hideStoryReplyBoxPatch
+import app.morphe.patches.instagram.stories.buttonsroom.storyButtonsRoomPatch
 import app.morphe.patches.instagram.stories.quality.uploadStoriesAtFullQualityPatch
 import app.morphe.patches.instagram.stories.tray.hideSuggestedStoriesPatch
-import app.morphe.patches.instagram.layout.liquidglass.liquidGlassNavBarPatch
+import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.instagram.reels.fullscreen.fullScreenBarsPatch
 import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
 import app.morphe.patches.instagram.misc.refreshrate.refreshRatePatch
@@ -178,6 +208,10 @@ class DefaultCatalogTest {
         accentColorPatch,
         allowScreenshotsPatch,
         askBeforeCallPatch,
+        hideKindnessReminderPatch,
+        callBlockerPatch,
+        askBeforeFollowPatch,
+        sentFollowRequestsPatch,
         askBeforeLikePatch,
         askBeforeRefreshPatch,
         backLeavesHomePatch,
@@ -194,17 +228,20 @@ class DefaultCatalogTest {
         dontSaveRecentSearchesPatch,
         showAllRecentSearchesPatch,
         dontSendReelWatchHistoryPatch,
+        dontSendFeedViewHistoryPatch,
         downloadVideoPatch,
+        askForVp9Patch,
         downloadVoiceMessagesPatch,
         emojiStylePatch,
         findReelOriginPatch,
         fontPatch,
         fullResolutionPhotosPatch,
-        liquidGlassNavBarPatch,
+        glassTabBarPatch,
         groupNotificationsPatch,
         hideActiveStatusPatch,
         hideCommentsPatch,
         hideCommentEmojiRowPatch,
+        hideCommentGifsPatch,
         hideFeedFollowPatch,
         hideCaptionsPatch,
         feedAudioIconPatch,
@@ -222,6 +259,7 @@ class DefaultCatalogTest {
         hideInstantsPatch,
         hideNotesRowPatch,
         hideProfileNotesPatch,
+        hideProfileBannersPatch,
         hideProfileTabsPatch,
         messageBoxPatch,
         chatPlusMenuPatch,
@@ -241,15 +279,17 @@ class DefaultCatalogTest {
         hideTypingPatch,
         keepInChatPatch,
         swipeChatReelsPatch,
+        chatMediaWalkPatch,
         chatHistoryPatch,
         previewChatsPatch,
         keepReelsAutoScrollPatch,
         launchScreenPatch,
         homeHeaderTextPatch,
         lockMessagesPatch,
-        hideHiddenChatsFromSearchPatch,
         loopStoryPatch,
         pickAppIconPatch,
+        profileGridJumpPatch,
+        sortProfileReelsPatch,
         profilePostsListPatch,
         readWithoutSeenReceiptPatch,
         reelSeekBarPatch,
@@ -259,6 +299,9 @@ class DefaultCatalogTest {
         saveProfilePicturePatch,
         showHiddenLikeCountsPatch,
         showLastActivePatch,
+        keepOnlineHistoryPatch,
+        keepStoryViewersPatch,
+        shorterActiveNowPatch,
         showPostTimePatch,
         showReelTimePatch,
         showStoryTimePatch,
@@ -270,6 +313,8 @@ class DefaultCatalogTest {
         appProxyPatch,
         skipSetupPopupsPatch,
         skipAdDataReminderPatch,
+        keepPhotoLocationsPatch,
+        searchBlockedAccountsPatch,
         startOnFollowingPatch,
         stopHeartbeatPatch,
         stopReelsScrollingPatch,
@@ -291,13 +336,17 @@ class DefaultCatalogTest {
         viewStoriesAnonymouslyPatch,
         startFeedVideosWithSoundPatch,
         tapFeedVideoToPausePatch,
+        holdFeedVideoFastPatch,
         feedSeekBarPatch,
         startStoriesWithSoundPatch,
         startReelsWithSoundPatch,
         pinchZoomReelsPatch,
+        doubleTapSkipReelsPatch,
+        hideReelFastPlayLabelPatch,
         refreshRatePatch,
         stopSwipeReplyPatch,
         hideStoryReplyBoxPatch,
+        storyButtonsRoomPatch,
         uploadStoriesAtFullQualityPatch,
         storyFontsPatch,
         longPressZoomPatch,
@@ -310,11 +359,20 @@ class DefaultCatalogTest {
         dontReportBlendVisitsPatch,
         hideActivityBubblesPatch,
         phoneLayoutPatch,
+        hidePlusUpsellPatch,
+        searchCommentsPatch,
+        splitNotesRowPatch,
+        hideEditsLabelPatch,
+        saveInPostMenuPatch,
+        menuItemsPatch,
+        hideLiveReelsPatch,
+        watchAgainInFeedPatch,
+        reelProfileTabBarPatch,
+        reelAboveCommentsPatch,
     )
 
     private val prior = listOf<Patch>(
         defaultPlaybackQualityPatch,
-        mediaQualityIndicatorPatch,
         downloadReelPatch,
         downloadStoryPatch,
         friendshipStatusPatch,
@@ -324,6 +382,7 @@ class DefaultCatalogTest {
         hideSuggestedStoriesPatch,
         keepReelSpeedPatch,
         openLinksExternallyPatch,
+        openReelLinksPatch,
         removeAdIdPatch,
         removeBuildExpiredPopupPatch,
         restoreTrustPatch,
@@ -334,7 +393,8 @@ class DefaultCatalogTest {
     )
 
     private val optIn = listOf<Patch>(
-        openDeveloperOptionsPatch,
+        changeVersionCodePatch,
+        installNextToInstagramPatch,
         pureBlackPatch,
         viewDmMediaAnonymouslyPatch,
     )
@@ -345,19 +405,19 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(135, neutral.size)
+        assertEquals(164, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
     @Test fun patchTimeChangesAndUnreadyFeaturesStayOptIn() {
-        assertEquals(3, optIn.size)
+        assertEquals(4, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.default) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 156, all.size)
+        assertEquals("every named patch needs one reviewed decision", 186, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

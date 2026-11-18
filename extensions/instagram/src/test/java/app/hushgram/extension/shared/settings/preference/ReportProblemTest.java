@@ -29,14 +29,14 @@ public class ReportProblemTest {
             "versions", "device", "bug_description", "additional_context");
 
     private static ReportProblem.Facts facts(List<String> switchesOn) {
-        return new ReportProblem.Facts("Instagram patch", "0.0.9", "Instagram", "450.0.0.50.77", 378612345L,
+        return new ReportProblem.Facts("HushGram", "0.0.9", "Instagram", "450.0.0.50.77", 378612345L,
                 "samsung", "SM-S901U", "16", 36, switchesOn);
     }
 
     @Test
     public void theBodySaysTheVersionsThePhoneAndTheSwitchesThenAsks() {
         ReportProblem.Facts facts = facts(Arrays.asList("Hide ads", "Strip link tracking"));
-        assertEquals("Versions: Instagram patch 0.0.9 on Instagram 450.0.0.50.77 (378612345)\n"
+        assertEquals("Versions: HushGram 0.0.9 on Instagram 450.0.0.50.77 (378612345)\n"
                 + "Phone: samsung SM-S901U, Android 16 (SDK 36)\n"
                 + "Switches on: Hide ads, Strip link tracking\n"
                 + "\n"
@@ -44,10 +44,10 @@ public class ReportProblemTest {
                 + "What I expected:\n\n", ReportProblem.body(facts));
         // A model that already names its maker isn't given the maker twice.
         assertEquals("Google Pixel 8, Android 15 (SDK 35)", ReportProblem.deviceLine(new ReportProblem.Facts(
-                "Instagram patch", "0.0.9", "Instagram", "450.0.0.50.77", 1, "Google", "Google Pixel 8", "15", 35, null)));
+                "HushGram", "0.0.9", "Instagram", "450.0.0.50.77", 1, "Google", "Google Pixel 8", "15", 35, null)));
         // Nothing known reads as unknown rather than as a blank, and no switch on says so.
-        ReportProblem.Facts bare = new ReportProblem.Facts("Instagram patch", null, "Instagram", "", 0, null, null, null, 29, null);
-        assertEquals("Instagram patch unknown on Instagram unknown", ReportProblem.versionsLine(bare));
+        ReportProblem.Facts bare = new ReportProblem.Facts("HushGram", null, "Instagram", "", 0, null, null, null, 29, null);
+        assertEquals("HushGram unknown on Instagram unknown", ReportProblem.versionsLine(bare));
         assertEquals("unknown phone, Android unknown (SDK 29)", ReportProblem.deviceLine(bare));
         assertTrue(ReportProblem.body(bare).contains("Switches on: none\n"));
     }
@@ -60,7 +60,7 @@ public class ReportProblemTest {
         Map<String, String> fields = query(url);
         assertEquals(Arrays.asList("template", "versions", "device", "bug_description", "additional_context"),
                 new ArrayList<>(fields.keySet()));
-        assertEquals("Instagram patch 0.0.9 on Instagram 450.0.0.50.77 (378612345)", fields.get("versions"));
+        assertEquals("HushGram 0.0.9 on Instagram 450.0.0.50.77 (378612345)", fields.get("versions"));
         assertEquals("samsung SM-S901U, Android 16 (SDK 36)", fields.get("device"));
         assertEquals("What happened:\n\n\nWhat I expected:\n\n", fields.get("bug_description"));
         assertEquals("Switches on: Hide ads, Strip link tracking", fields.get("additional_context"));
@@ -74,7 +74,7 @@ public class ReportProblemTest {
 
     @Test
     public void aTitleOrModelCannotAddLinesOrBreakTheQuery() throws Exception {
-        ReportProblem.Facts facts = new ReportProblem.Facts("Instagram patch", "0.0.9", "Instagram", "450.0.0.50.77", 1,
+        ReportProblem.Facts facts = new ReportProblem.Facts("HushGram", "0.0.9", "Instagram", "450.0.0.50.77", 1,
                 "Acme", "Phone&x=1\nSecond line", "16", 36, Arrays.asList("Hide\nads", "A+B #1", "  "));
         Map<String, String> fields = query(ReportProblem.issueUrl(FORM, facts));
         assertEquals("Acme Phone&x=1 Second line, Android 16 (SDK 36)", fields.get("device"));
@@ -103,7 +103,7 @@ public class ReportProblemTest {
         // A phone whose names alone run past the limit still gets a link that fits.
         StringBuilder huge = new StringBuilder();
         for (int i = 0; i < 7000; i++) huge.append('m');
-        ReportProblem.Facts odd = new ReportProblem.Facts("Instagram patch", "0.0.9", "Instagram", "450.0.0.50.77", 1,
+        ReportProblem.Facts odd = new ReportProblem.Facts("HushGram", "0.0.9", "Instagram", "450.0.0.50.77", 1,
                 "Acme", huge.toString(), "16", 36, many);
         String cut = ReportProblem.issueUrl(FORM, odd);
         assertTrue(cut.length() <= ReportProblem.MAX_LENGTH);

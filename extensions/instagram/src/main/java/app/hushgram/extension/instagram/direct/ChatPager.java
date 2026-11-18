@@ -530,7 +530,7 @@ public final class ChatPager {
             if (forTests != null) {
                 found = forTests.get(name);
             } else {
-                int id = context.getResources().getIdentifier(name, "drawable", context.getPackageName());
+                int id = context.getResources().getIdentifier(name, "drawable", Utils.resourcePackage(context));
                 if (id != 0) found = context.getDrawable(id);
             }
             if (found != null) return found.mutate();
@@ -782,7 +782,7 @@ public final class ChatPager {
                         }
                         Utils.showToastShort(ChatExport.appFolderOnly()
                                 ? L10n.t("Chat saved in the app's Download folder.")
-                                : L10n.t("Chat saved in Downloads/Instagram."));
+                                : L10n.t("Chat saved in Downloads/HushGram."));
                         Utils.showToastShort(name);
                     }
                 });

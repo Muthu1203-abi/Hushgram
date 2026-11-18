@@ -78,10 +78,10 @@ val lockMessagesPatch = bytecodePatch(
     description = "Covers your inbox and chats, all of Instagram, or just the single chats you pick under Locked chats, " +
         "until your fingerprint, face or screen lock says it's you. Message notifications only say that a message " +
         "came. Chats you pick under Hidden chats leave your inbox and their notifications don't post. Starts off. " +
-        "Turn it on in Instagram settings > Messages.",
+        "Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Messages")
+    category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
@@ -92,20 +92,20 @@ val lockMessagesPatch = bytecodePatch(
         val chats = findChatLockTargets()
         val accounts = findChatAccountTargets()
         val hidden = findHiddenChatTargets()
-        val hiddenMenu = findHiddenChatMenuTargets()
         val search = findSearchTargets()
         val recents = findRecentTargets()
         val touch = findHiddenChatsTouch()
+        val menu = findHiddenChatMenuOrSkip()
         hideNotificationText(targets.notify)
         hideDirectPosts(posts)
         holdBanner(targets.banner)
         hookChatLocks(chats)
         hookChatAccounts(accounts)
         hideChatsFromInbox(hidden)
-        hookHiddenChatMenu(hiddenMenu)
         hideChatsFromSearch(search)
         hideChatsFromRecents(recents)
         hookHiddenChatsTouch(touch)
+        menu?.let(::hookHiddenChatMenu)
         enableStatus("messagesLock")
     }
 }

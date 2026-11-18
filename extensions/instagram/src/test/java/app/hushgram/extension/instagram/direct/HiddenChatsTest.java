@@ -99,33 +99,6 @@ public class HiddenChatsTest {
     }
 
     @Test
-    public void theHiddenUnreadDotNeedsAHiddenUnreadChatAndDoesNotInheritUnreadWhenHidden() {
-        HiddenChats.filter(list(ALICE));
-        assertFalse("unread regular chat, no hidden chats", HiddenChats.hasHiddenUnread());
-
-        HiddenChats.add(MessagesLockTest.ME, ALICE, "Alice");
-        assertFalse("a chat already unread when it was hidden", HiddenChats.hasHiddenUnread());
-
-        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
-        assertTrue("a new hidden-chat push shows the dot", HiddenChats.hasHiddenUnread());
-    }
-
-    @Test
-    public void openingAHiddenChatClearsItsDotAndALaterPushShowsItAgain() {
-        HiddenChats.add(MessagesLockTest.ME, ALICE, "Alice");
-        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
-        assertTrue(HiddenChats.hasHiddenUnread());
-
-        HiddenChats.opened(MessagesLockTest.ME, ALICE);
-        assertFalse("opening the hidden chat clears its dot", HiddenChats.hasHiddenUnread());
-        HiddenChats.filter(list(ALICE));
-        assertFalse("a stale unread snapshot does not bring the dot back", HiddenChats.hasHiddenUnread());
-
-        assertTrue(HiddenChats.hides(Collections.singleton(ALICE), MessagesLockTest.ME));
-        assertTrue("a later message shows the dot again", HiddenChats.hasHiddenUnread());
-    }
-
-    @Test
     public void aHiddenChatLeavesTheListTheInboxDrawsItsRowsFrom() {
         HiddenChats.add(ALICE, "Alice");
         List<Object> inbox = Collections.unmodifiableList(list(ALICE, BOB, "7"));
@@ -224,6 +197,40 @@ public class HiddenChatsTest {
         String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
         assertTrue(missing, missing.contains("'inbox filter'"));
         assertTrue(missing, missing.contains("'folder count filter'"));
+    }
+
+    /** 456's badge reads a list the store's helper wrapped: a hidden chat leaves a copy wrapped the same way, counted as the badge's. */
+    @Test
+    public void aWrappedBadgeListLosesItsHiddenChatAndStaysWrapped() {
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> read = Collections.unmodifiableList(list(ALICE, BOB, "7"));
+
+        List<Object> shown = HiddenChats.badge(read);
+
+        assertEquals(Arrays.asList(BOB, "7"), ids(shown));
+        assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(read));
+        boolean refused = false;
+        try {
+            shown.add(BOB);
+        } catch (UnsupportedOperationException expected) {
+            refused = true;
+        }
+        assertTrue("the copy is wrapped as Instagram's was", refused);
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the unread badge 1"));
+    }
+
+    @Test
+    public void aWrappedBadgeListWithNoHiddenChatComesBackAsItIs() {
+        List<Object> read = Collections.unmodifiableList(list(ALICE, BOB));
+        assertSame(read, HiddenChats.badge(read));
+        assertNull(HiddenChats.badge(null));
+
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> other = Collections.unmodifiableList(list(BOB, "7"));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.badge(other));
+        List<Object> empty = Collections.emptyList();
+        assertSame(empty, HiddenChats.badge(empty));
     }
 
     @Test
@@ -683,6 +690,49 @@ public class HiddenChatsTest {
         String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
         assertTrue(missing, missing.contains("'inbox redraw'"));
         assertEquals(2, HiddenChats.keptForTests());
+    }
+
+    @Test
+    public void revealingShowsTheHiddenChatsAloneAndConcealingPutsTheInboxBack() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.add(BOB, "Bob");
+        Object inbox = new Object();
+        List<Object> instagrams = Collections.unmodifiableList(list("7", BOB, "8", ALICE));
+        assertEquals(Arrays.asList("7", "8"), ids(HiddenChats.inbox(inbox, instagrams)));
+        assertFalse(HiddenChats.revealed());
+
+        HiddenChats.reveal();
+
+        assertTrue(HiddenChats.revealed());
+        assertEquals("drawn again at once with the hidden chats alone", 1, redrawn.size());
+        assertSame(inbox, redrawn.get(0)[0]);
+        assertEquals("in Instagram's order", Arrays.asList(BOB, ALICE), ids(rows(0)));
+        assertEquals("the next list is the hidden chats too", Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("9", ALICE))));
+        assertEquals("Instagram's own list is untouched", Arrays.asList("7", BOB, "8", ALICE), ids(instagrams));
+
+        assertTrue(HiddenChats.conceal());
+
+        assertFalse(HiddenChats.revealed());
+        assertEquals(2, redrawn.size());
+        assertEquals("every other chat again", Arrays.asList("9"), ids(rows(1)));
+        assertFalse("nothing to conceal twice", HiddenChats.conceal());
+        assertEquals(2, redrawn.size());
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+    }
+
+    @Test
+    public void revealedWithNothingHiddenLeavesInstagramsListAndTheLockConcealsThem() {
+        List<Object> instagrams = list(ALICE, BOB);
+        HiddenChats.reveal();
+        assertSame("nothing hidden, so Instagram's own list", instagrams, HiddenChats.inbox(null, instagrams));
+
+        HiddenChats.add(ALICE, "Alice");
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+
+        MessagesLockForTests.leave();
+
+        assertFalse("leaving Instagram hides them again", HiddenChats.revealed());
+        assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
     }
 
     /** The list the inbox was asked to draw its rows from the [n]th time. */

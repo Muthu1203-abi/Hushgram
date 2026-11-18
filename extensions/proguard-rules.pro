@@ -16,9 +16,6 @@
 -keep class app.hushgram.extension.** {
   *;
 }
--keep class app.southstar21.extension.** {
-  *;
-}
 # Proguard can strip away kotlin intrinsics methods that are used by extension Kotlin code. Unclear why.
 -keep class kotlin.jvm.internal.Intrinsics {
     public static *;

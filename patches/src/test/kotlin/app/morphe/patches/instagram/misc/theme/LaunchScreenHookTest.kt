@@ -72,7 +72,7 @@ class LaunchScreenHookTest {
             "no hook in the extension" to listOf(activity()),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).findLogoAnswers() }
-            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Instagram launch screen:"))
+            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("HushGram launch screen:"))
         }
     }
 

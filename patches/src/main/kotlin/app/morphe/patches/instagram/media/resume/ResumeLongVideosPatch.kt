@@ -103,7 +103,7 @@ private const val OBJECT = "Ljava/lang/Object;"
 val resumeLongVideosPatch = bytecodePatch(
     name = "Resume long videos",
     description = "A video or reel longer than two minutes picks up where you left off the next time you play it " +
-        "on the same account. Live videos and ads start as usual. Starts off. Turn it on in Instagram settings > " +
+        "on the same account. Live videos and ads start as usual. Starts off. Turn it on in HushGram settings > " +
         "Playback.",
     default = true,
 ) {
@@ -280,6 +280,43 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
 
     return ResumePlayer(player, started, pause, stop, bind, seek, completed, looping, position, length,
         holder, sourceField, mediaId, productType, sponsored, session, userId, sessionEnd, loggedOut)
+}
+
+/** How IgVideoPlayerImpl reaches the media ID of what it plays: its own field, that holder's IgVideoSource, and the ID. */
+internal class PlayerVideoId(val holder: FieldReference, val source: FieldReference, val mediaId: FieldReference)
+
+/**
+ * [PlayerVideoId] for [player], found as [findResumePlayer] finds it, for a patch that reads the
+ * media ID alone. Every class and field on the way is public, or this throws.
+ */
+internal fun BytecodePatchContext.findPlayerVideoId(player: ClassDef): PlayerVideoId {
+    val dumps = mutableListOf<Method>()
+    classesHolding(*SOURCE_DUMP.toTypedArray()).forEach { classDef ->
+        classDef.methods.filterTo(dumps) { it.strings().containsAll(SOURCE_DUMP) }
+    }
+    val dump = dumps.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one method holding $SOURCE_DUMP, found ${dumps.size}")
+    val source = dump.parameterTypes.firstOrNull()?.toString()
+        ?: throw PatchException("$PATCH: ${dump.definingClass}->${dump.name}, IgVideoSource's dump, takes nothing")
+    val sourceClass = classDefByOrNull(source)
+        ?: throw PatchException("$PATCH: IgVideoSource $source isn't in this build")
+    val mediaId = dump.labelledReads(source).field(MEDIA_ID, dump, STRING)
+    val (holder, sourceField) = player.sourcePath(source, mediaId)
+    val holderClass = classDefByOrNull(holder.type)
+        ?: throw PatchException("$PATCH: ${holder.type}, what the player plays, isn't in this build")
+    listOf(player, holderClass, sourceClass).forEach { reachable ->
+        if (!AccessFlags.PUBLIC.isSet(reachable.accessFlags)) {
+            throw PatchException("$PATCH: ${reachable.type} isn't public, so the extension can't reach it")
+        }
+    }
+    listOf(player to holder, holderClass to sourceField, sourceClass to mediaId).forEach { (owner, field) ->
+        val declared = owner.fields.singleOrNull { it.name == field.name && it.type == field.type }
+            ?: throw PatchException("$PATCH: ${owner.type} doesn't declare ${field.name}:${field.type}")
+        if (!AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
+            throw PatchException("$PATCH: ${owner.type}->${field.name} isn't a public instance field, so the extension can't read it")
+        }
+    }
+    return PlayerVideoId(holder, sourceField, mediaId)
 }
 
 /**

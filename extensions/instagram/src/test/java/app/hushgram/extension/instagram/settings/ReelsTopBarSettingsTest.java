@@ -39,6 +39,7 @@ public class ReelsTopBarSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
         Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
@@ -53,6 +54,7 @@ public class ReelsTopBarSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
         Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
@@ -82,6 +84,19 @@ public class ReelsTopBarSettingsTest {
         assertFalse(Settings.HIDE_REELS_TOP_BAR.get());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_REELS_TOP_BAR.key));
     }
+    /** #680: the switch for every other viewer's bar, the one with Explore's back arrow, starts off. */
+    @Test public void theOtherReelsBarSwitchIsThereAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key);
+        assertNotNull(row);
+        assertEquals("Hide the top bar on other reels", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("from Explore"));
+        assertEquals(Boolean.FALSE, Settings.HIDE_OTHER_REELS_TOP_BAR.defaultValue);
+        assertFalse("checked each search, no restart", Settings.HIDE_OTHER_REELS_TOP_BAR.rebootApp);
+        assertFalse(Settings.HIDE_OTHER_REELS_TOP_BAR.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_OTHER_REELS_TOP_BAR.key));
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_OTHER_REELS_TOP_BAR));
+    }
     private static int indexIn(PreferenceGroup group, Preference wanted) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == wanted) return i;
         return -1;
@@ -98,24 +113,41 @@ public class ReelsTopBarSettingsTest {
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_TOP_BAR.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_CREATE_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_YOUR_ALGORITHM.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.key));
     }
-    /** The Create and Your algorithm switches (#177, #217) follow the top bar's, each its own row. */
+    /**
+     * The Create and Your algorithm switches (#177, #217) follow the top bar's, each its own row, with
+     * the saved reels Create switch (#620) between them.
+     */
     @Test public void theButtonSwitchesFollowTheTopBarAndStartOff() throws Exception {
         open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
         Preference bar = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_TOP_BAR.key);
         Preference create = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_CREATE_BUTTON.key);
+        Preference saved = page.getPreferenceScreen().findPreference(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.key);
         Preference algorithm = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_YOUR_ALGORITHM.key);
         assertNotNull(create);
+        assertNotNull(saved);
         assertNotNull(algorithm);
         assertEquals("Hide the Create button on reels", create.getTitle().toString());
         assertTrue(create.getSummary().toString(), create.getSummary().toString().contains("The rest of the bar stays."));
+        assertEquals("Hide the Create button on saved reels", saved.getTitle().toString());
+        assertEquals("Takes the plus button off the top of reels you open from Saved or a collection and closes "
+                + "up the gap. The Reels tab and other reels keep theirs.", saved.getSummary().toString());
         assertEquals("Hide Your algorithm on reels", algorithm.getTitle().toString());
         PreferenceGroup reels = (PreferenceGroup) bar.getParent();
-        assertEquals(indexIn(reels, bar) + 1, indexIn(reels, create));
-        assertEquals(indexIn(reels, create) + 1, indexIn(reels, algorithm));
-        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_REELS_CREATE_BUTTON, Settings.HIDE_REELS_YOUR_ALGORITHM}) {
+        Preference other = page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key);
+        assertEquals("the other reels' bar switch sits right under the Reels tab's", indexIn(reels, bar) + 1, indexIn(reels, other));
+        assertEquals(indexIn(reels, other) + 1, indexIn(reels, create));
+        assertEquals(indexIn(reels, create) + 1, indexIn(reels, saved));
+        assertEquals(indexIn(reels, saved) + 1, indexIn(reels, algorithm));
+        assertEquals(Boolean.FALSE, Settings.HIDE_SAVED_REELS_CREATE_BUTTON.defaultValue);
+        assertFalse("checked each search, no restart", Settings.HIDE_SAVED_REELS_CREATE_BUTTON.rebootApp);
+        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_REELS_CREATE_BUTTON,
+                Settings.HIDE_SAVED_REELS_CREATE_BUTTON, Settings.HIDE_REELS_YOUR_ALGORITHM}) {
             assertFalse(setting.key, setting.get());
             assertTrue(setting.key, ConfigurationBackup.eligible().containsKey(setting.key));
         }

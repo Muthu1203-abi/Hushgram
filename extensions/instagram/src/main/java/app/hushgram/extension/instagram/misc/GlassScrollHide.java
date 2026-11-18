@@ -267,6 +267,18 @@ final class GlassScrollHide {
         return hidden && !shrunk && bar.getTranslationY() >= travel() - 1f;
     }
 
+    /**
+     * How far along its way off the bottom the bar is, from 0 where it belongs to 1 all the way off,
+     * sliding back included, so a reel's caption and seek bar can follow it down (#736). 0 for a bar this
+     * never moved and for one shrunk in place of sliding.
+     */
+    float awayShare() {
+        if (!moved || shrunk) return 0f;
+        float travel = travel();
+        if (travel <= 0f) return 0f;
+        return Math.max(0f, Math.min(1f, bar.getTranslationY() / travel));
+    }
+
     /** Whether a scroll shrank the bar to its compact row, in place of sliding it away. */
     boolean isShrunk() {
         return shrunk;
@@ -556,11 +568,7 @@ final class GlassScrollHide {
         } else {
             moved = true;
             bar.animate().cancel();
-            if (GlassTabBar.animationsOn()) {
-                bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
-            } else {
-                bar.setTranslationY(travel());
-            }
+            bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
             giveRoom(true);
         }
         guard = held;
@@ -588,13 +596,6 @@ final class GlassScrollHide {
             return;
         }
         bar.animate().cancel();
-        if (!GlassTabBar.animationsOn()) {
-            bar.setTranslationY(0f);
-            moved = hidden;
-            if (!hidden) giveRoom(false);
-            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, counted);
-            return;
-        }
         // The screens keep the room until the bar covers it again, so nothing shows through as it slides back.
         bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator())
                 .withEndAction(() -> {

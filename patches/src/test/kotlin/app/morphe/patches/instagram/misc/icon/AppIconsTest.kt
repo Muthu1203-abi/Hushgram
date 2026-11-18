@@ -11,6 +11,7 @@ import app.morphe.patcher.PatcherResult
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.resource.ResourceMode
+import app.morphe.patches.instagram.coexist.CloneFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -175,6 +176,8 @@ class AppIconsTest {
         assertEquals("#FF2F2F2F", parse(files.getValue("drawable/hushgram_icon_gradient_background.xml")).elements("gradient").single().getAttribute("android:startColor"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_light_background.xml")).elements("solid").single().getAttribute("android:color"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_sketch_background.xml")).elements("solid").single().getAttribute("android:color"))
+        assertEquals("the camera's cream, not white, behind the retro camera (#565)", RETRO_CREAM,
+            parse(files.getValue("drawable/hushgram_icon_retro_background.xml")).elements("solid").single().getAttribute("android:color"))
         val black = parse(files.getValue("drawable/hushgram_icon_light_glyph.xml"))
         assertEquals("vector", black.documentElement.tagName)
         assertEquals("#FF000000", black.documentElement.getAttribute("android:tint"))
@@ -190,7 +193,8 @@ class AppIconsTest {
 
     /**
      * The hand-drawn icon's picture (#406) comes with the patch: one square PNG of black strokes on clear,
-     * with its ink inside the 66dp circle every launcher shape keeps.
+     * with its ink inside the 66dp circle every launcher shape keeps. The retro camera instead covers the
+     * whole layer, so no launcher shape shows a white frame around it (#565).
      */
     @Test
     fun theHandDrawnPictureComesWithThePatch() {
@@ -202,6 +206,17 @@ class AppIconsTest {
         for ((path, bytes) in art) {
             val image = javax.imageio.ImageIO.read(bytes.inputStream())
             assertEquals(path, image.width, image.height)
+            if (path.contains("_retro_")) {
+                var light = 0
+                for (y in 0 until image.height) for (x in 0 until image.width) {
+                    val argb = image.getRGB(x, y)
+                    assertEquals("opaque at $x,$y", 0xFF, argb ushr 24)
+                    if ((argb shr 16 and 0xFF) > 240 && (argb shr 8 and 0xFF) > 240 && (argb and 0xFF) > 240) light++
+                }
+                // The lens glint and the Insta label are the only near-white, a small share of the picture.
+                assertTrue("$path is the camera, not a white tile, $light near-white", light < image.width * image.height / 50)
+                continue
+            }
             assertTrue("$path has alpha", image.colorModel.hasAlpha())
             var farthest = 0.0
             var inked = 0
@@ -216,6 +231,9 @@ class AppIconsTest {
             assertTrue("$path has ink, $inked", inked > 1000)
             assertTrue("$path has real transparent pixels, $clear", clear > inked / 4)
             assertTrue("$path inside the safe circle, $farthest dp", farthest < 33)
+            if (path.contains("_gradient_")) {
+                assertTrue("$path fills the safe circle, so it isn't small on the home screen (#327), $farthest dp", farthest > 31)
+            }
         }
     }
 
@@ -226,6 +244,67 @@ class AppIconsTest {
         assertTrue(assertThrows(PatchException::class.java) { readGlyph(two, "@drawable/g") }.message.orEmpty().contains("found 2"))
         val shape = res("drawable/g.xml" to "<shape xmlns:android=\"http://schemas.android.com/apk/res/android\" />")
         assertTrue(assertThrows(PatchException::class.java) { readGlyph(shape, "@drawable/g") }.message.orEmpty().contains("isn't a vector"))
+    }
+
+    /**
+     * Every build's manifest has Instagram's alias once, an icon of the app's own, and takes HushGram's.
+     * The fixture reads the binary manifest, so the icon is its resource id here; the encoder test reads
+     * it by name as Manager hands it over.
+     */
+    @Test
+    fun eachBuildsManifestTakesTheAliases() {
+        for ((code, build) in CloneFixtures.builds()) {
+            val manifest = CloneFixtures.manifest(build)
+            val icon = manifest.elements("application").single().getAttribute("android:icon")
+            assertTrue("$code: the application's icon is $icon", icon.startsWith("@0x7f"))
+            addIconAliases(manifest)
+            val names = manifest.elements("activity-alias").map { it.getAttribute("android:name") }
+            val at = names.indexOfFirst { it == INSTAGRAM_ALIAS || it == ".activity.MainTabActivity" }
+            assertEquals("$code: after Instagram's", HUSHGRAM_ICONS.map { it.alias }, names.subList(at + 1, at + 1 + HUSHGRAM_ICONS.size))
+        }
+    }
+
+    /**
+     * On the declared build, decoded and encoded as Manager does: the manifest gains the three aliases,
+     * the res folder the icons, and every resource keeps its number.
+     */
+    @Test
+    fun theDeclaredBuildTakesTheIconsThroughTheEncoder() {
+        val build = CloneFixtures.builds().values.single { it.extension == "apks" }
+        val work = folder.newFolder("work")
+        val apk = File(work, "base.apk").also { base ->
+            ZipFile(build).use { bundle -> bundle.getInputStream(bundle.getEntry("base.apk")).use { input -> base.outputStream().use(input::copyTo) } }
+        }
+        val patched = File(work, "patched.apk")
+        val before = decoded(apk, File(work, "patch")) { context ->
+            val ids = ids(context.get("res"))
+            context.addAppIcons()
+            encoded(context).copyTo(patched)
+            ids
+        }
+        decoded(patched, File(work, "check")) { context ->
+            val res = context.get("res")
+            val lost = before - ids(res)
+            assertTrue("numbers gone, ${lost.take(5)}", lost.isEmpty())
+            val manifest = parse(context.get("AndroidManifest.xml").readText())
+            val ours = manifest.elements("activity-alias").filter { it.getAttribute("android:name").startsWith(HUSHGRAM_ALIAS) }
+            assertEquals(HUSHGRAM_ICONS.map { it.alias }, ours.map { it.getAttribute("android:name") })
+            assertEquals(HUSHGRAM_ICONS.map { "@mipmap/${it.icon}" }, ours.map { it.getAttribute("android:icon") })
+            val icons = res.listFiles()!!.single { File(it, "icon.xml").isFile && parse(File(it, "icon.xml").readText()).documentElement.tagName == "adaptive-icon" }
+            for (icon in HUSHGRAM_ICONS) {
+                val adaptive = parse(File(icons, "${icon.icon}.xml").readText())
+                assertEquals(icon.key, "@drawable/${icon.backgroundName}", adaptive.elements("background").single().getAttribute("android:drawable"))
+                assertTrue(icon.key, File(res, "drawable/${icon.backgroundName}.xml").isFile)
+            }
+            assertEquals("vector", parse(File(res, "drawable/$ICON_MARK.xml").readText()).documentElement.tagName)
+            val black = parse(File(res, "drawable/hushgram_icon_light_glyph.xml").readText())
+            assertEquals("Instagram's glyph, tinted", "vector", black.documentElement.tagName)
+            assertEquals("#ff000000", black.documentElement.getAttribute("android:tint").lowercase())
+            assertTrue("with its paths", black.elements("path").isNotEmpty())
+            val sketch = File(res, "drawable-nodpi/hushgram_icon_sketch_art.png")
+            assertTrue("the hand-drawn picture", sketch.isFile)
+            assertEquals("still a picture", 432, javax.imageio.ImageIO.read(sketch).width)
+        }
     }
 
     private fun refuses(reason: String, xml: String) {

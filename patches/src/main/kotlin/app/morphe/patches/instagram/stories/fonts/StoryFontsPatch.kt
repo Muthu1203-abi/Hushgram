@@ -68,7 +68,7 @@ internal const val LAYOUT_BUILDER = "Landroid/text/StaticLayout\$Builder;->obtai
     "Landroid/text/StaticLayout\$Builder;"
 
 /**
- * Adds the font files picked in Instagram settings to the story text editor's row of fonts, before
+ * Adds the font files picked in HushGram settings to the story text editor's row of fonts, before
  * Instagram's paid section. Its own fonts all stay (#275). Each is a format Instagram's import would
  * make for that file, so the editor and the finished sticker draw it the way they draw an imported
  * font. In the default selection with its switch off; adding a font in settings turns it on.
@@ -78,7 +78,7 @@ val storyFontsPatch = bytecodePatch(
     name = "Story text fonts",
     description = "Adds fonts you pick from your phone (.ttf or .otf files) to the story text editor alongside Instagram's " +
         "own fonts, and can draw the emoji in story text from an emoji font file you pick. Starts off. Set both up in " +
-        "Instagram settings > Stories.",
+        "HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -353,7 +353,9 @@ private fun BytecodePatchContext.findFontPremium(controller: ClassDef, format: S
         reads.groupBy { it.second.name.toString() to it.second.check.toString() }.values.mapNotNull { group ->
             val badge = group.any { code[it.first + 3].opcode == Opcode.IF_EQZ }
             val boundary = group.any { (at, _) ->
-                val tail = code.subList(at + 4, minOf(code.size, at + 16))
+                // 455 unboxes the index, checks it and adds the header row's offset before boxing it
+                // again, so its field write is 16 instructions past the name's read.
+                val tail = code.subList(at + 4, minOf(code.size, at + 24))
                 code[at + 3].opcode == Opcode.IF_NEZ && tail.any {
                     it.call()?.toString() == "$INTEGER->valueOf(I)$INTEGER"
                 } && tail.any {

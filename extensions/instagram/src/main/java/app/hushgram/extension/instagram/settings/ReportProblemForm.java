@@ -65,7 +65,7 @@ final class ReportProblemForm {
 
     /** The new bug report's address, with this install's facts and the switches on among [rows]. */
     static String issueUrl(Iterable<? extends Preference> rows) {
-        return ReportProblem.issueUrl(FORM, ReportProblem.facts("Instagram patch", "Instagram", switchesOn(rows)));
+        return ReportProblem.issueUrl(FORM, ReportProblem.facts("HushGram", "Instagram", switchesOn(rows)));
     }
 
     /**

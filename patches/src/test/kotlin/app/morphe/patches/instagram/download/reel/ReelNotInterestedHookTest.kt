@@ -9,8 +9,11 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.reels.cleanup.SAVE_BUTTON
+import app.morphe.patches.instagram.reels.cleanup.SAVE_COUNT
+import app.morphe.patches.instagram.reels.cleanup.UFI_ID
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -31,7 +34,7 @@ import org.junit.Test
 
 /**
  * The Not interested button beside a reel (#191) on every build of the declared version: the
- * delegate that binds the viewer's items is found by its two markers, the column's state hands back
+ * delegate that binds the viewer's items is found by its SEE_FEWER read, the column's state hands back
  * the reel's state and the viewer's config, the icon's block goes in front of the Download one at both
  * places Save is added, the delegate's constructor reports itself with the config, and the bridges
  * run Instagram's own Not interested. The Block icon (#191) then goes in front of that block, and its
@@ -82,6 +85,7 @@ class ReelNotInterestedHookTest {
         for ((type, hooks) in listOf(
             SPEED_ICON_TYPE to listOf(SPEED_ICON_ON, SPEED_ICON_LITHO, SPEED_ICON_LITHO_ABOVE_MORE),
             FULL_SCREEN_ICON_TYPE to listOf(FULL_SCREEN_ICON_ON, FULL_SCREEN_ICON_LITHO, FULL_SCREEN_ICON_LITHO_ABOVE_MORE),
+            MUTE_ICON_TYPE to listOf(MUTE_ICON_ON, MUTE_ICON_LITHO, MUTE_ICON_LITHO_ABOVE_MORE, MUTE_CLEAR_MODE),
         )) {
             val declared = ExtensionDex.classDef(type).methods
                 .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
@@ -100,25 +104,26 @@ class ReelNotInterestedHookTest {
     }
 
     private fun check(bundle: File, name: String) {
-        val markers = setOf(
-            COLUMN_MARKER, SAVE_MARKER, SAVE_COUNT_MARKER, TINT_MARKER, SAVE_ICON_MARKER, SHARE_MARKER, MORE_MARKER,
-            NOT_INTERESTED_MARKER, BINDER_INIT_MARKER,
-        )
-        val classes = LinkedHashMap<String, ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-            }
-            val anchors = dex.stringSection.any { it == BLOCK_HELPER_ANCHOR }
-            if (!holds && !anchors) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } } ||
-                    anchors && classDef.methods.any { it.loads(BLOCK_HELPER_ANCHOR) }
-                ) classes[classDef.type] = ImmutableClassDef.of(classDef)
-            }
+        // Every class of the build loading the column's id, a name the column's parts load or the
+        // Block helper's anchor, with the string pools they ask, and every class reading SEE_FEWER, so
+        // the hooks' one-of checks see the whole app.
+        val sliced = FixtureDex.classesLoadingAny(bundle, setOf(SAVE_BUTTON, SAVE_COUNT, SHARE_BUTTON, MORE_BUTTON, BLOCK_HELPER_ANCHOR)) { classDef ->
+            classDef.methods.any { it.loadsLiteral(UFI_ID) || it.readsSeeFewer() }
         }
-        val marked = classes.values.flatMap { it.methods }.filter { method -> method.markers().any { it in markers } }
-        var wanted = marked.flatMap { codeTypes(it) }.toSet() + classes.values.flatMap { it.fields.map { field -> field.type } }
+        val classes = LinkedHashMap<String, ClassDef>()
+        sliced.forEach { classes[it.type] = it }
+        // What the hooks read around the column, its parts' components, the delegate and the helper:
+        // what their code names and what their methods answer, their fields, then a few steps out.
+        val columns = sliced.filter { classDef -> classDef.methods.any { it.parameterTypes.size == 1 && it.loadsLiteral(UFI_ID) } }
+        val components = columns.flatMap { column -> column.methods.mapNotNull { classes[it.returnType] } }
+        val delegates = sliced.filter { classDef ->
+            classDef.methods.any { it.name == "<init>" && VIEWER_CONFIG in it.parameterTypes.map(Any::toString) } &&
+                classDef.methods.any { it.readsSeeFewer() }
+        }
+        val helpers = sliced.filter { classDef -> classDef.methods.any { it.loads(BLOCK_HELPER_ANCHOR) } }
+        val seeds = columns + components + delegates + helpers
+        var wanted = seeds.flatMap { classDef -> classDef.methods.flatMap { codeTypes(it) + it.returnType } }.toSet() +
+            seeds.flatMap { it.fields.map { field -> field.type } }
         repeat(4) {
             val missing = wanted.filter { it.startsWith("L") && it !in classes }.toSet()
             FixtureDex.classes(bundle, missing).forEach { (type, classDef) -> classes[type] = ImmutableClassDef.of(classDef) }
@@ -132,6 +137,7 @@ class ReelNotInterestedHookTest {
         classes[TEXT_TYPE] = ExtensionDex.classDef(TEXT_TYPE)
         classes[SPEED_ICON_TYPE] = ExtensionDex.classDef(SPEED_ICON_TYPE)
         classes[FULL_SCREEN_ICON_TYPE] = ExtensionDex.classDef(FULL_SCREEN_ICON_TYPE)
+        classes[MUTE_ICON_TYPE] = ExtensionDex.classDef(MUTE_ICON_TYPE)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -146,8 +152,16 @@ class ReelNotInterestedHookTest {
         assertEquals("$name: the config getter answers the viewer's config", VIEWER_CONFIG, found.configGetter.returnType)
         assertEquals("$name: the state getter answers what Not interested takes", found.stateType, found.stateGetter.returnType)
 
-        val renderOf = { context.mutableClassDefBy(site.column).methods.single { it.name == site.render.name && it.markers().contains(COLUMN_MARKER) } }
-        val initOf = { context.mutableClassDefBy(found.delegate).methods.single { it.name == "<init>" && it.markers().contains(BINDER_INIT_MARKER) } }
+        val renderOf = {
+            context.mutableClassDefBy(site.column).methods.single {
+                it.name == site.render.name && it.parameterTypes.map(Any::toString) == site.render.parameterTypes.map(Any::toString)
+            }
+        }
+        val initOf = {
+            context.mutableClassDefBy(found.delegate).methods.single {
+                it.name == "<init>" && it.parameterTypes.map(Any::toString) == found.constructor.parameterTypes.map(Any::toString)
+            }
+        }
         context.addReelDownloadButton(site)
         val before = renderOf().instructions()
         assertEquals("$name: alone, the sound icon's block goes in front of Download's",
@@ -286,7 +300,27 @@ class ReelNotInterestedHookTest {
             assertTrue("$name: $litho eight after on()", full[at + 8].names(litho))
             assertTrue("$name: the Full screen icon is added by the column's own add", full[at + 13].names(site.add.toString()))
         }
-        for (type in listOf(SPEED_ICON_TYPE, FULL_SCREEN_ICON_TYPE)) {
+        // The speaker (#608) goes in front of Full screen. Full screen's block skips onto the speed
+        // icon's, so a speaker put there was jumped over whenever Full screen was off.
+        val muteStarts = context.findPlayerIconStarts(site, MUTE_ICON_TYPE, "mute")
+        assertEquals("$name: the speaker starts where the Full screen icon does", fullAsks, muteStarts.map { it.second })
+        context.addPlayerIcons(site, muteStarts, MUTE_ICON_ON, MUTE_ICON_LITHO, MUTE_ICON_LITHO_ABOVE_MORE)
+        val muted = renderOf().instructions()
+        assertEquals("$name: fourteen more for the speaker at each place", full.size + 28, muted.size)
+        val muteAsks = muted.indices.filter { muted[it].names(MUTE_ICON_ON) }
+        assertEquals("$name: the speaker's on() at both places", 2, muteAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, muted.count { it.names(MUTE_ICON_LITHO_ABOVE_MORE) })
+        val jumps = renderOf().jumpTargets()
+        muteAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: nothing jumps onto the speaker's block, so it's never skipped", at !in jumps)
+            assertTrue("$name: the Full screen icon's block follows right after", muted[at + 14].names(FULL_SCREEN_ICON_ON))
+            assertTrue("$name: then the speed icon's", muted[at + 28].names(SPEED_ICON_ON))
+            assertTrue("$name: then Download's, after text, sound, Block and Not interested", muted[at + 98].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) MUTE_ICON_LITHO_ABOVE_MORE else MUTE_ICON_LITHO
+            assertTrue("$name: $litho eight after on()", muted[at + 8].names(litho))
+            assertTrue("$name: the speaker is added by the column's own add", muted[at + 13].names(site.add.toString()))
+        }
+        for (type in listOf(SPEED_ICON_TYPE, FULL_SCREEN_ICON_TYPE, MUTE_ICON_TYPE)) {
             val without = PatchContexts.of(classes.values.filter { it.type != type })
             val refused = runCatching { without.findPlayerIconStarts(site, type, type) }.exceptionOrNull()
             assertTrue("$name: an extension without $type is refused before anything changes", refused is PatchException)

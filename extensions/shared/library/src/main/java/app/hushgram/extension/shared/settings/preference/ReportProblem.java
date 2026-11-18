@@ -114,7 +114,7 @@ public final class ReportProblem {
                 Build.VERSION.SDK_INT, switchesOn);
     }
 
-    /** "Instagram patch 0.0.9 on Instagram 450.0.0.50.77 (378612345)". */
+    /** "HushGram 0.0.9 on Instagram 450.0.0.50.77 (378612345)". */
     public static String versionsLine(Facts facts) {
         String code = facts.appVersionCode > 0 ? " (" + facts.appVersionCode + ")" : "";
         return facts.hushName + " " + orUnknown(facts.hushVersion) + " on " + facts.appName + " "

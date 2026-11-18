@@ -153,7 +153,7 @@ public class SettingsDeferredSaveTest {
             biometrics.setCanAuthenticate(true);
             biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE);
             pick(row, UnlockWith.BIOMETRICS);
-            assertEquals("Your phone won't let Instagram use your fingerprint or face right now. Check its fingerprint and face settings.",
+            assertEquals("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.",
                     ShadowToast.getTextOfLatestToast());
             assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
             assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());

@@ -82,9 +82,9 @@ private const val OBJECT = "Ljava/lang/Object;"
 private const val BOUNCY_UFI_BUTTON = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val UFI_COUNT = "Lcom/instagram/common/ui/base/IgTextView;"
 
-/** Feed's inflated repost icon and count in Instagram 454 (`reposts_ufi_icon`, `reposts_ufi_count`; 0x7f0b360c and 0x7f0b360b in 453), the same ids in all ten builds. */
-internal const val REPOSTS_UFI_ICON_ID = 0x7f0b35ec
-internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b35eb
+/** Feed's inflated repost icon and count in Instagram 456 (`reposts_ufi_icon`, `reposts_ufi_count`; 0x7f0b362b and 0x7f0b362a in 455, 0x7f0b35ec and 0x7f0b35eb in 454), the same ids in all four builds. */
+internal const val REPOSTS_UFI_ICON_ID = 0x7f0b3636
+internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b3635
 
 /**
  * The role the component renderer gives the Repost button. Its label is a string resource, and
@@ -104,7 +104,7 @@ private const val HASH_REACH = 4
 val hideRepostButtonPatch = bytecodePatch(
     name = "Hide the Repost button",
     description = "Takes the Repost button and its count off posts and reels, so nothing gets reposted by " +
-        "mistake. Share still works. Starts off. Turn it on in Instagram settings > Sharing.",
+        "mistake. Share still works. Starts off. Turn it on in HushGram settings > Sharing.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -341,6 +341,7 @@ public final class MediaSave {
                         if (result.lower) lower++;
                         if (result.lower && result.lowStorage) lowStorage++;
                         DownloadHistory.record(application, key, writer, page.details);
+                        PhotoScrub.scrub(application, writer);
                         PostMetadata.tag(application, writer, page.details);
                     } else if (result.status == Downloader.Status.CANCELLED) {
                         skipped += snapshot.size() - index;
@@ -493,6 +494,15 @@ public final class MediaSave {
      * @return whether a save started. Never throws.
      */
     public static boolean savePictureBySize(Context context, List<Rendition> renditions, PostDetails details) {
+        return savePictureBySize(context, renditions, details, null);
+    }
+
+    /**
+     * As above, then hands [published] the gallery entry the save published, on the save's own
+     * thread, once the file is there. Not called when the save fails or is cancelled.
+     */
+    public static boolean savePictureBySize(Context context, List<Rendition> renditions, PostDetails details,
+            Consumer<String> published) {
         try {
             Context safe = ready(context);
             if (safe == null) return false;
@@ -506,7 +516,7 @@ public final class MediaSave {
                 return false;
             }
             saving(false, chosen, found, null, Dash.SINGLE_FILE, null);
-            return startPicture(safe, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE)) != null;
+            return startPicture(safe, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE), published) != null;
         } catch (Throwable t) {
             failure(() -> "the picture save could not start", t);
             return false;
@@ -1425,13 +1435,23 @@ public final class MediaSave {
     /**
      * Whether [video] suits [quality] better than the single file [fallback] of quality
      * [fallbackQuality]: at the best quality a larger picture, below it a nearer fit. On a tie the
-     * single file wins, one fetch and no join.
+     * single file wins, one fetch and no join, unless the picture runs smoother than
+     * [FILE_FRAME_RATE]: a single file doesn't say its frame rate, and a 60 fps story or reel's
+     * file of the same size saves at 30 (#546).
      */
     private static boolean beatsFile(DashManifest.Track video, Rendition fallback, int fallbackQuality,
             DownloadQuality quality) {
-        if (quality == DownloadQuality.BEST) return video.shortSide() > fallbackQuality;
-        return fallback == null || quality.compare(video.quality(), fallbackQuality) < 0;
+        boolean smoother = video.frameRate > FILE_FRAME_RATE;
+        if (quality == DownloadQuality.BEST) {
+            return video.shortSide() > fallbackQuality || (smoother && video.shortSide() == fallbackQuality);
+        }
+        if (fallback == null) return true;
+        int nearer = quality.compare(video.quality(), fallbackQuality);
+        return nearer < 0 || (smoother && nearer == 0);
     }
+
+    /** The frame rate a single file is taken to run at, which it never states (#546). */
+    static final int FILE_FRAME_RATE = 30;
 
     /**
      * The DASH save of [video] and [audio], then the single file [fallback] when that fails. Not
@@ -1549,11 +1569,21 @@ public final class MediaSave {
      * already saved keeps apart from the video and from a photo of the same post.
      */
     static Thread startPicture(Context application, PostDetails details, Job job) {
-        return start(application, false, false, details, DownloadHistory.Kind.PICTURE, job);
+        return startPicture(application, details, job, null);
+    }
+
+    /** As above, handing [published] the gallery entry once the picture is saved. */
+    static Thread startPicture(Context application, PostDetails details, Job job, Consumer<String> published) {
+        return start(application, false, false, details, DownloadHistory.Kind.PICTURE, job, published);
     }
 
     private static Thread start(Context application, boolean video, boolean audio, PostDetails details,
             DownloadHistory.Kind kind, Job job) {
+        return start(application, video, audio, details, kind, job, null);
+    }
+
+    private static Thread start(Context application, boolean video, boolean audio, PostDetails details,
+            DownloadHistory.Kind kind, Job job, Consumer<String> published) {
         final PostDetails known = details == null ? PostDetails.NONE : details;
         // Read on the tap, for the account in front now. Null with Skip what's already saved off,
         // or for a save that doesn't know the media's id: it's saved as it always was.
@@ -1577,8 +1607,13 @@ public final class MediaSave {
                 else failure(() -> "save finished: " + result, null);
                 if (result.ok()) {
                     DownloadHistory.record(application, key, writer, known);
-                    // A photo or a video, after the file is published: tag it with where it came from.
-                    if (!audio) PostMetadata.tag(application, writer, known);
+                    // A photo or a video, after the file is published: take the hidden data out of
+                    // a photo, then tag it with where it came from.
+                    if (!audio) {
+                        PhotoScrub.scrub(application, writer);
+                        PostMetadata.tag(application, writer, known);
+                    }
+                    if (published != null) published(published, writer.publishedItem());
                 }
                 Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower,
                         result.lowStorage),
@@ -1588,6 +1623,15 @@ public final class MediaSave {
                 DownloadHistory.release(key);
             }
         }, save -> {}, () -> {});
+    }
+
+    /** Hands [published] the saved [item]. What it does after the save can't fail the save. */
+    private static void published(Consumer<String> published, String item) {
+        try {
+            if (item != null) published.accept(item);
+        } catch (Throwable t) {
+            failure(() -> "after the save", t);
+        }
     }
 
     private interface Work { void run(SaveControl.Save save); }
@@ -1608,7 +1652,7 @@ public final class MediaSave {
             Feedback.show(application, L10n.t(application, "Saving..."), false);
         } else {
             Feedback.show(application,
-                L10n.t(application, "Saving... You can cancel from Downloads in Instagram settings."), true);
+                L10n.t(application, "Saving... You can cancel from Downloads in HushGram settings."), true);
         }
     }
 

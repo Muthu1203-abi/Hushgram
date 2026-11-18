@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
-import app.hushgram.extension.instagram.media.BackgroundPlay;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -101,7 +100,6 @@ public final class ReelAutoScroll {
      * was last left on. Otherwise answers what Instagram did.
      */
     public static boolean answer(int instagram) {
-        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
         return answer(instagram, ReelAutoScroll::learning, ReelAutoScroll::switchedOn, ReelAutoScroll::advancing, SAVED);
     }
 
@@ -154,10 +152,6 @@ public final class ReelAutoScroll {
      * asks once as it opens.
      */
     public static boolean install(int instagram) {
-        if (BackgroundPlay.autoAdvanceDuringBackground()) return true;
-        // Build the scroller while the Reels viewer opens. BackgroundPlay can turn it on after
-        // leaving, but that is too late for accounts where Instagram did not offer auto scroll.
-        if (BackgroundPlay.reelsAutoScrollNeeded()) return true;
         return install(instagram, ReelAutoScroll::advancing);
     }
 

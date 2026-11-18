@@ -5,21 +5,17 @@
 package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
-import android.app.Application;
-import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.Window;
-import android.view.WindowManager;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Consumer;
-import java.util.Map;
-import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.HushgramPreferenceFragment;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -32,8 +28,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * usual and opens Messages. A second tap close to it within the double-tap time is kept from
  * Instagram, down to its last event, since by then Messages is open and something else may sit under
  * the finger (the header button's spot is New message there). When that finger comes up, the inbox
- * switches between hidden chats only and the regular inbox, after the phone's lock while a messages
- * lock is on.
+ * shows the hidden chats by themselves after the phone's lock or the PIN, and the next double tap
+ * hides them again ({@link #toggle}, #661).
  *
  * <p>Anything else is only read: a scroll, a long press, a second finger or a slow second tap goes to
  * Instagram exactly as it was. Main thread only.
@@ -44,10 +40,6 @@ public final class HiddenChatsTap {
 
     /** The id name of Messages' button at the top of Home, on the bar layout that has one there. */
     static final String HEADER_INBOX = "action_bar_inbox_button";
-    private static final String TAB_BAR = "tab_bar";
-
-    /** Other main tabs: leaving Messages resets the temporary hidden-only inbox view. */
-    private static final String[] OTHER_TABS = {"feed_tab", "clips_tab", "search_tab", "profile_tab", "activity_tab", "create_tab"};
 
     /** Whether a point of [activity]'s window is on one of Messages' buttons. */
     interface Buttons {
@@ -58,11 +50,6 @@ public final class HiddenChatsTap {
     static volatile Consumer<Activity> opener = HiddenChatsTap::open;
 
     private static WeakReference<Activity> tapActivity = new WeakReference<>(null);
-    private static Application watchedApplication;
-    /** The prior secure bit, so hidden inbox previews can be blocked without changing app policy. */
-    private static final Map<Activity, Boolean> secureBeforeHiddenInbox = new WeakHashMap<>();
-    private static Application.ActivityLifecycleCallbacks lifecycleCallbacks;
-    private static int startedActivities;
     /** When the last tap on Messages' button came up, or {@link Long#MIN_VALUE} when there is none to pair. */
     private static long tapUp = Long.MIN_VALUE;
     private static float tapX;
@@ -81,8 +68,6 @@ public final class HiddenChatsTap {
     public static boolean touch(Activity activity, MotionEvent event) {
         try {
             if (event == null || activity == null) return false;
-            watchAppLifecycle(activity);
-            HiddenChats.watchHiddenUnreadDot(activity);
             return decide(activity, event.getActionMasked(), event.getX(), event.getY(), event.getEventTime());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chats tap", failure);
@@ -101,17 +86,6 @@ public final class HiddenChatsTap {
                 downTime = time;
                 downX = x;
                 downY = y;
-                // A swipe can leave Messages without touching the tab bar. If Instagram has
-                // already selected another tab, clear the temporary view before a swipe back
-                // starts; the previous ACTION_UP also checks after Instagram handles it.
-                if (HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
-                    showRegularInbox(activity);
-                    forget();
-                }
-                if (onOtherTab(activity, x, y)) {
-                    showRegularInbox(activity);
-                    forget();
-                }
                 if (!switchedOn()) {
                     forget();
                     return false;
@@ -126,18 +100,7 @@ public final class HiddenChatsTap {
                 return false;
             case MotionEvent.ACTION_MOVE:
                 if (swallowing) return true;
-                if (!moved && far(x - downX, y - downY, touchSlop(activity))) {
-                    moved = true;
-                    // A horizontal drag is how Instagram changes pages without tapping a tab.
-                    // Clear hidden-only mode as soon as the gesture is recognized, before the
-                    // destination inbox gets a chance to draw one frame with the hidden filter.
-                    float dx = x - downX;
-                    float dy = y - downY;
-                    if (Math.abs(dx) > Math.abs(dy) && HiddenChats.isShowingHiddenOnlyInbox()) {
-                        showRegularInbox(activity);
-                        forget();
-                    }
-                }
+                if (!moved && far(x - downX, y - downY, touchSlop(activity))) moved = true;
                 return false;
             case MotionEvent.ACTION_POINTER_DOWN:
                 if (swallowing) return true;
@@ -152,7 +115,6 @@ public final class HiddenChatsTap {
                     }
                     return true;
                 }
-                resetAfterTabSwipe(activity);
                 if (onButton && !moved && time - downTime < ViewConfiguration.getLongPressTimeout()) {
                     tapActivity = new WeakReference<>(activity);
                     tapUp = time;
@@ -174,6 +136,24 @@ public final class HiddenChatsTap {
         }
     }
 
+    /**
+     * How many milliseconds a lock's own ask should still wait at [now] (uptime, as touches are
+     * timed), 0 when it needn't (#661). After a tap on Messages, that's what's left of the time a
+     * second tap would pair in, and while a second tap is down, until its finger comes up. On a fast
+     * phone the locked inbox opens and asks within that time, and the second tap then lands on the
+     * phone's prompt instead of Instagram: the check passes, and the hidden chats stay hidden.
+     */
+    static long holdAsk(long now) {
+        if (!switchedOn()) return 0;
+        if (swallowing) return HOLD_WHILE_DOWN_MS;
+        if (tapUp == Long.MIN_VALUE) return 0;
+        long left = tapUp + ViewConfiguration.getDoubleTapTimeout() - now;
+        return left > 0 ? left : 0;
+    }
+
+    /** How long a hold lasts while a second tap's finger is down: one frame, then it's asked again. */
+    static final long HOLD_WHILE_DOWN_MS = 16;
+
     private static boolean pairsWithLastTap(Activity activity, float x, float y, long time) {
         if (tapUp == Long.MIN_VALUE || tapActivity.get() != activity) return false;
         long gap = time - tapUp;
@@ -190,85 +170,6 @@ public final class HiddenChatsTap {
         return Utils.settingsReady() && Settings.DOUBLE_TAP_HIDDEN_CHATS.get();
     }
 
-    /** Leaving Instagram clears the temporary hidden-only inbox before the next foreground visit. */
-    private static void watchAppLifecycle(Activity activity) {
-        Application app = activity.getApplication();
-        if (app == null || app == watchedApplication) return;
-        watchedApplication = app;
-        lifecycleCallbacks = new Application.ActivityLifecycleCallbacks() {
-            @Override public void onActivityStarted(Activity started) {
-                startedActivities++;
-            }
-
-            @Override public void onActivityStopped(Activity stopped) {
-                startedActivities = Math.max(0, startedActivities - 1);
-                if (startedActivities == 0 && !stopped.isChangingConfigurations()) {
-                    // Retain FLAG_SECURE until the next resume, when Recents is already dismissed.
-                    if (HiddenChats.isShowingHiddenOnlyInbox()) HiddenChats.showRegularInbox();
-                    forget();
-                }
-            }
-
-            @Override public void onActivityCreated(Activity activity, Bundle state) {
-                if (HiddenChats.isShowingHiddenOnlyInbox()) protectRecentPreview(activity);
-            }
-
-            @Override public void onActivityResumed(Activity activity) {
-                if (HiddenChats.isShowingHiddenOnlyInbox()) HiddenChats.showRegularInbox();
-                restoreRecentPreviewProtection(activity);
-            }
-
-            @Override public void onActivityPaused(Activity activity) {
-                // FLAG_SECURE is already set while hidden-only mode is active. Reapply here in case
-                // the inbox was opened before the lifecycle watcher attached to this Activity.
-                syncRecentPreviewProtection(activity);
-            }
-
-            @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
-
-            @Override public void onActivityDestroyed(Activity activity) {
-                restoreRecentPreviewProtection(activity);
-            }
-        };
-        app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
-    }
-
-    /** Makes Android omit the hidden inbox from screenshots and the Recent Apps task preview. */
-    static void syncRecentPreviewProtection(Activity activity) {
-        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
-        if (HiddenChats.isShowingHiddenOnlyInbox()) protectRecentPreview(activity);
-        else restoreRecentPreviewProtection(activity);
-    }
-
-    private static void protectRecentPreview(Activity activity) {
-        Window window = activity.getWindow();
-        if (window == null) return;
-        synchronized (secureBeforeHiddenInbox) {
-            if (!secureBeforeHiddenInbox.containsKey(activity)) {
-                boolean wasSecure = (window.getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0;
-                secureBeforeHiddenInbox.put(activity, wasSecure);
-            }
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        }
-    }
-
-    private static void restoreRecentPreviewProtection(Activity activity) {
-        if (activity == null) return;
-        Window window = activity.getWindow();
-        if (window == null) return;
-        synchronized (secureBeforeHiddenInbox) {
-            Boolean wasSecure = secureBeforeHiddenInbox.remove(activity);
-            if (wasSecure == null) return;
-            if (wasSecure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-            else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        }
-    }
-
-    private static void showRegularInbox(Activity activity) {
-        HiddenChats.showRegularInbox();
-        syncRecentPreviewProtection(activity);
-    }
-
     private static int touchSlop(Activity activity) {
         return ViewConfiguration.get(activity).getScaledTouchSlop();
     }
@@ -282,45 +183,8 @@ public final class HiddenChatsTap {
         return on(activity, DIRECT_TAB, x, y) || on(activity, HEADER_INBOX, x, y);
     }
 
-    private static boolean onOtherTab(Activity activity, float x, float y) {
-        if (on(activity, DIRECT_TAB, x, y)) return false;
-        for (String tab : OTHER_TABS) if (on(activity, tab, x, y)) return true;
-        // Some Instagram builds give the remaining tabs different resource names. A tap in the
-        // tab bar that isn't on Messages still means the person is leaving the hidden inbox.
-        return on(activity, TAB_BAR, x, y);
-    }
-
-    /** Checks the selected tab after Instagram has handled a horizontal swipe between pages. */
-    private static void resetAfterTabSwipe(Activity activity) {
-        if (!HiddenChats.isShowingHiddenOnlyInbox()) return;
-        View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
-        if (decor == null) return;
-        decor.post(() -> {
-            try {
-                if (!activity.isFinishing() && !activity.isDestroyed()
-                        && HiddenChats.isShowingHiddenOnlyInbox() && anotherTabSelected(activity)) {
-                    showRegularInbox(activity);
-                    forget();
-                }
-            } catch (Throwable failure) {
-                HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden inbox tab swipe", failure);
-            }
-        });
-    }
-
-    /** True when Instagram marks a visible non-Messages tab as selected. */
-    private static boolean anotherTabSelected(Activity activity) {
-        for (String tab : OTHER_TABS) {
-            int id = activity.getResources().getIdentifier(tab, "id", activity.getPackageName());
-            if (id == 0) continue;
-            View button = activity.findViewById(id);
-            if (button != null && button.isShown() && button.isSelected()) return true;
-        }
-        return false;
-    }
-
     private static boolean on(Activity activity, String name, float x, float y) {
-        int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        int id = activity.getResources().getIdentifier(name, "id", Utils.resourcePackage(activity));
         if (id == 0) return false;
         View button = activity.findViewById(id);
         if (button == null || !button.isShown()) return false;
@@ -329,19 +193,35 @@ public final class HiddenChatsTap {
         return x >= at[0] && x < at[0] + button.getWidth() && y >= at[1] && y < at[1] + button.getHeight();
     }
 
-    /** Switches the inbox filter once the touch is through, asking the lock first while one is on. */
+    /** Once the touch is through, {@link #toggle}. */
     private static void open(Activity activity) {
         activity.getWindow().getDecorView().post(() -> {
             try {
                 if (activity.isFinishing() || activity.isDestroyed()) return;
-                MessagesLock.confirmHiddenThen(activity, () -> {
-                    HiddenChats.toggleHiddenOnlyInbox();
-                    syncRecentPreviewProtection(activity);
-                    HiddenChats.watchInboxIndicator(activity);
-                });
+                toggle(activity);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chats tap", failure);
             }
+        });
+    }
+
+    /**
+     * The hidden chats leave the inbox again when it shows them (#661). Otherwise, with none hidden
+     * on the account in front, the list of hidden chats opens, which says how to hide one. With some,
+     * the inbox shows them by themselves once the phone's lock or the PIN says it's you.
+     */
+    static void toggle(Activity activity) {
+        if (HiddenChats.conceal()) {
+            Utils.showToastShort(L10n.t("Hidden chats locked again"));
+            return;
+        }
+        if (HiddenChats.saved().isEmpty()) {
+            MessagesLock.confirmHiddenThen(activity, () -> HushgramPreferenceFragment.showHiddenChatsOver(activity));
+            return;
+        }
+        MessagesLock.confirmRevealThen(activity, () -> {
+            HiddenChats.reveal();
+            Utils.showToastShort(L10n.t("Showing your hidden chats"));
         });
     }
 
@@ -352,14 +232,5 @@ public final class HiddenChatsTap {
         forget();
         buttons = HiddenChatsTap::onMessagesButton;
         opener = HiddenChatsTap::open;
-        if (watchedApplication != null && lifecycleCallbacks != null) {
-            watchedApplication.unregisterActivityLifecycleCallbacks(lifecycleCallbacks);
-        }
-        watchedApplication = null;
-        lifecycleCallbacks = null;
-        startedActivities = 0;
-        for (Activity activity : new java.util.ArrayList<>(secureBeforeHiddenInbox.keySet())) {
-            restoreRecentPreviewProtection(activity);
-        }
     }
 }

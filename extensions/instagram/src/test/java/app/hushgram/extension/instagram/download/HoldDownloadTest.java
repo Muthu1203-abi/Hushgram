@@ -810,7 +810,7 @@ public class HoldDownloadTest {
 
     private static void assertSaving() {
         assertTrue("the save didn't say it started", ShadowToast.showedToast("Saving...")
-                || ShadowToast.showedToast("Saving... You can cancel from Downloads in Instagram settings."));
+                || ShadowToast.showedToast("Saving... You can cancel from Downloads in HushGram settings."));
     }
 
     /** An address on Meta's media servers, which the save takes. */

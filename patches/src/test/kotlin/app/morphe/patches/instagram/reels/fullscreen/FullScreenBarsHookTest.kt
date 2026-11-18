@@ -9,15 +9,18 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,15 +40,16 @@ class FullScreenBarsHookTest {
         val declared = ExtensionDex.classDef(FULL_SCREEN_BARS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK, KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT, HEIGHTS_ASKED, HEIGHTS_DROPPED, TELL_HEIGHTS)) {
+        for (hook in listOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK, KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT, HEIGHTS_ASKED, HEIGHTS_DROPPED, TELL_HEIGHTS, TAB_BAR_KEPT_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
 
-    /** Full screen depends on bar heights patch (#144). */
+    /** Full screen and Glass tab bar share the one routing, so the listener asks once per height whichever is in (#144). */
     @Test
-    fun barHeightsRouting() {
+    fun bothPatchesShareTheRouting() {
         assertTrue(barHeightsPatch in fullScreenBarsPatch.dependencies)
+        assertTrue(barHeightsPatch in glassTabBarPatch.dependencies)
     }
 
     /** In each declared build both stores ask first, whether the classes are copied or read as the patcher reads an APK. */
@@ -105,22 +109,26 @@ class FullScreenBarsHookTest {
             val found = PatchContexts.of(FixtureDex.classes(bundle, types).values).findBarHeights()
             val holder = found.barHeightStores().map { it.field.definingClass }.distinct().single()
             val call = found.heightsListenerCall()
+            val kept = FixtureDex.classes(bundle, setOf(holder)).getValue(holder).fields
+                .filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }.toSet()
             val context = PatchContexts.of(
-                FixtureDex.classes(bundle, types + holder + call.definingClass).values + ExtensionDex.classDef(FULL_SCREEN_BARS),
+                FixtureDex.classes(bundle, types + holder + call.definingClass + kept).values + ExtensionDex.classDef(FULL_SCREEN_BARS),
             )
+            val homes = context.heightListenerHomes(holder)
+            assertTrue("${bundle.name}: the holder is a home of its listeners", holder in homes)
 
             context.followHeightListeners(holder, call)
 
             val what = bundle.name
-            val held = context.mutableClassDefBy(holder)
             for ((parameters, hook) in listOf(
                 listOf(ACTIVITY_TYPE, call.definingClass, "Z") to HEIGHTS_ASKED,
                 listOf(ACTIVITY_TYPE, call.definingClass) to HEIGHTS_DROPPED,
             )) {
-                val method = held.methods.single {
-                    AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
+                val method = homes.flatMap { context.mutableClassDefBy(it).methods }.single {
+                    it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
                 }
                 val code = method.code()
+                // The activity and the listener are the first two parameters, past this on an instance method.
                 val first = method.implementation!!.registerCount - parameters.size
                 assertEquals("$what: ${method.name} asks first", hook, code[0].referenceText())
                 assertEquals("$what: ${method.name}'s activity and listener", listOf(first, first + 1), code[0].arguments())
@@ -134,6 +142,49 @@ class FullScreenBarsHookTest {
             assertEquals("$what: the one the insets listener calls", call.toString(), code[1].referenceText())
             assertEquals("$what: with the two heights", listOf(listener, listener + 1, listener + 2), code[1].arguments())
             assertEquals("$what: then returns", Opcode.RETURN_VOID, code[2].opcode)
+        }
+    }
+
+    /**
+     * A chat's tab bar stays hidden through a tell: the main activity's method that shows or hides
+     * the bar, the one private (IZ)V its layout for a new screen size calls on it, asks
+     * [TAB_BAR_KEPT_HOOK] first with the visibility and returns when told to, and is otherwise as it
+     * was. It's the method that hands that visibility to the bar's view.
+     */
+    @Test
+    fun eachBuildKeepsTheTabBarThroughATell() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertEquals("a declared build has no fixture", versions, versions.filter { v -> bundles.any { it.name.contains("-$v-") } }.toSet())
+        for (bundle in bundles + Fixtures.otherBuilds()) {
+            val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
+            val types = FixtureDex.classesLoading(bundle, TAB_BAR_MIGRATION).map { it.type }.toSet()
+            assertTrue("$label: the main activity loads $TAB_BAR_MIGRATION", MAIN_ACTIVITY in types)
+            val context = PatchContexts.of(FixtureDex.classes(bundle, types).values)
+            val method = context.tabBarVisibilityMethod()
+            val what = "$label: ${method.name}"
+            val visibility = method.implementation!!.registerCount - method.parameterTypes.size
+            assertEquals("$what: the visibility first", TAB_BAR_VISIBILITY_PARAMETERS, method.parameterTypes.map(Any::toString))
+            assertTrue("$what hands the visibility to a view", method.code().any {
+                it.opcode == Opcode.INVOKE_STATIC && (it.reference() as? MethodReference)?.parameterTypes?.map(Any::toString) ==
+                    listOf("Landroid/view/View;", "I", "I") && it.arguments().getOrNull(1) == visibility
+            })
+            val native = NeutralNativePath(method)
+
+            context.keepTabBarThroughTells()
+
+            val code = method.code()
+            assertEquals("$what asks first", TAB_BAR_KEPT_HOOK, code[0].referenceText())
+            assertEquals("$what: an invoke-static", Opcode.INVOKE_STATIC, code[0].opcode)
+            assertEquals("$what: with the visibility", listOf(visibility), code[0].arguments())
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+            val answer = (code[1] as OneRegisterInstruction).registerA
+            assertTrue("$what: in a register of its own", answer < visibility - 1)
+            assertEquals("$what: a no goes on", Opcode.IF_EQZ, code[2].opcode)
+            assertEquals("$what: tested on the answer", answer, (code[2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: to the stock code", code[2].codeUnits + code[3].codeUnits, (code[2] as OffsetInstruction).codeOffset)
+            assertEquals("$what: a yes returns", Opcode.RETURN_VOID, code[3].opcode)
+            native.assertPreserved(what, method, setOf(0, 1, 2, 3))
         }
     }
 

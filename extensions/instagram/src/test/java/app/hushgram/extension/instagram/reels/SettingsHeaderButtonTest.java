@@ -100,7 +100,7 @@ public class SettingsHeaderButtonTest {
         ImageView button = placed();
         assertEquals(1, end.indexOfChild(button));
         assertEquals("the heart's padding", 6, button.getPaddingStart());
-        assertEquals("Instagram settings", String.valueOf(button.getContentDescription()));
+        assertEquals("HushGram settings", String.valueOf(button.getContentDescription()));
         assertTrue(button.isClickable());
         assertTrue(button.getDrawable() instanceof SettingsHeaderButton.GearIcon);
         SettingsHeaderButton.place(header);

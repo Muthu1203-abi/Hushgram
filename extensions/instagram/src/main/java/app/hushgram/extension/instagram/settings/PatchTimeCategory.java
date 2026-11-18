@@ -24,7 +24,7 @@ final class PatchTimeCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.RESTORE_TRUST) || build.contains(PatchFamily.REMOVE_AD_ID)
-                || build.contains(PatchFamily.PURE_BLACK)) {
+                || build.contains(PatchFamily.PURE_BLACK) || build.contains(PatchFamily.VERSION_CODE)) {
             PreferenceCategory patched = category(screen, L10n.t("Set when you patched"), SettingsIcons.BUILD,
                     L10n.t("Chosen when you patched, so Pause leaves them on. Patch again to change them."));
             if (build.contains(PatchFamily.RESTORE_TRUST)) {
@@ -42,6 +42,13 @@ final class PatchTimeCategory {
                         L10n.t("Instagram's dark mode uses pure black instead of its near-black gray, and so do the "
                                 + "menus that slide up from the bottom. Buttons keep their own grays.")),
                         SettingsIcons.MOON));
+            }
+            if (build.contains(PatchFamily.VERSION_CODE)) {
+                patched.addPreference(mark(info(context, L10n.t("No Play Store updates"),
+                        L10n.t("Google Play won't offer Meta's updates over this build. To go back to the normal "
+                                + "Instagram, uninstall this one first, which deletes Instagram's data on this "
+                                + "phone. Later HushGram builds need Change version code too, or they won't install "
+                                + "over this one.")), SettingsIcons.UPDATES));
             }
         }
     }

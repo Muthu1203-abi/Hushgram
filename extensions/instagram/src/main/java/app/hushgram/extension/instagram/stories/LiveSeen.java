@@ -8,7 +8,6 @@ import androidx.annotation.Nullable;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
-import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -120,6 +119,6 @@ public final class LiveSeen {
     }
 
     private static boolean switchedOn() {
-        return Utils.settingsReady() && GhostMode.enabled(Settings.VIEW_LIVE_ANONYMOUSLY);
+        return Utils.settingsReady() && Settings.VIEW_LIVE_ANONYMOUSLY.get();
     }
 }

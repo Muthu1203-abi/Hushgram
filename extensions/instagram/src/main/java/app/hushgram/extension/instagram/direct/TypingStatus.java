@@ -6,7 +6,6 @@ package app.hushgram.extension.instagram.direct;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
-import app.hushgram.extension.instagram.settings.GhostMode;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -58,6 +57,6 @@ public final class TypingStatus {
     }
 
     private static boolean switchedOn() {
-        return Utils.settingsReady() && GhostMode.enabled(Settings.HIDE_TYPING);
+        return Utils.settingsReady() && Settings.HIDE_TYPING.get();
     }
 }

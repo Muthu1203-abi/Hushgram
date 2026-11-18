@@ -47,7 +47,7 @@ private const val MATH_MIN = "Ljava/lang/Math;->min(II)I"
 val showAllRecentSearchesPatch = bytecodePatch(
     name = "Show all recent searches",
     description = "Lists every recent search under the search bar instead of the first few. See all and the x on " +
-        "each row work as before. Starts off. Turn it on in Instagram settings > Explore.",
+        "each row work as before. Starts off. Turn it on in HushGram settings > Explore.",
     default = true,
 ) {
     category("Interface")
@@ -70,7 +70,8 @@ internal class RecentLimitSite(val type: String, val name: String, val parameter
  * Finds each method building the empty search screen's Recent group: those loading
  * [NULL_STATE_RECENT] that also load [SHOW_MORE] or make the Show more row (a class whose
  * constructor loads [SHOW_MORE]). Instagram 453 has two: one names the row's string itself, the
- * other, behind the newer null state service, only calls the row's constructor (#375). In each, the
+ * other, behind the newer null state service, only calls the row's constructor (#375). 455 trims
+ * them in the first only (0TNm.A00 on 386113969); the other no longer counts them. In each, the
  * count is the last call to [MATH_MIN] before the group is named, and the hook goes right after its
  * move-result. One or two are expected. Fails before anything changes when there are none, when one
  * has no such call, or when something jumps to where the hook would go (a jump keeps its target on

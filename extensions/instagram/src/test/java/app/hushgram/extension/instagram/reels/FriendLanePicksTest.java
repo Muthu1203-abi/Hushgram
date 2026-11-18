@@ -14,6 +14,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ListView;
 
@@ -37,6 +38,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -80,6 +82,7 @@ public class FriendLanePicksTest {
         PauseForTests.resume();
         Settings.PICK_FRIENDS_TAB.save(true);
         Settings.FRIENDS_TAB_PICKS.save("ana\nbo");
+        Settings.FRIENDS_TAB_SEEN.resetToDefault();
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
@@ -97,6 +100,7 @@ public class FriendLanePicksTest {
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
+        Settings.FRIENDS_TAB_SEEN.resetToDefault();
     }
 
     private static List<?> page(List<?> items, String module) {
@@ -149,6 +153,66 @@ public class FriendLanePicksTest {
     public void aPageNamingNobodyComesBackAsItCame() {
         List<Clip> items = Arrays.asList(new Clip(), new Clip());
         assertSame(items, page(items, LANE));
+    }
+
+    private static List<?> added(List<?> items, String module, int held) {
+        return FriendLanePicks.added(items, module, held, READER);
+    }
+
+    /** #503: the reel a pick-less page kept showed between the picked ones, so the tab never looked filtered. */
+    @Test
+    public void onceTheViewerHoldsReelsTheReelAPagelessPickKeptGoesToo() {
+        Clip card = new Clip((String[]) null);
+        Clip zed = new Clip("zed");
+        assertEquals("the reel the page kept goes, the card stays", Collections.singletonList(card), added(Arrays.asList(card, zed), LANE, 5));
+        assertEquals("nothing left is fine once the viewer holds reels", Collections.emptyList(), added(Collections.singletonList(zed), LANE, 2));
+        Clip ana = new Clip("ana");
+        assertEquals(Collections.singletonList(ana), added(Arrays.asList(zed, ana, new Clip()), LANE, 3));
+        assertTrue(FeedFilterCounters.report().toString().contains(FriendLanePicks.ADDED_ROUTE));
+    }
+
+    @Test
+    public void aViewerHoldingOneItemOrNoneKeepsTheReelItsGiven() {
+        List<Clip> items = Collections.singletonList(new Clip("zed"));
+        assertSame(items, added(items, LANE, 0));
+        assertSame(items, added(items, LANE, 1));
+    }
+
+    @Test
+    public void addedListsAreLeftAloneElsewhereOffPausedUnpickedOrNamingNobody() {
+        List<Clip> items = Arrays.asList(new Clip("zed"), new Clip("yan"));
+        assertSame(items, added(items, "clips_viewer_clips_tab", 5));
+        assertSame(items, added(items, null, 5));
+        List<Clip> nobody = Arrays.asList(new Clip(), new Clip());
+        assertSame(nobody, added(nobody, LANE, 5));
+        Settings.PICK_FRIENDS_TAB.save(false);
+        assertSame(items, added(items, LANE, 5));
+        Settings.PICK_FRIENDS_TAB.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(items, added(items, LANE, 5));
+        PauseForTests.resume();
+        Settings.FRIENDS_TAB_PICKS.save("");
+        assertSame(items, added(items, LANE, 5));
+    }
+
+    @Test
+    public void addedNullEmptyAndAReaderThatThrowsAreSafe() {
+        assertNull(added(null, LANE, 5));
+        List<Clip> none = Collections.emptyList();
+        assertSame(none, added(none, LANE, 5));
+        List<Clip> items = Arrays.asList(new Clip("zed"), new Clip("ana"));
+        List<?> answer = FriendLanePicks.added(items, LANE, 5, new FriendLanePicks.Reader() {
+            @Override
+            public Object media(Object item) {
+                throw new IllegalStateException("no");
+            }
+
+            @Override
+            public Collection<String> friends(Object media) {
+                return null;
+            }
+        });
+        assertSame(items, answer);
     }
 
     @Test
@@ -204,6 +268,47 @@ public class FriendLanePicksTest {
         assertEquals("picking nothing still fills the list", Arrays.asList("bo", "cy", "dee", "zed"), FriendLanePicks.roster());
     }
 
+    /** #503: a tab Instagram brings back from its own store only passes through the add. */
+    @Test
+    public void theAddFillsTheListEvenWithNothingPickedOrNothingHeld() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        List<Clip> items = Arrays.asList(new Clip("zed"), new Clip("Yan"), new Clip((String[]) null));
+        assertSame(items, added(items, LANE, 5));
+        assertEquals(Arrays.asList("yan", "zed"), FriendLanePicks.roster());
+
+        Settings.FRIENDS_TAB_PICKS.save("ana");
+        List<Clip> first = Collections.singletonList(new Clip("cy"));
+        assertSame(first, added(first, LANE, 0));
+        assertEquals(Arrays.asList("ana", "cy", "yan", "zed"), FriendLanePicks.roster());
+
+        added(Collections.singletonList(new Clip("dee")), "clips_viewer_clips_tab", 5);
+        Settings.PICK_FRIENDS_TAB.save(false);
+        added(Collections.singletonList(new Clip("eve")), LANE, 5);
+        Settings.PICK_FRIENDS_TAB.save(true);
+        assertEquals("another viewer or the switch off adds nobody",
+                Arrays.asList("ana", "cy", "yan", "zed"), FriendLanePicks.roster());
+    }
+
+    /** #503: the list the hold opens still has everyone after the app restarts. */
+    @Test
+    public void theFriendsNamedOutlastARestart() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        page(Arrays.asList(new Clip("cy"), new Clip("dee")), LANE);
+        FriendLanePicks.forgetSeen();
+        assertEquals(Arrays.asList("cy", "dee"), FriendLanePicks.roster());
+
+        View tab = tab();
+        tab.setSelected(true);
+        assertTrue(tab.performLongClick());
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue("the kept friends open the list", dialog != null && dialog.isShowing());
+
+        added(Collections.singletonList(new Clip("eve")), LANE, 1);
+        FriendLanePicks.forgetSeen();
+        assertEquals(Arrays.asList("cy", "dee", "eve"), FriendLanePicks.roster());
+    }
+
     @Test
     public void picksReadOnePerLineLowerCaseWithoutBlanksOrRepeats() {
         assertEquals(Arrays.asList("ana", "bo"), new java.util.ArrayList<>(FriendLanePicks.parse(" ANA\n\nbo\nana\n")));
@@ -237,6 +342,44 @@ public class FriendLanePicksTest {
         assertNull(ShadowAlertDialog.getLatestAlertDialog());
     }
 
+    /** Touches the tab down and lets go without a tap, as a finger starting a hold does. */
+    private static void press(View tab) {
+        MotionEvent down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 1f, 1f, 0);
+        MotionEvent cancel = MotionEvent.obtain(0, 10, MotionEvent.ACTION_CANCEL, 1f, 1f, 0);
+        tab.dispatchTouchEvent(down);
+        tab.dispatchTouchEvent(cancel);
+        down.recycle();
+        cancel.recycle();
+    }
+
+    /** Some builds give the tab a hold of Instagram's own after it's built (#571). */
+    @Test
+    public void aPressTakesTheHoldBackFromInstagramsOwn() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        View tab = tab();
+        boolean[] instagrams = {false};
+        tab.setOnLongClickListener(held -> {
+            instagrams[0] = true;
+            return false;
+        });
+        press(tab);
+        assertTrue(tab.performLongClick());
+        assertFalse("Instagram's hold didn't run", instagrams[0]);
+        ShadowLooper.idleMainLooper();
+        assertEquals("Open the Friends tab first.", ShadowToast.getTextOfLatestToast());
+
+        Settings.PICK_FRIENDS_TAB.save(false);
+        View off = tab();
+        off.setOnLongClickListener(held -> {
+            instagrams[0] = true;
+            // A tab without a parent has no context menu to fall back on.
+            return true;
+        });
+        press(off);
+        off.performLongClick();
+        assertTrue("off, Instagram keeps its hold", instagrams[0]);
+    }
+
     @Test
     public void holdingWithNobodyToListSaysToOpenTheTab() {
         Settings.FRIENDS_TAB_PICKS.save("");
@@ -244,6 +387,24 @@ public class FriendLanePicksTest {
         assertNull(ShadowAlertDialog.getLatestAlertDialog());
         ShadowLooper.idleMainLooper();
         assertEquals("Open the Friends tab first.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** #503: the tab open and still nobody named, as an all-caught-up Friends tab is, says so. */
+    @Test
+    public void holdingTheOpenTabWithNobodyToListSaysSo() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        View tab = tab();
+        tab.setSelected(true);
+        assertTrue(tab.performLongClick());
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        ShadowLooper.idleMainLooper();
+        assertEquals("No friends to pick yet.", ShadowToast.getTextOfLatestToast());
+
+        page(Arrays.asList(new Clip("ana")), LANE);
+        assertTrue(tab.performLongClick());
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue("once a friend is named the list opens", dialog != null && dialog.isShowing());
     }
 
     @Test
@@ -268,6 +429,29 @@ public class FriendLanePicksTest {
         dialog.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
         ShadowLooper.idleMainLooper();
         assertEquals("Applies to the next reels loaded.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** #616: 454 builds the tab on the app's context, so the list opens on the screen in front. */
+    @Test
+    public void aTabBuiltOnTheAppsContextOpensTheListOnTheScreenInFront() {
+        Activity showing = Utils.getActivity();
+        try {
+            View tab = new View(new ContextWrapper(controller.get().getApplication()));
+            FriendLanePicks.watch(tab);
+            Utils.setActivity(controller.get());
+            assertTrue(tab.performLongClick());
+            ShadowLooper.idleMainLooper();
+            AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+            assertTrue("the list is showing", dialog != null && dialog.isShowing());
+            dialog.dismiss();
+
+            ShadowAlertDialog.reset();
+            Utils.setActivity(null);
+            assertFalse("no screen to show it on, the hold stays Instagram's", FriendLanePicks.held(tab));
+            assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        } finally {
+            Utils.setActivity(showing);
+        }
     }
 
     @Test

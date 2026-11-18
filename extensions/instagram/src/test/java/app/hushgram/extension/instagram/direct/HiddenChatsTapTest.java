@@ -6,17 +6,19 @@ package app.hushgram.extension.instagram.direct;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
-import android.view.WindowManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
@@ -26,8 +28,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -41,14 +44,16 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class HiddenChatsTapTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
+    private static final String ALICE = "340282366841710300949128";
+
     private Activity activity;
-    private ActivityController<Activity> controller;
     private final List<Activity> opened = new ArrayList<>();
     private boolean onButton = true;
 
     @Before public void prepare() {
-        controller = Robolectric.buildActivity(Activity.class).setup();
-        activity = controller.get();
+        activity = Robolectric.buildActivity(Activity.class).setup().get();
+        MessagesLock.resetForTests();
+        ChatAccounts.signInForTests(MessagesLockTest.ME);
         HiddenChatsTap.resetForTests();
         HiddenChatsTap.buttons = (shown, x, y) -> onButton;
         HiddenChatsTap.opener = opened::add;
@@ -57,13 +62,11 @@ public class HiddenChatsTapTest {
 
     @After public void close() {
         HiddenChatsTap.resetForTests();
-        HiddenChats.resetForTests();
-        ChatAccounts.resetForTests();
-        Settings.DOUBLE_TAP_HIDDEN_CHATS.resetToDefault();
+        MessagesLock.resetForTests();
         Settings.HIDDEN_CHATS.resetToDefault();
+        Settings.DOUBLE_TAP_HIDDEN_CHATS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        if (controller != null) controller.close();
     }
 
     private boolean at(int action, float x, float y, long time) {
@@ -163,52 +166,71 @@ public class HiddenChatsTapTest {
         assertFalse(HiddenChatsTap.onMessagesButton(activity, 100, 1500));
     }
 
-    @Test public void aHorizontalSwipeImmediatelyRestoresTheRegularInbox() {
-        String account = "test-account";
-        ChatAccounts.signInForTests(account);
-        HiddenChats.reader = summary -> (String) summary;
-        HiddenChats.add(account, "hidden-chat", "Hidden");
-        HiddenChats.toggleHiddenOnlyInbox();
-        List<Object> chats = Arrays.asList("hidden-chat", "regular-chat");
-        assertEquals(Collections.singletonList("hidden-chat"), HiddenChats.inbox(new Object(), chats));
+    @Test public void withNothingHiddenTheTapsOpenTheListToPickChats() {
+        List<Runnable[]> asks = new ArrayList<>();
+        MessagesLockForTests.askWith(asks);
 
-        onButton = false;
-        assertFalse(at(MotionEvent.ACTION_DOWN, 400, 900, 0));
-        assertFalse(at(MotionEvent.ACTION_MOVE, 400 + ViewConfiguration.get(activity).getScaledTouchSlop() + 1,
-                900, 20));
+        HiddenChatsTap.toggle(activity);
 
-        assertEquals("the hidden filter is cleared during the swipe", Collections.singletonList("regular-chat"),
-                HiddenChats.inbox(new Object(), chats));
+        assertTrue("no lock on, so nothing to ask", asks.isEmpty());
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(list);
+        assertTrue(list.isShowing());
+        assertEquals("Hidden chats", shadowOf(list).getTitle().toString());
+        assertFalse(HiddenChats.revealed());
     }
 
-    @Test public void leavingAndReturningToInstagramRestoresTheRegularInbox() {
-        String account = "test-account";
-        ChatAccounts.signInForTests(account);
-        HiddenChats.reader = summary -> (String) summary;
-        HiddenChats.add(account, "hidden-chat", "Hidden");
+    /**
+     * A lock's own ask waits out what's left of the double-tap time after a tap on Messages, and
+     * keeps waiting while the second tap's finger is down, so that tap never lands on the phone's
+     * prompt (#661). Nothing to pair, or the switch off, and it asks at once.
+     */
+    @Test public void aLocksAskWaitsWhileASecondTapCanStillPair() {
+        int timeout = ViewConfiguration.getDoubleTapTimeout();
+        assertEquals("nothing tapped yet", 0, HiddenChatsTap.holdAsk(1000));
 
-        MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
-        try {
-            HiddenChatsTap.touch(activity, event);
-        } finally {
-            event.recycle();
-        }
+        tap(50, 50, 1000, 1060);
+        assertEquals(timeout - 40, HiddenChatsTap.holdAsk(1100));
+        assertEquals(0, HiddenChatsTap.holdAsk(1060 + timeout));
 
-        HiddenChats.toggleHiddenOnlyInbox();
-        HiddenChatsTap.syncRecentPreviewProtection(activity);
-        List<Object> chats = Arrays.asList("hidden-chat", "regular-chat");
-        assertEquals(Collections.singletonList("hidden-chat"), HiddenChats.inbox(new Object(), chats));
-        assertTrue("hidden chats are protected in the task preview",
-                (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
+        at(MotionEvent.ACTION_DOWN, 52, 51, 1200);
+        assertEquals("the second tap is down", HiddenChatsTap.HOLD_WHILE_DOWN_MS, HiddenChatsTap.holdAsk(5000));
+        at(MotionEvent.ACTION_UP, 52, 51, 1260);
+        assertEquals("paired and through", 0, HiddenChatsTap.holdAsk(1270));
 
-        controller.pause().stop();
-        assertTrue("keep the task preview protected while Instagram is in Recents",
-                (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
-        controller.start().resume();
+        onButton = false;
+        tap(50, 50, 2000, 2060);
+        assertEquals("a tap anywhere else holds nothing", 0, HiddenChatsTap.holdAsk(2100));
 
-        assertEquals("returning to Instagram starts at the normal chat list",
-                Collections.singletonList("regular-chat"), HiddenChats.inbox(new Object(), chats));
-        assertEquals("restore the window's original screenshot policy", 0,
-                activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE);
+        onButton = true;
+        tap(50, 50, 3000, 3060);
+        Settings.DOUBLE_TAP_HIDDEN_CHATS.save(false);
+        assertEquals("switched off", 0, HiddenChatsTap.holdAsk(3100));
+    }
+
+    @Test public void hiddenChatsShowInTheInboxOnlyAfterTheLockAndTwoMoreTapsHideThem() {
+        List<Runnable[]> asks = new ArrayList<>();
+        MessagesLockForTests.askWith(asks);
+        HiddenChats.add(ALICE, "Alice");
+
+        HiddenChatsTap.toggle(activity);
+        assertEquals("asked even with no messages lock on (#661)", 1, asks.size());
+        assertFalse(HiddenChats.revealed());
+        asks.get(0)[1].run();
+        assertFalse("cancelled, nothing shows", HiddenChats.revealed());
+
+        HiddenChatsTap.toggle(activity);
+        assertEquals(2, asks.size());
+        asks.get(1)[0].run();
+        shadowOf(Looper.getMainLooper()).idle();
+        assertTrue(HiddenChats.revealed());
+        assertEquals("Showing your hidden chats", ShadowToast.getTextOfLatestToast());
+
+        HiddenChatsTap.toggle(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertFalse(HiddenChats.revealed());
+        assertEquals("hiding them asks nothing", 2, asks.size());
+        assertEquals("Hidden chats locked again", ShadowToast.getTextOfLatestToast());
+        assertNull("the list didn't open either", ShadowAlertDialog.getLatestAlertDialog());
     }
 }

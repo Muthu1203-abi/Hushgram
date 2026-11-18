@@ -34,6 +34,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -92,11 +93,13 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
 val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
-        "add a chip and mark accounts on your Following list that don't follow you back, and Recent unfollowers " +
+        "add a chip and mark accounts on your Following list that don't follow you back, in words or as a red " +
+        "cross on the profile picture with a green check for those that do, and Recent unfollowers " +
         "shows who left your Followers list, with a Follower history of who left, came back or is new. The chip is blue for " +
         "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
-        "the profile picture. On by default. Turn it " +
-        "off in Instagram settings > Profiles.",
+        "the profile picture. Tap the chip to see the rest of what Instagram says about you two, like Close " +
+        "Friends, Favorites, mutes, restrictions and pending follow requests. On by default. Turn it " +
+        "off in HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -198,13 +201,28 @@ internal fun BytecodePatchContext.findProfileUser(refuse: (String) -> Nothing): 
             setValue?.parameterTypes?.map(CharSequence::toString) == listOf(OBJECT) && setValue.returnType == "Z"
         }
     }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't keep the user in live data")
-    val holderField = setterCode.mapNotNull { instruction ->
+    // [receiver] limits the reads to fields of that register, the getter's own holder.
+    fun holderReads(code: List<Instruction>, receiver: Int?) = code.mapNotNull { instruction ->
         instruction.fieldReference()?.takeIf { field ->
             instruction.opcode == Opcode.IGET_OBJECT && field.definingClass != VIEW_MODEL &&
+                (receiver == null || (instruction as TwoRegisterInstruction).registerB == receiver) &&
                 classDefByOrNull(field.definingClass)?.let { holder ->
                     holder.fields.any { it.type == USER || it.type.startsWith("L") && classDefByOrNull(it.type) != null && USER != it.type }
                 } == true
         }
+    }
+    // 456's armv7 build (386214562) reads the holder's field in a getter the setter calls on the holder
+    // it just made (047L.A0B()String, reading 07Nl.A01) instead of in the setter itself.
+    val made = setterCode.filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() }.toSet()
+    val getters = setterCode.mapNotNull { instruction ->
+        instruction.methodReference()?.takeIf { instruction.opcode == Opcode.INVOKE_VIRTUAL && it.definingClass in made && it.parameterTypes.isEmpty() }
+    }.mapNotNull { called ->
+        classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+            it.name == called.name && it.parameterTypes.isEmpty() && it.returnType == called.returnType && it.implementation != null
+        }
+    }
+    val holderField = holderReads(setterCode, null).ifEmpty {
+        getters.flatMap { getter -> holderReads(getter.implementation!!.instructions.toList(), getter.localRegisterCount()) }
     }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't read the user's holder")
     val getValue = findLiveValue(live.type) ?: refuse("${live.type} has no getValue()Object")
     return ProfileUser(null, live, getValue, holderField.definingClass, holderField)
@@ -243,6 +261,8 @@ internal class ProfileName(
     /** The user model's getter of its ID, and the header's field of the signed-in account. */
     val userId: String,
     val session: FieldReference,
+    /** Each key the status's dump asks one getter for right after loading it, and that getter (#698). */
+    val relationshipFlags: Map<String, String>,
 )
 
 /**
@@ -289,17 +309,21 @@ internal class ProfileUser(
  */
 internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val binders = mutableListOf<Pair<String, Method>>()
-    val relationshipGetters = sortedSetOf<String>()
-    val followingGetters = sortedSetOf<String>()
+    val dumped = sortedMapOf<String, MutableSet<String>>()
     val naming = classesHolding(BIND_FULL_NAME).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (classDef.type in naming) classDef.methods.filter { it.holdsString(BIND_FULL_NAME) }.forEach { binders += classDef.type to it }
         classDef.methods.filter { method -> method.parameterTypes.any { it.toString() == RELATIONSHIP } }.forEach {
-            relationshipGetters += it.relationshipGetters(FOLLOWED_BY)
-            followingGetters += it.relationshipGetters(FOLLOWING)
+            it.relationshipGetters().forEach { (key, getter) -> dumped.getOrPut(key) { sortedSetOf() } += getter }
         }
     }
+    val relationshipGetters = dumped[FOLLOWED_BY].orEmpty()
+    val followingGetters = dumped[FOLLOWING].orEmpty()
+    // Every key the dump asks one getter right after, for the flag list (#698). Keys whose hashes
+    // meet are left out, since the stub tells them apart by hash.
+    val told = dumped.filterValues { it.size == 1 }.mapValues { it.value.single() }
+    val relationshipFlags = told.filterKeys { key -> told.keys.count { it.hashCode() == key.hashCode() } == 1 }
     val (type, binder) = binders.singleOrNull()
         ?: refuse("expected one method loading $BIND_FULL_NAME, found ${binders.size}")
     val where = "$type->${binder.name}"
@@ -396,23 +420,24 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
         type, binder.name, binder.parameterTypes.map(CharSequence::toString), slot,
         shown, code[shown].namedRegisters().first(), hidden, code[hidden].namedRegisters().first(),
         header, headerType, viewModel, user, friendship.name, relationshipFollowedBy, relationshipFollowing, followedBy.name, userId,
-        session,
+        session, relationshipFlags,
     )
 }
 
 /**
- * The names of the [RELATIONSHIP] getters [this] asks, with nothing, right after loading [key]: the
- * friendship status's dump writes each key and then asks the status for it.
+ * Each key [this] loads with a [RELATIONSHIP] getter asked, with nothing, right after it, and that
+ * getter's name: the friendship status's dump writes each key and then asks the status for it.
  */
-private fun Method.relationshipGetters(key: String): List<String> {
+private fun Method.relationshipGetters(): List<Pair<String, String>> {
     val code = implementation?.instructions?.toList() ?: return emptyList()
     return code.withIndex().mapNotNull { (at, instruction) ->
-        if (!instruction.loadsString(key)) return@mapNotNull null
+        if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) return@mapNotNull null
+        val key = ((instruction as ReferenceInstruction).reference as StringReference).string
         val next = code.getOrNull(at + 1) ?: return@mapNotNull null
         val asked = next.methodReference() ?: return@mapNotNull null
         val isGetter = (next.opcode == Opcode.INVOKE_INTERFACE || next.opcode == Opcode.INVOKE_INTERFACE_RANGE) &&
             asked.definingClass == RELATIONSHIP && asked.parameterTypes.isEmpty() && asked.returnType == BOOLEAN
-        if (isGetter) asked.name else null
+        if (isGetter) key to asked.name else null
     }
 }
 
@@ -426,27 +451,30 @@ private fun shownSlotAt(code: List<Instruction>, at: Int): Pair<Int, FieldRefere
     if (read.opcode != Opcode.IGET_OBJECT) return null
     val field = read.fieldReference() ?: return null
     val slot = (read as OneRegisterInstruction).registerA
-    val asked = code.getOrNull(at + 1)?.methodReference() ?: return null
-    if (code[at + 1].opcode != Opcode.INVOKE_INTERFACE || asked.definingClass != field.type || asked.name != "getView" ||
-        asked.parameterTypes.isNotEmpty() || asked.returnType != VIEW || code[at + 1].namedRegisters() != listOf(slot)
+    // 456 reads the slot before it checks there's a text to give it, so one branch on another register can come between.
+    val check = code.getOrNull(at + 1)
+    val ask = if (check != null && check.opcode in setOf(Opcode.IF_EQZ, Opcode.IF_NEZ) && (check as OneRegisterInstruction).registerA != slot) at + 2 else at + 1
+    val asked = code.getOrNull(ask)?.methodReference() ?: return null
+    if (code[ask].opcode != Opcode.INVOKE_INTERFACE || asked.definingClass != field.type || asked.name != "getView" ||
+        asked.parameterTypes.isNotEmpty() || asked.returnType != VIEW || code[ask].namedRegisters() != listOf(slot)
     ) {
         return null
     }
-    val view = (code.getOrNull(at + 2) as? OneRegisterInstruction)?.takeIf { code[at + 2].opcode == Opcode.MOVE_RESULT_OBJECT }?.registerA
+    val view = (code.getOrNull(ask + 1) as? OneRegisterInstruction)?.takeIf { code[ask + 1].opcode == Opcode.MOVE_RESULT_OBJECT }?.registerA
         ?: return null
-    val cast = code.getOrNull(at + 3) ?: return null
+    val cast = code.getOrNull(ask + 2) ?: return null
     if (cast.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != view ||
         (cast as ReferenceInstruction).reference.toString() != TEXT_VIEW
     ) {
         return null
     }
-    val text = code.getOrNull(at + 4)?.methodReference() ?: return null
+    val text = code.getOrNull(ask + 3)?.methodReference() ?: return null
     if (text.name != "setText" || text.parameterTypes.map(CharSequence::toString) != listOf("Ljava/lang/CharSequence;") ||
-        code[at + 4].namedRegisters().firstOrNull() != view
+        code[ask + 3].namedRegisters().firstOrNull() != view
     ) {
         return null
     }
-    return if (code.getOrNull(at + 5)?.isSetVisibility(field.type, slot) == true) (at + 5) to field else null
+    return if (code.getOrNull(ask + 4)?.isSetVisibility(field.type, slot) == true) (ask + 4) to field else null
 }
 
 private fun Instruction.isSetVisibility(slot: String, register: Int): Boolean {
@@ -516,6 +544,7 @@ internal class FriendshipStubs(
     private val profileUser: MutableMethod,
     private val friendshipFollowedBy: MutableMethod,
     private val friendshipFollowing: MutableMethod,
+    private val userFlag: MutableMethod,
     private val followedBy: MutableMethod,
     private val userId: MutableMethod,
     private val viewerId: MutableMethod,
@@ -571,6 +600,7 @@ internal class FriendshipStubs(
                 """,
             )
         }
+        fillUserFlag(found)
         followedBy.addInstructionsWithLabels(
             0,
             """
@@ -622,6 +652,43 @@ internal class FriendshipStubs(
                 return p0
             """,
         )
+    }
+
+    /**
+     * Writes the stub reading one flag of the status kept on the user by its key's hash (#698): a
+     * compare per key the dump names, each asking that key's getter and returning on its own. It
+     * needs a register of its own for the hash, which the stub as compiled may not have, so it's
+     * written anew with one ahead of its parameters.
+     */
+    private fun fillUserFlag(found: ProfileName) {
+        val keys = found.relationshipFlags.entries.withIndex().joinToString("\n") { (index, flag) ->
+            """
+                const v0, ${flag.key.hashCode()}
+                if-ne p1, v0, :not_$index
+                invoke-interface { p0 }, $RELATIONSHIP->${flag.value}()$BOOLEAN
+                move-result-object p0
+                return-object p0
+                :not_$index
+            """.trimIndent()
+        }
+        val body = """
+            |if-eqz p0, :none
+            |check-cast p0, $USER
+            |invoke-virtual { p0 }, $USER->${found.friendship}()$RELATIONSHIP
+            |move-result-object p0
+            |if-eqz p0, :none
+            |$keys
+            |:none
+            |const/4 p0, 0x0
+            |return-object p0
+        """.trimMargin().lines().joinToString("\n") { it.trim() }
+        val written = ImmutableMethod(
+            userFlag.definingClass, userFlag.name, userFlag.parameters, userFlag.returnType,
+            userFlag.accessFlags, userFlag.annotations, userFlag.hiddenApiRestrictions,
+            ImmutableMethodImplementation(USER_FLAG_LOCALS + 2, emptyList(), null, null),
+        ).toMutable().apply { addInstructionsWithLabels(0, body) }
+        extension.methods.remove(userFlag)
+        extension.methods.add(written)
     }
 
     /**
@@ -684,6 +751,9 @@ internal class FriendshipStubs(
 /** The registers the screen's answer stub has of its own: the type and the client. */
 private const val SCREEN_LOCALS = 2
 
+/** The register the user's flag stub has of its own: the key's hash it's compared with. */
+private const val USER_FLAG_LOCALS = 1
+
 internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
     val extension = mutableClassDefBy(FRIENDSHIP_STATUS)
     fun stub(name: String, parameters: List<String>, returns: String): MutableMethod = extension.methods.singleOrNull {
@@ -698,6 +768,7 @@ internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
         profileUser = stub("profileUser", listOf(OBJECT), OBJECT),
         friendshipFollowedBy = stub("friendshipFollowedBy", listOf(OBJECT), BOOLEAN),
         friendshipFollowing = stub("friendshipFollowing", listOf(OBJECT), BOOLEAN),
+        userFlag = stub("userFlag", listOf(OBJECT, "I"), BOOLEAN),
         followedBy = stub("followedBy", listOf(OBJECT), BOOLEAN),
         userId = stub("userId", listOf(OBJECT), STRING),
         viewerId = stub("viewerId", listOf(OBJECT), STRING),

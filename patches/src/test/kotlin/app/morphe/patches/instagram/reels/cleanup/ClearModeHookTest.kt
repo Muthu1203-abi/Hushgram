@@ -13,6 +13,10 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.reel.MUTE_CLEAR_MODE
+import app.morphe.patches.instagram.download.reel.MUTE_ICON_TYPE
+import app.morphe.patches.instagram.download.reel.addMuteButtonToClearMode
+import app.morphe.patches.instagram.download.reel.findClearModeRowAdd
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -87,9 +91,67 @@ class ClearModeHookTest {
         val declared = ExtensionDex.classDef(CLEAR_MODE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        val stubs = listOf("$CLEAR_MODE_ENTER_STUB($anyType$anyType)V", "$CLEAR_MODE_ID_STUB($anyType)$stringType")
+        val stubs = listOf(
+            "$CLEAR_MODE_ENTER_STUB($anyType$anyType)V", "$CLEAR_MODE_ID_STUB($anyType)$stringType",
+            "$CLEAR_MODE_ACTION_STUB($anyType)$anyType", "$CLEAR_MODE_SET_ACTION_STUB($anyType$anyType)V",
+            "${CLEAR_MODE_CHROME_STUB}(${anyType}F)V",
+        )
         for (signature in hooks.map { it.substringAfter("->") } + stubs) {
             assertTrue("$signature is not in the extension: $declared", signature in declared)
+        }
+    }
+
+    /**
+     * Mute button in clear mode (#608): the speaker goes in the list the exit button's render hands
+     * its row, right after the last add to it, with that list. A render shaped any other way, or an
+     * extension without the speaker, is refused and the render is left as it was.
+     */
+    @Test
+    fun theClearModeSpeakerGoesInRightAfterTheRowListsLastAdd() {
+        val buttonRow = "Lfixture/ButtonRow;"
+        val arrayList = "Ljava/util/ArrayList;"
+        fun render(
+            lists: Int = 1, answered: Boolean = true, answerOverList: Boolean = false, rowTakesList: Boolean = true,
+            rowJumpedTo: Boolean = false,
+        ) = classDef(button, listOf(method(button, "render", listOf(anyType), anyType, 5, buildString {
+            appendLine("const-string v0, \"${marker(CLEAR_MODE_BUTTON)}\"")
+            appendLine("invoke-static { v0 }, $purge")
+            repeat(lists) { appendLine("new-instance v1, $arrayList\ninvoke-direct { v1 }, $arrayList-><init>()V") }
+            appendLine("invoke-virtual { v1, p1 }, $arrayList->add(Ljava/lang/Object;)Z")
+            appendLine("invoke-virtual { v1, p1 }, $arrayList->add(Ljava/lang/Object;)Z")
+            if (answered) appendLine("move-result ${if (answerOverList) "v1" else "v2"}")
+            if (rowJumpedTo) appendLine("if-eqz v2, :row\n:row")
+            appendLine("new-instance v0, $buttonRow")
+            appendLine(if (rowTakesList) "invoke-direct { v0, v1 }, $buttonRow-><init>(Ljava/util/List;)V" else "invoke-direct { v0 }, $buttonRow-><init>()V")
+            appendLine("return-object v0")
+        })))
+
+        for (answered in listOf(true, false)) {
+            val stock = render(answered = answered)
+            val context = PatchContexts.of(listOf(stock, ExtensionDex.classDef(MUTE_ICON_TYPE)))
+            val (_, at, list) = context.findClearModeRowAdd()
+            assertEquals("answered $answered: the list is v1", 1, list)
+            context.addMuteButtonToClearMode()
+            val code = context.method(button, "render")
+            assertEquals("answered $answered: one call more", stock.methods.single().code().size + 1, code.size)
+            assertEquals("answered $answered: in front of the row", buttonRow, code[at + 1].type())
+            assertEquals("answered $answered: the speaker's hook", MUTE_CLEAR_MODE, code[at].referenceText())
+            assertEquals("answered $answered: by range", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+            assertEquals("answered $answered: with the list", listOf(1), code[at].registers())
+            assertEquals("answered $answered: after the last add", "add", code[if (answered) at - 2 else at - 1].methodRef()?.name)
+        }
+
+        for ((what, classes) in listOf(
+            "no speaker in the extension" to listOf(render()),
+            "two lists" to listOf(render(lists = 2), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "the add's answer over the list" to listOf(render(answerOverList = true), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "a row that takes no list" to listOf(render(rowTakesList = false), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "a jump onto the row" to listOf(render(rowJumpedTo = true), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+        )) {
+            val context = PatchContexts.of(classes)
+            assertThrows("$what: refused", PatchException::class.java) { context.findClearModeRowAdd() }
+            context.addMuteButtonToClearMode()
+            assertEquals("$what: the render is as it was", classes.first().methods.single().code().map { it.opcode }, context.method(button, "render").map { it.opcode })
         }
     }
 
@@ -202,14 +264,14 @@ class ClearModeHookTest {
         assertEquals("the scrubber isn't what a yes builds", scrubberChild, scrubberRow[asks + 3].type())
         assertEquals("the thumb's test was hooked", 1, scrubberRow.count { it.referenceText() == CLEAR_MODE_SCRUBBER })
 
-        // The chrome setter: the alpha asked for and the one it holds, right after reading that one,
-        // and the answer goes where the asked one was, ahead of Instagram's own compare and store.
+        // The chrome setter: the holder, the alpha asked for and the one it holds, right after reading
+        // that one, and the answer goes where the asked one was, ahead of Instagram's own compare and store.
         val chrome = context.method(holder, "updateChrome")
         val holds = chrome.indexOfFirst { it.referenceText() == CLEAR_MODE_CHROME_ALPHA }
         assertEquals("the held alpha isn't read just before", floatValue, chrome[holds - 2].referenceText())
         assertEquals(Opcode.MOVE_RESULT, chrome[holds - 1].opcode)
         // Three locals, then this and the alpha asked for.
-        assertCall("the chrome setter's hook", chrome[holds], CLEAR_MODE_CHROME_ALPHA, listOf(4, 1))
+        assertCall("the chrome setter's hook", chrome[holds], CLEAR_MODE_CHROME_ALPHA, listOf(3, 4, 1))
         assertEquals(Opcode.MOVE_RESULT, chrome[holds + 1].opcode)
         assertEquals("the answer goes where the asked alpha was", 4, (chrome[holds + 1] as OneRegisterInstruction).registerA)
         assertEquals("the lock isn't read next", "$holder->locked:$function0", chrome[holds + 2].referenceText())
@@ -240,6 +302,19 @@ class ClearModeHookTest {
         )
         assertEquals(item, reelId[0].type())
         assertEquals("$item->getId()$stringType", reelId[1].referenceText())
+        // The extension gives a holder its buttons back through the holder's own setter (#740).
+        val setChrome = context.method(CLEAR_MODE, CLEAR_MODE_CHROME_STUB)
+        assertEquals(
+            listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+            setChrome.take(3).map { it.opcode },
+        )
+        assertEquals(holder, setChrome[0].type())
+        assertEquals("$holder->updateChrome(F)V", setChrome[1].referenceText())
+        assertEquals("the holder and the alpha go in", listOf(0, 1), setChrome[1].registers())
+        // With a turn-on to hook, the action stays as Instagram set it.
+        for (stub in listOf(CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB)) {
+            assertTrue("$stub was filled", context.method(CLEAR_MODE, stub).none { it.opcode == Opcode.CHECK_CAST })
+        }
     }
 
     /**
@@ -328,6 +403,9 @@ class ClearModeHookTest {
             Shape(jumpToHold = true) to "jumps past its read of the alpha it holds",
             Shape(alphaHigh = true) to "keeps the alphas in v18 and v1, which the hook's call can't name",
             Shape(askedOverwritten = true) to "ReelHolder;->updateChrome writes over parameter 0",
+            Shape(holderOverwritten = true) to "ReelHolder;->updateChrome writes over this",
+            Shape(chromePublic = false) to "isn't public, so the extension can't give a reel its buttons back",
+            Shape(holderPublic = false) to "isn't public, so the extension can't give a reel its buttons back",
             Shape(alphaStored = false) to "doesn't store the alpha it was asked for",
             Shape(scrollStates = 0) to "expected one method marked $REEL_SCROLL_STATE, found 0",
             Shape(scrollStates = 2) to "expected one method marked $REEL_SCROLL_STATE, found 2",
@@ -358,7 +436,9 @@ class ClearModeHookTest {
             assertTrue("$expected: ${failure.message}", failure.message!!.startsWith("Clean up Reels: Keep clear mode on: "))
             val written = context.written(classes)
             assertTrue("$expected: something was written to $written", written.isEmpty())
-            val stubs = context.classDefBy(CLEAR_MODE).methods.filter { it.name == CLEAR_MODE_ENTER_STUB || it.name == CLEAR_MODE_ID_STUB }
+            val stubs = context.classDefBy(CLEAR_MODE).methods.filter {
+                it.name in setOf(CLEAR_MODE_ENTER_STUB, CLEAR_MODE_ID_STUB, CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB, CLEAR_MODE_CHROME_STUB)
+            }
             assertTrue("$expected: a stub was filled", stubs.none { stub -> stub.code().any { it.opcode == Opcode.CHECK_CAST } })
         }
     }
@@ -423,7 +503,9 @@ class ClearModeHookTest {
      * first thing in the pager listener's page report and the exit button's render, in front of
      * the seek bar row's test of whether to draw the scrubber, right after the reel holder's chrome
      * setter reads the alpha it holds, right after the pager listener's scroll state change reads
-     * the pager, and right after the viewer's setup gives the handler its turn-on action.
+     * the pager, and right after the viewer's setup gives the handler its turn-on action. 456, which
+     * has no turn-on method and draws the seek bar row inside the reel's render, gets the rest, and
+     * its stubs run, read and write the handler's action.
      */
     @Test
     fun eachDeclaredBuildGetsEveryHook() {
@@ -431,7 +513,7 @@ class ClearModeHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                builds(bundle, bundle.name)
+                builds(bundle, bundle.name, declared = true)
                 checked += version
             }
         }
@@ -440,10 +522,10 @@ class ClearModeHookTest {
 
     @Test
     fun eachOtherBuildGetsEveryHookToo() {
-        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name, declared = false)
     }
 
-    private fun builds(bundle: File, label: String) {
+    private fun builds(bundle: File, label: String, declared: Boolean) {
         val markers = CLEAR_MODE_MARKERS.toSet()
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -455,10 +537,19 @@ class ClearModeHookTest {
                 if (classDef.methods.any { method -> method.markers().any { it in markers } }) holders += ImmutableClassDef.of(classDef)
             }
         }
+        if (holders.isEmpty()) {
+            // 456 drops all nine markers, and on every build the handler's turn-on is inlined into its
+            // callers (386214574's LX/09HX;->A03, LX/0PHO;->A0E and LX/09Ip;->A0A read the handler's
+            // action and run it themselves), so everything is found by the strings it keeps.
+            assertTrue("$label: only 456 drops clear mode's markers", label.contains("-456.0.0.53.78-"))
+            anchoredBuild(bundle, label, declared)
+            return
+        }
         val methods = holders.flatMap { it.methods }
-        if (methods.count { CLEAR_MODE_ENABLE in it.markers() } > 1) {
-            // The x86 builds inline the turn-on into its callers: Clean up Reels goes in without Keep clear mode on there.
-            assertTrue("$label: only the x86 builds inline the turn-on", label.endsWith("-385914518") || label.endsWith("-385914558"))
+        if (methods.count { CLEAR_MODE_ENABLE in it.markers() } != 1) {
+            // On 455 only the armeabi-v7a build 386113922 inlines the turn-on into its callers (LX/08KX;->FtW,
+            // LX/08Lq;->A0B and LX/0JfZ;->invoke) and keeps the markers: Clean up Reels goes in without Keep clear mode on there.
+            assertTrue("$label: only 386113922 inlines the turn-on and keeps the markers", label.endsWith("-386113922"))
             val context = PatchContexts.of((holders + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
             assertNull("$label: Keep clear mode on is left out", context.findClearModeWhereItFits())
             return
@@ -484,17 +575,12 @@ class ClearModeHookTest {
         val called = render.code().mapNotNull { it.methodRef()?.definingClass }.filter { it.startsWith("LX/") }
         val extra = FixtureDex.classes(bundle, setOf(reasonType, itemType, stateType) + rowFields + heldFields + built + called).values +
             FixtureDex.classesHolding(bundle, CLEAR_MODE_FLAG_NAME)
-        val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
+        val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(CLEAR_MODE) + ExtensionDex.classDef(MUTE_ICON_TYPE)).distinctBy { it.type })
 
         context.keepClearMode()
 
         val name = label
-        val after = { method: Method ->
-            context.mutableClassDefBy(method.definingClass).methods.single {
-                it.name == method.name && it.returnType == method.returnType &&
-                    it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
-            }.code()
-        }
+        val after = { method: Method -> context.now(method) }
 
         // The turn-on: this and the reason, right after the action's call, and the branch around a
         // missing action lands past the hook.
@@ -507,7 +593,209 @@ class ClearModeHookTest {
         assertEquals("$name: the reason is the one the action got", newEnable[entered - 1].registers().last(), enableThis + 1)
         assertEquals("$name: a missing action skips the turn-on's hook", entered + 1, newEnable.target(newEnable.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
 
-        // The turn-off: this, the reel and the reason, placed the same way.
+        val enableAction = enable.code().filter { it.opcode == Opcode.IGET_OBJECT }
+            .map { (it as ReferenceInstruction).reference as FieldReference }.single { it.definingClass == handlerType }
+        sharedHooks(context, name, declared, Sites(dismiss, enabled, paged, render, chrome, scrolled, setup), handlerType, itemType, enableAction.name)
+
+        // The seek bar row: the reel state's flag, read off this through the row's state, goes in with
+        // Instagram's unboxed answer right before the row tests it, and the row tests what comes back.
+        val newRow = after(scrubberRow)
+        assertEquals("$name: the seek bar row grew", scrubberRow.code().size + 10, newRow.size)
+        val asks = newRow.indexOfFirst { it.referenceText() == CLEAR_MODE_SCRUBBER }
+        assertEquals("$name: the seek bar row asks once", 1, newRow.count { it.referenceText() == CLEAR_MODE_SCRUBBER })
+        assertEquals("$name: Instagram's answer is unboxed just before", "Ljava/lang/Boolean;->booleanValue()Z", newRow[asks - 10].referenceText())
+        val shown = (newRow[asks - 9] as OneRegisterInstruction).registerA
+        val flag = (newRow[asks - 8] as TwoRegisterInstruction).registerA
+        assertEquals("$name: the row itself is what the flag is read from", scrubberRow.implementation!!.registerCount - 2, (newRow[asks - 8] as TwoRegisterInstruction).registerB)
+        val rowStateField = (newRow[asks - 7] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$name: the row's state is the row's own", scrubberRow.definingClass, rowStateField.definingClass)
+        val reelStateField = (newRow[asks - 5] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$name: the reel's state is the row state's", rowStateField.type, reelStateField.definingClass)
+        val flagField = (newRow[asks - 3] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$name: the flag is the reel state's", reelStateField.type, flagField.definingClass)
+        assertEquals("$name: the flag is a yes or no", "Z", flagField.type)
+        assertTrue("$name: the flag goes in the answer's register", flag != shown)
+        assertEquals("$name: the flag's read", Opcode.IGET_BOOLEAN, newRow[asks - 3].opcode)
+        for (at in listOf(asks - 7, asks - 5, asks - 3)) {
+            val read = newRow[at] as TwoRegisterInstruction
+            assertEquals("$name: the read ${at - asks} isn't from and into v$flag", listOf(flag, flag), listOf(read.registerA, read.registerB))
+        }
+        for (at in listOf(asks - 6, asks - 4)) {
+            assertEquals("$name: the null test ${at - asks} isn't of v$flag", flag, (newRow[at] as OneRegisterInstruction).registerA)
+            assertEquals("$name: a missing state at ${at - asks} isn't a no", asks - 1, newRow.target(at))
+        }
+        assertEquals("$name: a read flag skips the no", asks, newRow.target(asks - 2))
+        assertEquals("$name: the no goes in v$flag", flag, (newRow[asks - 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: the hook hands over the answer and the flag", listOf(shown, flag), newRow[asks].registers())
+        assertEquals("$name: the answer goes back where it was", shown, (newRow[asks + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: Instagram's own test follows", Opcode.IF_EQZ, newRow[asks + 2].opcode)
+        assertEquals("$name: the test is of the answer", shown, (newRow[asks + 2] as OneRegisterInstruction).registerA)
+
+        val enter = context.method(CLEAR_MODE, CLEAR_MODE_ENTER_STUB)
+        assertEquals("$name: the stub calls the handler's turn-on", "$handlerType->${enable.name}($reasonType)V", enter[2].referenceText())
+        val reelId = context.method(CLEAR_MODE, CLEAR_MODE_ID_STUB)
+        assertEquals("$name: the stub reads the reel's id", "$itemType->getId()$stringType", reelId[1].referenceText())
+        for (stub in listOf(CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB)) {
+            assertTrue("$name: $stub was filled", context.method(CLEAR_MODE, stub).none { it.opcode == Opcode.CHECK_CAST })
+        }
+    }
+
+    /**
+     * 456 by the strings it keeps: the reason naming the swipe away, the reel state naming its clear
+     * mode flag, and the pager listener's two traces. The slice carries those, every class reading
+     * the reason's constants or taking the reason, every class holding the reel state, every class
+     * touching the handler's fields, and the types the hooks' methods tell apart or call.
+     */
+    private fun anchoredBuild(bundle: File, label: String, declared: Boolean) {
+        val name = label
+        val loading = FixtureDex.classesLoadingAny(
+            bundle, setOf(CLEAR_MODE_SWIPED_AWAY, CLEAR_MODE_FLAG_NAME, REEL_PAGE_SELECTED_TRACE, REEL_SCROLL_STATE_TRACE),
+        )
+        val byType = loading.associateBy { it.type }
+        val reasonType = loading.single { reason ->
+            reason.superclass == "Ljava/lang/Enum;" && reason.methods.any { it.name == "<clinit>" && FixtureDex.loads(it, CLEAR_MODE_SWIPED_AWAY, byType) }
+        }.type
+        val stateType = loading.single { state ->
+            state.methods.any { it.name == "toString" && FixtureDex.loads(it, CLEAR_MODE_FLAG_NAME, byType) }
+        }.type
+        val near = walk(bundle, setOf(reasonType, stateType)) { classDef ->
+            classDef.fields.any { it.type == stateType } || classDef.methods.any { method ->
+                method.parameterTypes.any { it.toString() == reasonType } ||
+                    method.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is FieldReference && ref.definingClass == reasonType } }
+            }
+        }
+        // Each class with an action and a turn-off taking the reason may be the handler.
+        val handlers = near.filter { holder ->
+            holder.instanceFields.any { it.type == function1 } && holder.methods.any { method ->
+                method.returnType == "V" && method.parameterTypes.size == 2 && method.parameterTypes[1].toString() == reasonType
+            }
+        }
+        val handlerTypes = handlers.map { it.type }.toSet()
+        assertTrue("$name: no class may be the handler", handlerTypes.isNotEmpty())
+        val items = handlers.flatMap { it.methods }.filter { it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == reasonType }
+            .map { it.parameterTypes[0].toString() }
+        val takingReason = near.flatMap { it.methods }.filter { method -> method.parameterTypes.any { it.toString() == reasonType } }
+        val tagged = takingReason.flatMap { it.code() }.filter { it.opcode == Opcode.INSTANCE_OF }.mapNotNull { it.type() }
+        val scrollStates = loading.flatMap { it.methods }.filter { FixtureDex.loads(it, REEL_SCROLL_STATE_TRACE, byType) }
+            .flatMap { it.parameterTypes.map(Any::toString) }
+        val buttons = near.filter { holder -> holder.instanceFields.any { it.type == stateType } && holder.instanceFields.any { it.type in handlerTypes } }
+        val called = buttons.flatMap { it.methods }.flatMap { it.code() }.mapNotNull { it.methodRef()?.definingClass }.filter { it.startsWith("LX/") }
+        val touching = walk(bundle, handlerTypes) { classDef ->
+            classDef.methods.any { method ->
+                method.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is FieldReference && ref.definingClass in handlerTypes } }
+            }
+        }
+        val known = (loading + near + touching).mapTo(HashSet()) { it.type }
+        val types = (items + tagged + scrollStates + called).filter { it.startsWith("L") && it !in known }.toSet()
+        val sliced = (loading + near + touching + FixtureDex.classes(bundle, types).values).distinctBy { it.type }
+        val classes = FixtureDex.withStringPools(bundle, sliced).distinctBy { it.type } +
+            ExtensionDex.classDef(CLEAR_MODE) + ExtensionDex.classDef(MUTE_ICON_TYPE)
+        val context = PatchContexts.of(classes.distinctBy { it.type })
+
+        val found = context.findClearMode()
+        assertNull("$name: there's a turn-on to hook", found.enable)
+        assertNull("$name: there's a seek bar row to hook", found.row)
+        assertEquals("$name: the reason is the one naming the swipe away", reasonType, found.reason)
+        val handlerType = found.handler
+        val itemType = found.item
+        val action = found.action
+        assertEquals("$name: the action is the handler's own", handlerType, action.substringBefore("->"))
+        assertEquals("$name: the action is a Function1", function1, action.substringAfter(":"))
+        val actionName = action.substringAfter("->").substringBefore(":")
+        // The handler's callers run the action themselves, with one of the reason's constants.
+        val runs = classes.flatMap { it.methods }.filter { method ->
+            val code = method.code()
+            code.any { it.opcode == Opcode.IGET_OBJECT && it.referenceText() == action } &&
+                code.any { it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.let { ref -> ref is FieldReference && ref.definingClass == reasonType } } &&
+                code.any { it.methodRef()?.let { call -> call.definingClass == function1 && call.name == "invoke" } == true }
+        }
+        assertTrue("$name: nothing runs the handler's action with a reason", runs.isNotEmpty())
+        assertTrue("$name: the paged report doesn't load its trace", FixtureDex.loads(found.paged, REEL_PAGE_SELECTED_TRACE, byType))
+        assertTrue("$name: the scroll state change doesn't load its trace", FixtureDex.loads(found.scrolled, REEL_SCROLL_STATE_TRACE, byType))
+        assertTrue("$name: the viewer's turn-on doesn't take the reason", reasonType in found.enabled.parameterTypes.map(Any::toString))
+        assertEquals("$name: the exit button isn't one of the classes holding the reel state", true, found.button.definingClass in buttons.map { it.type })
+
+        context.keepClearMode()
+
+        sharedHooks(
+            context, name, declared,
+            Sites(found.dismiss, found.enabled, found.paged, found.button, found.chrome, found.scrolled, found.setup),
+            handlerType, itemType, actionName,
+        )
+
+        // Neither the turn-on's hook nor the seek bar row's goes anywhere.
+        for (hook in listOf(CLEAR_MODE_ENTERED, CLEAR_MODE_SCRUBBER)) {
+            val calling = classes.map { it.type }.distinct().flatMap { type -> context.classDefBy(type).methods.toList() }
+                .filter { method -> method.code().any { it.referenceText() == hook } }
+            assertTrue("$name: $hook went into ${calling.map { it.name }}", calling.isEmpty())
+        }
+
+        // The stubs run the action the handler's callers run, and read and write it for the extension.
+        val enter = context.method(CLEAR_MODE, CLEAR_MODE_ENTER_STUB)
+        assertEquals(
+            "$name: the turn-on stub",
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE, Opcode.RETURN_VOID),
+            enter.take(5).map { it.opcode },
+        )
+        assertEquals("$name: the turn-on stub casts to the handler", handlerType, enter[0].type())
+        assertEquals("$name: the turn-on stub reads the action", action, enter[1].referenceText())
+        assertEquals("$name: the turn-on stub runs it", "$function1->invoke($anyType)$anyType", enter[3].referenceText())
+        assertEquals("$name: the turn-on stub runs it with the reason", listOf(0, 1), enter[3].registers())
+        assertEquals("$name: no action skips the run", 4, enter.target(2))
+        val read = context.method(CLEAR_MODE, CLEAR_MODE_ACTION_STUB)
+        assertEquals("$name: the action stub", listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), read.take(3).map { it.opcode })
+        assertEquals("$name: the action stub reads the action", action, read[1].referenceText())
+        val write = context.method(CLEAR_MODE, CLEAR_MODE_SET_ACTION_STUB)
+        assertEquals(
+            "$name: the set action stub",
+            listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.IPUT_OBJECT, Opcode.RETURN_VOID),
+            write.take(4).map { it.opcode },
+        )
+        assertEquals("$name: the set action stub casts to the handler", handlerType, write[0].type())
+        assertEquals("$name: the set action stub casts the action", function1, write[1].type())
+        assertEquals("$name: the set action stub writes the action", action, write[2].referenceText())
+        val reelId = context.method(CLEAR_MODE, CLEAR_MODE_ID_STUB)
+        assertEquals("$name: the stub reads the reel's id", "$itemType->getId()$stringType", reelId[1].referenceText())
+    }
+
+    /** The methods both ways of finding clear mode hook the same way. */
+    private class Sites(
+        val dismiss: Method,
+        val enabled: Method,
+        val paged: Method,
+        val render: Method,
+        val chrome: Method,
+        val scrolled: Method,
+        val setup: Method,
+    )
+
+    /**
+     * The hooks every build gets, by markers or by what 456 keeps, where each goes: after the action's
+     * call in the handler's turn-off, in front of the viewer's own test of the pager's reel, first
+     * thing in the page report and the exit button's render, with the speaker in clear mode in the
+     * render's row, right after the chrome setter reads the alpha it holds, right after the scroll
+     * state change reads the pager, and right after the setup gives the handler its [action].
+     */
+    private fun sharedHooks(
+        context: BytecodePatchContext,
+        name: String,
+        declared: Boolean,
+        sites: Sites,
+        handlerType: String,
+        itemType: String,
+        action: String,
+    ) {
+        val after = { method: Method -> context.now(method) }
+        val dismiss = sites.dismiss
+        val enabled = sites.enabled
+        val paged = sites.paged
+        val render = sites.render
+        val chrome = sites.chrome
+        val scrolled = sites.scrolled
+        val setup = sites.setup
+
+        // The turn-off: this, the reel and the reason, right after the action's call, and the branch
+        // around a missing action lands past the hook.
         val newDismiss = after(dismiss)
         assertEquals("$name: the turn-off grew", dismiss.code().size + 1, newDismiss.size)
         val left = newDismiss.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
@@ -566,39 +854,25 @@ class ClearModeHookTest {
         assertTrue("$name: the buzz is the haptics helper's", context.classDefBy(buzz!!.definingClass).fields.any { it.type == VIBRATOR })
         assertEquals("$name: a yes skips the buzz alone", quiet + 4, newRender.target(quiet + 2))
 
-        // The seek bar row: the reel state's flag, read off this through the row's state, goes in with
-        // Instagram's unboxed answer right before the row tests it, and the row tests what comes back.
-        val newRow = after(scrubberRow)
-        assertEquals("$name: the seek bar row grew", scrubberRow.code().size + 10, newRow.size)
-        val asks = newRow.indexOfFirst { it.referenceText() == CLEAR_MODE_SCRUBBER }
-        assertEquals("$name: the seek bar row asks once", 1, newRow.count { it.referenceText() == CLEAR_MODE_SCRUBBER })
-        assertEquals("$name: Instagram's answer is unboxed just before", "Ljava/lang/Boolean;->booleanValue()Z", newRow[asks - 10].referenceText())
-        val shown = (newRow[asks - 9] as OneRegisterInstruction).registerA
-        val flag = (newRow[asks - 8] as TwoRegisterInstruction).registerA
-        assertEquals("$name: the row itself is what the flag is read from", scrubberRow.implementation!!.registerCount - 2, (newRow[asks - 8] as TwoRegisterInstruction).registerB)
-        val rowStateField = (newRow[asks - 7] as ReferenceInstruction).reference as FieldReference
-        assertEquals("$name: the row's state is the row's own", scrubberRow.definingClass, rowStateField.definingClass)
-        val reelStateField = (newRow[asks - 5] as ReferenceInstruction).reference as FieldReference
-        assertEquals("$name: the reel's state is the row state's", rowStateField.type, reelStateField.definingClass)
-        val flagField = (newRow[asks - 3] as ReferenceInstruction).reference as FieldReference
-        assertEquals("$name: the flag is the reel state's", reelStateField.type, flagField.definingClass)
-        assertEquals("$name: the flag is a yes or no", "Z", flagField.type)
-        assertTrue("$name: the flag goes in the answer's register", flag != shown)
-        assertEquals("$name: the flag's read", Opcode.IGET_BOOLEAN, newRow[asks - 3].opcode)
-        for (at in listOf(asks - 7, asks - 5, asks - 3)) {
-            val read = newRow[at] as TwoRegisterInstruction
-            assertEquals("$name: the read ${at - asks} isn't from and into v$flag", listOf(flag, flag), listOf(read.registerA, read.registerB))
+        // The speaker in clear mode (#608): with the list the render hands its row, right after its
+        // last add to it and right before the row is built. Another build may be left without it.
+        val rowAdd = runCatching { context.findClearModeRowAdd() }
+        if (declared || rowAdd.isSuccess) {
+            val (_, rowAt, rowList) = rowAdd.getOrThrow()
+            context.addMuteButtonToClearMode()
+            val spoken = after(render)
+            assertEquals("$name: one call more in the render", newRender.count { it.opcode != Opcode.NOP } + 1, spoken.count { it.opcode != Opcode.NOP })
+            assertEquals("$name: the speaker's hook", MUTE_CLEAR_MODE, spoken[rowAt].referenceText())
+            assertEquals("$name: it's handed the list", listOf(rowList), spoken[rowAt].registers())
+            val addAt = if (spoken[rowAt - 1].opcode == Opcode.MOVE_RESULT) rowAt - 2 else rowAt - 1
+            assertEquals("$name: an add to the list comes just before", "add", spoken[addAt].methodRef()?.name)
+            assertEquals("$name: the add is to that list", rowList, spoken[addAt].registers().first())
+            assertEquals("$name: the row is built right after", Opcode.NEW_INSTANCE, spoken[rowAt + 1].opcode)
+            val listMade = spoken.single { it.opcode == Opcode.NEW_INSTANCE && it.type() == "Ljava/util/ArrayList;" }
+            assertEquals("$name: the list is the one the render builds", rowList, (listMade as OneRegisterInstruction).registerA)
+        } else {
+            assertTrue("$name: a render the speaker can't go in is refused", rowAdd.exceptionOrNull() is PatchException)
         }
-        for (at in listOf(asks - 6, asks - 4)) {
-            assertEquals("$name: the null test ${at - asks} isn't of v$flag", flag, (newRow[at] as OneRegisterInstruction).registerA)
-            assertEquals("$name: a missing state at ${at - asks} isn't a no", asks - 1, newRow.target(at))
-        }
-        assertEquals("$name: a read flag skips the no", asks, newRow.target(asks - 2))
-        assertEquals("$name: the no goes in v$flag", flag, (newRow[asks - 1] as OneRegisterInstruction).registerA)
-        assertEquals("$name: the hook hands over the answer and the flag", listOf(shown, flag), newRow[asks].registers())
-        assertEquals("$name: the answer goes back where it was", shown, (newRow[asks + 1] as OneRegisterInstruction).registerA)
-        assertEquals("$name: Instagram's own test follows", Opcode.IF_EQZ, newRow[asks + 2].opcode)
-        assertEquals("$name: the test is of the answer", shown, (newRow[asks + 2] as OneRegisterInstruction).registerA)
 
         // The chrome setter: the alpha asked for and the one held, right after reading the held one,
         // and the answer goes back where the asked one was.
@@ -610,9 +884,19 @@ class ClearModeHookTest {
         assertEquals("$name: the held alpha is kept", Opcode.MOVE_RESULT, newChrome[holds - 1].opcode)
         val heldAlpha = (newChrome[holds - 1] as OneRegisterInstruction).registerA
         val askedAlpha = chrome.implementation!!.registerCount - 1
-        assertEquals("$name: the hook hands over the asked alpha and the held one", listOf(askedAlpha, heldAlpha), newChrome[holds].registers())
+        assertEquals(
+            "$name: the hook hands over the holder, the asked alpha and the held one",
+            listOf(askedAlpha - 1, askedAlpha, heldAlpha), newChrome[holds].registers(),
+        )
         assertEquals("$name: the answer is kept", Opcode.MOVE_RESULT, newChrome[holds + 1].opcode)
         assertEquals("$name: the answer goes where the asked alpha was", askedAlpha, (newChrome[holds + 1] as OneRegisterInstruction).registerA)
+        // The extension reaches that same setter to give a holder its buttons back (#740).
+        val setChrome = context.method(CLEAR_MODE, CLEAR_MODE_CHROME_STUB)
+        assertEquals("$name: the chrome stub casts to the holder", chrome.definingClass, setChrome[0].type())
+        assertEquals(
+            "$name: the chrome stub calls the holder's setter",
+            "${chrome.definingClass}->${chrome.name}(F)V", setChrome[1].referenceText(),
+        )
 
         // The scroll state change: the pager it just read and the state, right after the read.
         val newScrolled = after(scrolled)
@@ -636,22 +920,32 @@ class ClearModeHookTest {
         val ready = newSetup.indexOfFirst { it.referenceText() == CLEAR_MODE_READY }
         assertEquals("$name: the setup hands over once", 1, newSetup.count { it.referenceText() == CLEAR_MODE_READY })
         assertEquals("$name: the turn-on action is set just before", Opcode.IPUT_OBJECT, newSetup[ready - 1].opcode)
-        val action = (newSetup[ready - 1] as ReferenceInstruction).reference as FieldReference
-        assertEquals("$name: the action set is the handler's", handlerType, action.definingClass)
-        val enableAction = enable.code().filter { it.opcode == Opcode.IGET_OBJECT }
-            .map { (it as ReferenceInstruction).reference as FieldReference }.single { it.definingClass == handlerType }
-        assertEquals("$name: the action set is the one the turn-on reads", enableAction.name, action.name)
+        val set = (newSetup[ready - 1] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$name: the action set is the handler's", handlerType, set.definingClass)
+        assertEquals("$name: the action set is the one the turn-on reads", action, set.name)
         assertEquals("$name: the hook is a range call", Opcode.INVOKE_STATIC_RANGE, newSetup[ready].opcode)
         assertEquals(
             "$name: the hook hands over the handler the action went to",
             listOf((newSetup[ready - 1] as TwoRegisterInstruction).registerB),
             newSetup[ready].registers(),
         )
+    }
 
-        val enter = context.method(CLEAR_MODE, CLEAR_MODE_ENTER_STUB)
-        assertEquals("$name: the stub calls the handler's turn-on", "$handlerType->${enable.name}($reasonType)V", enter[2].referenceText())
-        val reelId = context.method(CLEAR_MODE, CLEAR_MODE_ID_STUB)
-        assertEquals("$name: the stub reads the reel's id", "$itemType->getId()$stringType", reelId[1].referenceText())
+    /** [method]'s code as the context has it now. */
+    private fun BytecodePatchContext.now(method: Method): List<Instruction> =
+        mutableClassDefBy(method.definingClass).methods.single {
+            it.name == method.name && it.returnType == method.returnType &&
+                it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
+        }.code()
+
+    /** Every class [wanted] picks, copied out, in the dex files naming one of [types] (a class can't use a type its dex doesn't name). */
+    private fun walk(bundle: File, types: Set<String>, wanted: (ClassDef) -> Boolean): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.typeSection.none { it in types }) return@forEach
+            for (classDef in dex.classes) if (wanted(classDef)) found += ImmutableClassDef.of(classDef)
+        }
+        return found
     }
 
     // ---- stand-ins shaped like Instagram 450's -------------------------------------------------
@@ -714,6 +1008,9 @@ class ClearModeHookTest {
         val chromeTakesAlpha: Boolean = true,
         val chromeStatic: Boolean = false,
         val chromeReturns: String = "V",
+        val chromePublic: Boolean = true,
+        val holderPublic: Boolean = true,
+        val holderOverwritten: Boolean = false,
         val chromeEndsAtRead: Boolean = false,
         val alphaReads: Int = 1,
         val alphaKept: Boolean = true,
@@ -1129,6 +1426,7 @@ class ClearModeHookTest {
             invoke-static { v0 }, $purge
             ${if (shape.askedOverwritten) "const/4 p1, 0x0" else ""}
             iget-object v2, $holderSelf, $holder->alpha:$cell
+            ${if (shape.holderOverwritten) "move-object p0, v2" else ""}
             ${if (shape.jumpToHold) "if-eqz v2, :hold" else ""}
             ${alphaRead.repeat(shape.alphaReads)}
             ${if (shape.alphaReads == 0) "iget v1, v2, $cell->raw:F" else ""}
@@ -1159,7 +1457,8 @@ class ClearModeHookTest {
             shape.chromeEndsAtRead -> chromeMarked + "iget-object v2, p0, $holder->alpha:$cell\n" + alphaRead
             else -> fullChrome
         }
-        val chromeFlags = AccessFlags.PUBLIC.value or (if (shape.chromeStatic) AccessFlags.STATIC.value else AccessFlags.FINAL.value)
+        val chromeFlags = (if (shape.chromePublic) AccessFlags.PUBLIC.value else 0) or
+            (if (shape.chromeStatic) AccessFlags.STATIC.value else AccessFlags.FINAL.value)
         val chromes = (0 until maxOf(shape.chromes, 1)).map { copy ->
             method(
                 holder, if (copy == 0) "updateChrome" else "updateChromeAgain",
@@ -1167,7 +1466,12 @@ class ClearModeHookTest {
                 chromeFlags,
             )
         }
-        val holderClass = classDef(holder, chromes, fields = listOf(field(holder, "alpha", cell), field(holder, "locked", function0)))
+        val holderFields = listOf(field(holder, "alpha", cell), field(holder, "locked", function0))
+        val holderClass = if (shape.holderPublic) {
+            classDef(holder, chromes, fields = holderFields)
+        } else {
+            ImmutableClassDef(holder, AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, holderFields, chromes)
+        }
 
         val extension = if (shape.stubs) {
             ExtensionDex.classDef(CLEAR_MODE)

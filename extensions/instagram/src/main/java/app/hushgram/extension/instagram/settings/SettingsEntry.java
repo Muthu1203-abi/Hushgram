@@ -38,12 +38,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.download.ReelColumnFit;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.feed.CarouselArrows;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
+import app.hushgram.extension.instagram.feed.CommentGifs;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.FeedSaveRow;
 import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
@@ -53,6 +56,9 @@ import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.misc.PureBlackNav;
+import app.hushgram.extension.instagram.misc.StoryBands;
+import app.hushgram.extension.instagram.misc.TabIcons;
 import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
@@ -60,11 +66,14 @@ import app.hushgram.extension.instagram.reels.ReelsTopBar;
 import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
+import app.hushgram.extension.instagram.misc.SavedFastScroll;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
+import app.hushgram.extension.instagram.misc.TextSize;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
+import app.hushgram.extension.instagram.stories.StoryReplyBox;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -158,11 +167,16 @@ public final class SettingsEntry {
         RefreshRate.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
+        ReelColumnFit.install(context);
+        TabIcons.install(context);
         ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
+        SavedFastScroll.install(context);
         CommentEmojiRow.install(context);
+        CommentGifs.install(context);
         FeedFollowButton.install(context);
+        FeedSaveRow.install(context);
         HideCaptions.install(context);
         FollowingFeed.install(context);
         ReelCorners.install(context);
@@ -170,12 +184,16 @@ public final class SettingsEntry {
         CarouselPeek.install(context);
         CarouselArrows.install(context);
         AmbientLight.install(context);
+        PureBlackNav.install(context);
+        StoryBands.install(context);
         StoryProgressBar.install(context);
+        StoryReplyBox.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
         MuseCard.install(context);
         LaunchScreen.install(context);
         AppIcon.install(context);
+        TextSize.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         if (SettingsStatus.backgroundPlay()) BackgroundPlay.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
@@ -197,7 +215,7 @@ public final class SettingsEntry {
      */
     static void relabelIfStale(Context context) {
         try {
-            if (!L10n.t(context, "Instagram settings").equals(publishedLabel)) publishShortcut(context);
+            if (!L10n.t(context, "HushGram settings").equals(publishedLabel)) publishShortcut(context);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not check the shortcut's label", ex);
         }
@@ -214,7 +232,7 @@ public final class SettingsEntry {
             if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
-            String longLabel = L10n.t(app, "Instagram settings");
+            String longLabel = L10n.t(app, "HushGram settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
             if (!Settings.SETTINGS_SHORTCUT.get()) {
@@ -258,7 +276,7 @@ public final class SettingsEntry {
             final int rank = existing.getRank();
             if (rank == 0) return;
             CharSequence label = existing.getLongLabel();
-            push(manager, shortcut(app, label != null ? label : L10n.t(app, "Instagram settings")));
+            push(manager, shortcut(app, label != null ? label : L10n.t(app, "HushGram settings")));
             Logger.printInfo(() -> "Settings entry: launcher shortcut moved back in front from rank " + rank);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not put the shortcut back in front", ex);
@@ -315,7 +333,7 @@ public final class SettingsEntry {
                 .putExtra(EXTRA_OPEN_SETTINGS, true)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return new ShortcutInfo.Builder(app, SHORTCUT_ID)
-                .setShortLabel("Instagram")
+                .setShortLabel("HushGram")
                 .setLongLabel(longLabel)
                 .setIcon(Icon.createWithAdaptiveBitmap(shortcutIcon()))
                 .setIntent(intent)

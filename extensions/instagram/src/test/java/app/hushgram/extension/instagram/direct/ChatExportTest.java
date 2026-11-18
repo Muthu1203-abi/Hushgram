@@ -118,41 +118,41 @@ public class ChatExportTest {
     }
 
     @Test public void theNameHasTheChatAndTheTime() {
-        assertEquals("Instagram chat Sam 2026-10-30 1405.txt", ChatExport.fileName("Sam", at(2026, 10, 30, 14, 5)));
+        assertEquals("HushGram chat Sam 2026-10-30 1405.txt", ChatExport.fileName("Sam", at(2026, 10, 30, 14, 5)));
     }
 
     @Test public void aNameWithNoChatTitleHasOnlyTheTime() {
-        assertEquals("Instagram chat 2026-10-30 1405.txt", ChatExport.fileName(null, at(2026, 10, 30, 14, 5)));
-        assertEquals("Instagram chat 2026-10-30 1405.txt", ChatExport.fileName("  ", at(2026, 10, 30, 14, 5)));
+        assertEquals("HushGram chat 2026-10-30 1405.txt", ChatExport.fileName(null, at(2026, 10, 30, 14, 5)));
+        assertEquals("HushGram chat 2026-10-30 1405.txt", ChatExport.fileName("  ", at(2026, 10, 30, 14, 5)));
     }
 
     @Test public void aTitleLosesWhatAFileNameCantHoldAndIsCut() {
-        assertEquals("Instagram chat a b c d 2026-01-02 0304.txt",
+        assertEquals("HushGram chat a b c d 2026-01-02 0304.txt",
                 ChatExport.fileName("a/b\\c:d", at(2026, 1, 2, 3, 4)));
         String name = ChatExport.fileName("A very long group chat name indeed", at(2026, 1, 2, 3, 4));
-        assertEquals("Instagram chat A very long gr 2026-01-02 0304.txt", name);
+        assertEquals("HushGram chat A very long gr 2026-01-02 0304.txt", name);
         assertFalse(ChatExport.fileName("What?*\"<>|", at(2026, 1, 2, 3, 4)).matches(".*[?*\"<>|].*"));
-        assertEquals("Instagram chat Sam 2026-01-02 0304.txt", ChatExport.fileName("Sam...", at(2026, 1, 2, 3, 4)));
+        assertEquals("HushGram chat Sam 2026-01-02 0304.txt", ChatExport.fileName("Sam...", at(2026, 1, 2, 3, 4)));
         assertTrue(name.length() <= 50);
     }
 
     @Test public void theTextIsSavedWhereThisAndroidKeepsDownloads() throws Exception {
         String text = "Chat with Sam\n1 message\n\n2026-01-02 03:04 Sam: héllo\n";
-        assertTrue(ChatExport.save(context, "Instagram chat Sam 2026-01-02 0304.txt", text));
+        assertTrue(ChatExport.save(context, "HushGram chat Sam 2026-01-02 0304.txt", text));
         if (Build.VERSION.SDK_INT >= 29) {
             assertFalse(ChatExport.appFolderOnly());
             assertEquals(1, downloads.inserts.size());
             ContentValues row = downloads.rows.get(1L);
             assertNotNull(row);
-            assertEquals("Instagram chat Sam 2026-01-02 0304.txt", row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+            assertEquals("HushGram chat Sam 2026-01-02 0304.txt", row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
             assertEquals("text/plain", row.getAsString(MediaStore.MediaColumns.MIME_TYPE));
-            assertEquals("Download/Instagram", row.getAsString(MediaStore.MediaColumns.RELATIVE_PATH));
+            assertEquals("Download/HushGram", row.getAsString(MediaStore.MediaColumns.RELATIVE_PATH));
             assertEquals("the file is released when it is whole", 0, (int) row.getAsInteger(MediaStore.MediaColumns.IS_PENDING));
             assertEquals(text, new String(written.toByteArray(), StandardCharsets.UTF_8));
         } else {
             assertTrue(ChatExport.appFolderOnly());
             File file = new File(new File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS),
-                    ChatExport.FOLDER), "Instagram chat Sam 2026-01-02 0304.txt");
+                    ChatExport.FOLDER), "HushGram chat Sam 2026-01-02 0304.txt");
             assertTrue(file.isFile());
             assertEquals(text, new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
             assertFalse("no half-written file stays", new File(file.getPath() + ".part").exists());

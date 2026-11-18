@@ -440,14 +440,14 @@ public class SaveProgressTest {
      */
     @Test
     public void aSaveWithNoNotificationSaysWhereToCancelIt() throws Exception {
-        String elsewhere = "Saving... You can cancel from Downloads in Instagram settings.";
+        String elsewhere = "Saving... You can cancel from Downloads in HushGram settings.";
         assertEquals("Saving...", startMessage());
 
         Shadows.shadowOf(notifications()).setNotificationsEnabled(false);
         assertEquals(elsewhere, startMessage());
 
         Shadows.shadowOf(notifications()).setNotificationsEnabled(true);
-        notifications().createNotificationChannel(new NotificationChannel(SaveControl.CHANNEL, "Instagram saves",
+        notifications().createNotificationChannel(new NotificationChannel(SaveControl.CHANNEL, "HushGram saves",
                 NotificationManager.IMPORTANCE_NONE));
         assertEquals(elsewhere, startMessage());
     }

@@ -323,7 +323,7 @@ public class SaveTreeTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Movies/Instagram", first.savedLocation());
         assertEquals("Movies/Instagram", gallery.rows.get(1L).getAsString(MediaStore.MediaColumns.RELATIVE_PATH));
-        assertEquals(L10n.f("Instagram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+        assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
                 L10n.isolate("Download/.Insta")), ShadowToast.getTextOfLatestToast());
         assertEquals(1, ShadowToast.shownToastCount());
 
