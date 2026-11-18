@@ -1,10 +1,5 @@
 [
   {
-    "name" : "Add blurred background when reposting in Stories: Reels, Post and Stories mentioned",
-    "desc" : "",
-    "code" : "110215"
-  },
-  {
     "name" : "Button with a black layout that appears when clicking on something in Stories",
     "desc" : "",
     "code" : "73245"
@@ -23,6 +18,16 @@
     "name" : "New Instagram Plus fonts for Stories",
     "desc" : "Make sure to enable the option to access Instagram Plus features.",
     "code" : "125004"
+  },
+  {
+    "name" : "Show Instagram Plus upsells",
+    "desc" : "Disable to hide Instagram Plus upgrade prompts and introductory tips",
+    "code" : "106589::6,106589::10,107371::17,107371::20,107371::28,107371::34,107913::7,107913::13,107913::20,107913::23,107913::32,107913::33,107913::34,107913::35,107913::36,107913::37,107913::38,107913::43,107913::46,107913::49,111534::8,112822::0,112940::0,112940::1,112940::2,112940::3,112940::7,112940::12,117726::1,117726::2,117741::1,117741::3,118373::1,118373::2,119008::1,119699::1,119699::2,119699::4,119701::2,122692::1,122692::2,122692::3,124728::2,124728::5,124728::7,124728::8,124728::15,124728::16,124728::19,125004::0,125004::2,125481::0,125481::1,127635::2,127659::0,128414::15,128414::16,136688::11,136688::18,144562::0"
+  },
+  {
+    "name" : "Selected Instagram Plus features and entry points",
+    "desc" : "Disable selected Instagram Plus entry points, free previews, free Super Likes and chat font rendering. This does not disable all Plus features",
+    "code" : "106589::4,106589::12,107371::24,107371::37,107913::12,107913::22,107913::25,107913::26,107913::27,107913::28,107913::29,107913::30,107913::31,107913::45,125481::2,136813::0"
   },
   {
     "name" : "New style for the timestamp on the posted Stories",
@@ -119,83 +124,6 @@
     "name" : "Send quick emoji reactions by long-pressing the Story Like button",
     "desc" : "",
     "code" : "127260"
-  },
-  {
-    "name" : "Add Meta AI in reels overflow menu",
-    "desc" : "",
-    "code" : "109730"
-  },
-  {
-    "name" : "Add Meta AI reels description pills",
-    "desc" : "",
-    "code" : "80654"
-  },
-  {
-    "name" : "Meta AI suggestions in search",
-    "desc" : "Disable to show recent profile searches instead.",
-    "code" : "111509::3"
-  },
-  {
-    "name" : "Collapsible recent searches",
-    "desc" : "Disable to stop the recent searches list from collapsing.",
-    "code" : "111509::9"
-  },
-  {
-    "name" : "Horizontal scroll for recent searches",
-    "desc" : "Disable to show recent searches in a vertical list instead.",
-    "code" : "111509::21"
-  },
-  {
-    "name" : "Search bar hint carousel",
-    "desc" : "",
-    "code" : "111509::25"
-  },
-  {
-    "name" : "Search bar hint carousel (dynamic)",
-    "desc" : "",
-    "code" : "111509::26"
-  },
-  {
-    "name" : "Suggested users in search null state",
-    "desc" : "Disable to hide suggested accounts from the search screen.",
-    "code" : "130063::0,130063::4,130063::3,130063::2"
-  },
-  {
-    "name" : "Max recent searches shown (Android)",
-    "desc" : "Number of recent profiles kept in search history. Classic value was 25.",
-    "code" : "111509::17",
-    "type" : "long"
-  },
-  {
-    "name" : "Max recent searches shown",
-    "desc" : "Number of recent profiles kept in search history. Classic value was 25.",
-    "code" : "111509::1",
-    "type" : "long"
-  },
-  {
-    "name" : "Ultra HDR always on",
-    "desc" : "Disable to prevent rendering Ultra HDR photos at full brightness.",
-    "code" : "109125"
-  },
-  {
-    "name" : "SDR super white on HDR content",
-    "desc" : "Disable to remove the brightness boost on Reels and videos on HDR-capable screens.",
-    "code" : "68885"
-  },
-  {
-    "name" : "Per-session auto-scroll",
-    "desc" : "Disable to keep auto-scroll in the state you left it, instead of resetting to off every time Instagram is closed.",
-    "code" : "83371::10"
-  },
-  {
-    "name" : "Show Instagram Plus upsells",
-    "desc" : "Disable to hide Instagram Plus upgrade prompts and introductory tips",
-    "code" : "106589::6,106589::10,107371::17,107371::20,107371::28,107371::34,107913::7,107913::13,107913::20,107913::23,107913::32,107913::33,107913::34,107913::35,107913::36,107913::37,107913::38,107913::43,107913::46,107913::49,111534::8,112822::0,112940::0,112940::1,112940::2,112940::3,112940::7,112940::12,117726::1,117726::2,117741::1,117741::3,118373::1,118373::2,119008::1,119699::1,119699::2,119699::4,119701::2,122692::1,122692::2,122692::3,124728::2,124728::5,124728::7,124728::8,124728::15,124728::16,124728::19,125004::0,125004::2,125481::0,125481::1,127635::2,127659::0,128414::15,128414::16,136688::11,136688::18,144562::0"
-  },
-  {
-    "name" : "Selected Instagram Plus features and entry points",
-    "desc" : "Disable selected Instagram Plus entry points, free previews, free Super Likes and chat font rendering. This does not disable all Plus features",
-    "code" : "106589::4,106589::12,107371::24,107371::37,107913::12,107913::22,107913::25,107913::26,107913::27,107913::28,107913::29,107913::30,107913::31,107913::45,125481::2,136813::0"
   },
   {
     "name" : "Show Meta AI entry points and prompts",
@@ -295,6 +223,68 @@
     "code" : "126024::2,126024::3,126024::4,126024::5,126024::6,126024::7,126024::8,126024::9"
   },
   {
+    "name" : "Add Meta AI in reels overflow menu",
+    "desc" : "",
+    "code" : "109730"
+  },
+  {
+    "name" : "Add Meta AI reels description pills",
+    "desc" : "",
+    "code" : "80654"
+  },
+  {
+    "name" : "Meta AI suggestions in search",
+    "desc" : "Disable to show recent profile searches instead.",
+    "code" : "111509::3"
+  },
+  {
+    "name" : "Collapsible recent searches",
+    "desc" : "Disable to stop the recent searches list from collapsing.",
+    "code" : "111509::9"
+  },
+  {
+    "name" : "Horizontal scroll for recent searches",
+    "desc" : "Disable to show recent searches in a vertical list instead.",
+    "code" : "111509::21"
+  },
+  {
+    "name" : "Search bar hint carousel",
+    "desc" : "",
+    "code" : "111509::25"
+  },
+  {
+    "name" : "Search bar hint carousel (dynamic)",
+    "desc" : "",
+    "code" : "111509::26"
+  },
+  {
+    "name" : "Suggested users in search null state",
+    "desc" : "Disable to hide suggested accounts from the search screen.",
+    "code" : "130063::0,130063::4,130063::3,130063::2"
+  },
+  {
+    "name" : "Max recent searches shown (Android)",
+    "desc" : "Number of recent profiles kept in search history. Classic value was 25.",
+    "code" : "111509::17",
+    "type" : "long"
+  },
+  {
+    "name" : "Max recent searches shown",
+    "desc" : "Number of recent profiles kept in search history. Classic value was 25.",
+    "code" : "111509::1",
+    "type" : "long"
+  },
+  {
+    "name" : "Ultra HDR always on",
+    "desc" : "Disable to prevent rendering Ultra HDR photos at full brightness.",
+    "code" : "109125"
+  },
+  {
+    "name" : "SDR super white on HDR content",
+    "desc" : "Disable to remove the brightness boost on Reels and videos on HDR-capable screens.",
+    "code" : "68885"
+  },
+  {
     "name" : "Maps notes",
     "desc" : "Disable to remove the notes maps feature (Also remove the friends maps).",
     "code" : "65057::0"
@@ -318,6 +308,11 @@
     "name" : "Threads profile button",
     "desc" : "Disable to remove the threads button in profiles.",
     "code" : "58467::20"
+  },
+  {
+    "name" : "Per-session auto-scroll",
+    "desc" : "Disable to keep auto-scroll in the state you left it, instead of resetting to off every time Instagram is closed.",
+    "code" : "83371::10"
   },
   {
     "name" : "High quality uploads",
