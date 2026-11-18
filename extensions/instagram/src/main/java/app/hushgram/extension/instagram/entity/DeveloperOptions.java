@@ -72,8 +72,8 @@ public final class DeveloperOptions {
     /** Finds a Quick Experiment parameter name by the numeric IDs shown in MetaConfig. */
     public static String parameterName(int config, int index, String fallback) {
         if (config < 0 || index < 0) return fallback;
-        // Instagram sometimes supplies generated labels such as "_22". Treat those as missing,
-        // so the exact-ID JSON mapping gets a chance to provide the real parameter name.
+        // Instagram sometimes supplies generated labels such as "_22" or a numeric ID. Treat
+        // those as missing so the exact-ID JSON mapping gets a chance to provide the real name.
         DeveloperFlagNames.loadSaved();
         String name = DeveloperFlagNames.parameterName(config, index);
         if (usableLabel(name)) return name;
@@ -100,7 +100,7 @@ public final class DeveloperOptions {
     }
 
     private static boolean usableLabel(String name) {
-        return name != null && !name.trim().isEmpty() && !name.trim().matches("_[0-9]+");
+        return name != null && !name.trim().isEmpty() && !name.trim().matches("_?[0-9]+");
     }
 
     /** Rex IG Lite's curated 453 recommendations are labels only; exact numeric ID matches are used. */

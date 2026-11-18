@@ -19,11 +19,14 @@ import app.morphe.util.getFreeRegisterProvider
 import app.morphe.util.registersUsed
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val DEVELOPER_OPTIONS_BRIDGE = "$EXTENSION_PACKAGE/misc/DeveloperOptions;"
 private const val QE_FRAGMENT_DESCRIPTOR = "Lcom/instagram/debug/quickexperiment/QuickExperimentCategoriesFragment;"
+private const val QE_FLAG_LABEL_ENTRY = "LX/08Rv;"
 
 /**
  * Opens Instagram's own developer options by long-pressing the Home tab.
@@ -47,6 +50,68 @@ val openDeveloperOptionsPatch = bytecodePatch(
         runCatching {
             val listener = HomeIconOnClickListenerFingerprint.matchAllOrNull()?.firstOrNull()?.method
                 ?: throw PatchException("Open developer options: Home long-click listener was not found")
+
+            val labelEntryClass = classDefByOrNull(QE_FLAG_LABEL_ENTRY)
+                ?: throw PatchException("Open developer options: Quick Experiment label entry was not found")
+            val labelFields = mapOf(
+                "A04" to "Ljava/lang/String;",
+                "A06" to "Ljava/lang/String;",
+                "A08" to "I",
+                "A09" to "I",
+            )
+            for ((name, type) in labelFields) {
+                if (labelEntryClass.fields.none {
+                        it.name == name && it.type == type && !AccessFlags.STATIC.isSet(it.accessFlags)
+                    }
+                ) {
+                    throw PatchException("Open developer options: $QE_FLAG_LABEL_ENTRY->$name:$type was not found")
+                }
+            }
+
+            val mutableLabelEntry = mutableClassDefBy(QE_FLAG_LABEL_ENTRY)
+            fun hookLabelGetter(name: String, bridgeMethod: String, requiredFields: Set<String>) {
+                val original = labelEntryClass.methods.singleOrNull {
+                    it.name == name && it.returnType == "Ljava/lang/String;" && it.parameterTypes.isEmpty() &&
+                        !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+                } ?: throw PatchException("Open developer options: $QE_FLAG_LABEL_ENTRY->$name()String was not found")
+                val code = original.implementation!!.instructions
+                val readFields = code.mapNotNull { instruction ->
+                    (instruction as? ReferenceInstruction)?.reference as? FieldReference
+                }.filter { it.definingClass == QE_FLAG_LABEL_ENTRY }.map { it.name }.toSet()
+                if (!readFields.containsAll(requiredFields)) {
+                    throw PatchException("Open developer options: $QE_FLAG_LABEL_ENTRY->$name() no longer reads its expected label fields")
+                }
+                val returnSites = code.withIndex()
+                    .filter { it.value.opcode == Opcode.RETURN_OBJECT }
+                    .map { it.index }
+                    .asReversed()
+                if (returnSites.isEmpty()) {
+                    throw PatchException("Open developer options: $QE_FLAG_LABEL_ENTRY->$name() has no String return")
+                }
+                val method = mutableLabelEntry.methods.single {
+                    it.name == name && it.returnType == "Ljava/lang/String;" && it.parameterTypes.isEmpty()
+                }
+                for (at in returnSites) {
+                    val returnRegister = (method.implementation!!.instructions[at] as? OneRegisterInstruction)?.registerA
+                        ?: throw PatchException("Open developer options: $QE_FLAG_LABEL_ENTRY->$name() has an invalid return")
+                    val thisRegister = method.implementation!!.registerCount - 1
+                    val registers = method.getFreeRegisterProvider(at, 2, thisRegister, returnRegister)
+                    val entryRegister = registers.getFreeRegister4Bit()
+                    val labelRegister = registers.getFreeRegister4Bit()
+                    method.addInstructionsWithLabels(
+                        at,
+                        """
+                            move-object/from16 v$entryRegister, p0
+                            move-object/from16 v$labelRegister, v$returnRegister
+                            invoke-static {v$entryRegister, v$labelRegister}, $DEVELOPER_OPTIONS_BRIDGE->$bridgeMethod(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;
+                            move-result-object v$labelRegister
+                            move-object/from16 v$returnRegister, v$labelRegister
+                        """.trimIndent(),
+                    )
+                }
+            }
+            hookLabelGetter("A01", "parameterLabel", setOf("A04", "A08"))
+            hookLabelGetter("A02", "configLabel", setOf("A06", "A09"))
 
             val openerClass = DeveloperOptionCallWithCallableFingerprint.matchAllOrNull()?.firstOrNull()?.classDef
                 ?: throw PatchException("Open developer options: DeveloperOptionCallWithCallable class was not found")

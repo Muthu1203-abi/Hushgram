@@ -5,9 +5,13 @@
 package app.hushgram.extension.instagram.misc;
 
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 
 /** Read-only bridge used to label MetaConfig rows from Instagram's active Quick Experiments and control developer options access. */
 public final class DeveloperOptions {
+    private static final String CONFIG_ID_FIELD = "A09";
+    private static final String PARAMETER_ID_FIELD = "A08";
+
     private DeveloperOptions() {
     }
 
@@ -34,13 +38,26 @@ public final class DeveloperOptions {
         return app.hushgram.extension.instagram.entity.DeveloperOptions.configName(config, fallback);
     }
 
-    /** Filled by the patch with a read of the schema entry's config number. */
     static int getFlagConfigNative(Object entry) {
-        return -1;
+        return readId(entry, CONFIG_ID_FIELD);
     }
 
-    /** Filled by the patch with a read of the schema entry's parameter index. */
     static int getFlagIndexNative(Object entry) {
-        return -1;
+        return readId(entry, PARAMETER_ID_FIELD);
+    }
+
+    private static int readId(Object entry, String fieldName) {
+        if (entry == null) return -1;
+        try {
+            java.lang.reflect.Field field = entry.getClass().getDeclaredField(fieldName);
+            if (field.getType() != int.class) {
+                throw new IllegalStateException(fieldName + " is not an int field");
+            }
+            field.setAccessible(true);
+            return field.getInt(entry);
+        } catch (Exception e) {
+            Logger.printException(() -> "Could not read Instagram developer-option ID " + fieldName, e);
+            return -1;
+        }
     }
 }
