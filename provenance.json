@@ -535,21 +535,10 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/**"
       ],
       "origin": "ported",
-      "upstream": "https://github.com/crimera/piko",
-      "commit": "a0ed9a5ae782fe66e02294e5a49d235e2f139b24",
-      "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
-      "changes": "Adapted Piko's Unlock developer options long-press hook for HushGram. The HushGram patch omits Piko's flag override, Recommended Flags and runtime preference wiring; it only opens Instagram's own developer screen. The patch is opt-in and targets HushGram's declared Instagram compatibility."
-    },
-    {
-      "paths": [
-        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/FlagNameList.kt",
-        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/DeveloperOptions.java"
-      ],
-      "origin": "ported",
-      "upstream": "https://github.com/SysAdminDoc/HushGram",
-      "commit": "1ad2410af6508a1a1b8d3ef175ccc157367e2b62",
-      "license": "GPL-3.0-only",
-      "changes": "Adapted the earlier HushGram MetaConfig row-label hook. HushGram now labels rows from Instagram's active Quick Experiment names through its existing Piko-derived reader; it does not import or change flag values. Unknown names retain Instagram's original numeric labels."
+      "upstream": "https://github.com/xboyrex/rex-ig-lite",
+      "commit": "88b439e45689a4484ca42aebea2336cf23770154",
+      "license": "GPL-3.0-only with Rex's section 7(b) attribution notice",
+      "changes": "Adapted Rex IG Lite's Unlock developer options long-press hook for HushGram. Wires runtime toggles with DeveloperOptions and FragmentNavigator direct MetaConfig navigation. Starts off."
     }
   ]
 }

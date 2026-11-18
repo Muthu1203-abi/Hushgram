@@ -36,8 +36,9 @@ private const val STRING = "Ljava/lang/String;"
 
 @Suppress("unused")
 val hideHiddenChatsFromSearchPatch = bytecodePatch(
-    name = PATCH,
-    description = "Leaves accounts whose direct chats are hidden out of people search and the search screen's Suggested for you list.",
+    name = "Hide hidden chats from search",
+    description = "Leaves accounts whose direct chats are hidden out of people search and the search screen's Suggested for you list. " +
+        "Turn it on in HushGram settings > Privacy.",
     default = true,
 ) {
     category("Messages")

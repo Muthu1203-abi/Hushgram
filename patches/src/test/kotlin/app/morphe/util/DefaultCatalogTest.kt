@@ -68,7 +68,6 @@ import app.morphe.patches.instagram.misc.notifications.groupNotificationsPatch
 import app.morphe.patches.instagram.media.quality.dataSaverPatch
 import app.morphe.patches.instagram.media.quality.defaultPlaybackQualityPatch
 import app.morphe.patches.instagram.media.quality.mediaQualityIndicatorPatch
-import app.morphe.patches.instagram.misc.developeroptions.developerFlagOverridesPatch
 import app.morphe.patches.instagram.misc.developeroptions.openDeveloperOptionsPatch
 import app.morphe.patches.instagram.media.resume.resumeLongVideosPatch
 import app.morphe.patches.instagram.media.taptoplay.tapToPlayPatch
@@ -153,7 +152,7 @@ import app.morphe.patches.instagram.stories.swipereply.stopSwipeReplyPatch
 import app.morphe.patches.instagram.stories.replybox.hideStoryReplyBoxPatch
 import app.morphe.patches.instagram.stories.quality.uploadStoriesAtFullQualityPatch
 import app.morphe.patches.instagram.stories.tray.hideSuggestedStoriesPatch
-import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
+import app.morphe.patches.instagram.layout.liquidglass.liquidGlassNavBarPatch
 import app.morphe.patches.instagram.reels.fullscreen.fullScreenBarsPatch
 import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
 import app.morphe.patches.instagram.misc.refreshrate.refreshRatePatch
@@ -201,7 +200,7 @@ class DefaultCatalogTest {
         findReelOriginPatch,
         fontPatch,
         fullResolutionPhotosPatch,
-        glassTabBarPatch,
+        liquidGlassNavBarPatch,
         groupNotificationsPatch,
         hideActiveStatusPatch,
         hideCommentsPatch,
@@ -335,7 +334,6 @@ class DefaultCatalogTest {
     )
 
     private val optIn = listOf<Patch>(
-        developerFlagOverridesPatch,
         openDeveloperOptionsPatch,
         pureBlackPatch,
         viewDmMediaAnonymouslyPatch,
@@ -352,14 +350,14 @@ class DefaultCatalogTest {
     }
 
     @Test fun patchTimeChangesAndUnreadyFeaturesStayOptIn() {
-        assertEquals(4, optIn.size)
+        assertEquals(3, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.default) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 157, all.size)
+        assertEquals("every named patch needs one reviewed decision", 156, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

@@ -18,7 +18,6 @@ import org.junit.Test
  */
 class DefaultSelectionPolicyTest {
     private val keptOut = mapOf(
-        "Import/export developer flag values" to "Applies imported hidden Instagram settings by ID; wrong values can change app behavior.",
         "Open developer options" to "Exposes Instagram's developer controls, which can change behavior for this account.",
         "Pure black dark mode" to "Rewrites Instagram's colors when you patch, with no switch to turn it off.",
         "View DM photos and videos anonymously" to "A test feature until the sender's side is checked " +

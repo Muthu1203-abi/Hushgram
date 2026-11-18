@@ -9,7 +9,6 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -43,11 +42,10 @@ class FullScreenBarsHookTest {
         }
     }
 
-    /** Full screen and Glass tab bar share the one routing, so the listener asks once per height whichever is in (#144). */
+    /** Full screen depends on bar heights patch (#144). */
     @Test
-    fun bothPatchesShareTheRouting() {
+    fun barHeightsRouting() {
         assertTrue(barHeightsPatch in fullScreenBarsPatch.dependencies)
-        assertTrue(barHeightsPatch in glassTabBarPatch.dependencies)
     }
 
     /** In each declared build both stores ask first, whether the classes are copied or read as the patcher reads an APK. */

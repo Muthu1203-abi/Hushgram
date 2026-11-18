@@ -1410,46 +1410,6 @@
       "options": []
     },
     {
-      "name": "Glass tab bar",
-      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. Starts off. Turn it on in Instagram settings > Tab bar, then restart Instagram.",
-      "category": "Interface",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "Instagram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "454.0.0.54.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "454.0.0.54.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386014758,
-                "ARMEABI_V7A": 386014757,
-                "X86": 386014759,
-                "X86_64": 386014760
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Group Instagram's notifications",
       "description": "Puts Instagram's notifications in one group, or in a group for each type, so they don't fill your notification shade. Tapping one still opens it. You can also mute the types you pick, like promo pushes. Starts off. Turn it on in Instagram settings > Notifications.",
       "category": "Interface",
@@ -1971,7 +1931,7 @@
     },
     {
       "name": "Hide hidden chats from search",
-      "description": "Leaves accounts whose direct chats are hidden out of people search and the search screen's Suggested for you list.",
+      "description": "Leaves accounts whose direct chats are hidden out of people search and the search screen's Suggested for you list. Turn it on in HushGram settings > Privacy.",
       "category": "Messages",
       "use": true,
       "dependencies": [
@@ -3011,45 +2971,6 @@
       "options": []
     },
     {
-      "name": "Import/export developer flag values",
-      "description": "Apply imported bool and long Developer Options values by exact MobileConfig ID. Starts off.",
-      "category": "Settings",
-      "use": false,
-      "dependencies": [
-        "BytecodePatch"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "454.0.0.54.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "454.0.0.54.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386014758,
-                "ARMEABI_V7A": 386014757,
-                "X86": 386014759,
-                "X86_64": 386014760
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Instagram launch screen",
       "description": "Shows the app's custom pink and plum mark instead of Instagram's logo on the startup screen, on Android 13 and newer. Starts off. Turn it on in Instagram settings > Layout.",
       "category": "Interface",
@@ -3492,6 +3413,83 @@
       "options": []
     },
     {
+      "name": "Liquid Glass navigation bar",
+      "description": "Turns the bottom tab bar into a floating iOS 26 style Liquid Glass pill with live background blur and edge refraction. Refraction needs Android 13+, blur needs Android 12+, older versions get a tinted pill. Configure in HushGram settings or profile menu.",
+      "category": null,
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "Instagram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "key": "blurRadius",
+          "title": "Blur radius",
+          "description": "Blur applied to content behind the bar, in dp.",
+          "required": true,
+          "type": "kotlin.Int",
+          "default": 4,
+          "values": {
+            "Clear": 2,
+            "Default": 4,
+            "Frosted": 12
+          }
+        },
+        {
+          "key": "refractionStrength",
+          "title": "Refraction strength",
+          "description": "How strongly the glass edge bends the content behind it, from 0 to 100.",
+          "required": true,
+          "type": "kotlin.Int",
+          "default": 60,
+          "values": {
+            "Off": 0,
+            "Subtle": 30,
+            "Default": 60,
+            "Strong": 100
+          }
+        },
+        {
+          "key": "extendContentBehindBar",
+          "title": "Extend content behind bar",
+          "description": "Lets feeds scroll underneath the bar so there is something to see through the glass. Turn off if the last item of a list ends up hidden.",
+          "required": true,
+          "type": "kotlin.Boolean",
+          "default": true,
+          "values": null
+        }
+      ]
+    },
+    {
       "name": "Lock your messages",
       "description": "Covers your inbox and chats, all of Instagram, or just the single chats you pick under Locked chats, until your fingerprint, face or screen lock says it's you. Message notifications only say that a message came. Chats you pick under Hidden chats leave your inbox and their notifications don't post. Starts off. Turn it on in Instagram settings > Messages.",
       "category": "Messages",
@@ -3773,7 +3771,7 @@
     },
     {
       "name": "Open developer options",
-      "description": "Long-press the Home tab to open Instagram's developer options. Changes there can affect Instagram's behavior for this account. Known active experiment names replace matching numeric labels. Starts off.",
+      "description": "Long-press the Home tab to open Instagram's developer options. Changes there can affect Instagram's behavior for this account. Turn on in HushGram settings. Starts on.",
       "category": "Settings",
       "use": false,
       "dependencies": [
