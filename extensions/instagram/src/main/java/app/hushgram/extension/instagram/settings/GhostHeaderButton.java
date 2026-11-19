@@ -186,7 +186,9 @@ public final class GhostHeaderButton {
         ImageView button = new ImageView(context);
         // Picked at each draw, so a pick changed in the settings shows without a restart (#251).
         BooleanSupplier on = () -> GhostMode.on(GhostMode.picked(switches));
-        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, FeedDownloadButton.iconColor(context), on));
+        GhostIndicatorColor tint = Settings.GHOST_INDICATOR_COLOR.get();
+        int color = tint == GhostIndicatorColor.INSTAGRAM ? FeedDownloadButton.iconColor(context) : tint.color;
+        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, color, on));
         button.setScaleType(ImageView.ScaleType.CENTER);
         // A neighbor's own padding, Messages' where it's there, sizes the touch target the same as theirs.
         HomeHeader.padLike(button, neighbor);

@@ -99,6 +99,7 @@ final class TabBarCategory {
                             L10n.t("Adds a ghost button at the top of Home, next to Messages when it's there and at the end "
                                     + "of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram "
                                     + "to see the change.")));
+                    glass.addPreference(HushgramPreferenceFragment.ghostIndicatorColorRow(context));
                 }
                 glass.addPreference(toggle(context, Settings.SETTINGS_BUTTON_ON_HOME, L10n.t("Settings button on Home's header"),
                         L10n.t("Adds a gear at the top of Home that opens HushGram settings. Restart Instagram "

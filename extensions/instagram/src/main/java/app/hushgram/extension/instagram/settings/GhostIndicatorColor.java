@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 /** Colors available for the icon tint shown while Ghost mode is on. */
 public enum GhostIndicatorColor {
+    INSTAGRAM(0),
     YELLOW(0xFFFFD51A),
     BLUE(0xFF4D9FFF),
     PINK(0xFFFF66B3),

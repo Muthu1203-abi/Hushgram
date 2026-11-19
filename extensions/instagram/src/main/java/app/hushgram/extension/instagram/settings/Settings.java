@@ -3589,6 +3589,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting GHOST_BUTTON_ON_HOME =
             new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
 
+    /** Tint of the Home header Ghost mode button. Instagram keeps its theme-aware tint by default. */
+    public static final EnumSetting<GhostIndicatorColor> GHOST_INDICATOR_COLOR =
+            new EnumSetting<>("hushgram_ghost_indicator_color", GhostIndicatorColor.INSTAGRAM, true);
+
     /**
      * Count on the heart (#541): the heart on Home's header shows a number in place of its red dot
      * ({@link app.hushgram.extension.instagram.reels.HeartCount}). Given as the header draws, and
