@@ -77,6 +77,7 @@ public class GhostHeaderButtonTest {
         HomeHeader.standInEndRowForTests(null);
         PatchFamily.inBuildForTests = null;
         Settings.GHOST_BUTTON_ON_HOME.resetToDefault();
+        Settings.GHOST_INDICATOR_COLOR.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.HIDE_TYPING.resetToDefault();
         Settings.GHOST_MODE_PICKS.resetToDefault();
@@ -146,6 +147,27 @@ public class GhostHeaderButtonTest {
         GhostHeaderButton.Ghost icon = (GhostHeaderButton.Ghost) ghostIn(darkRow).getDrawable();
         assertEquals(FeedDownloadButton.iconColor(dark), icon.color());
         assertTrue("a light ghost on the dark theme", Color.luminance(icon.color()) > 0.5f);
+    }
+
+    /**
+     * The picked tint shows only while Ghost mode is on, so the button never looks tinted while
+     * there's nothing for it to say. Off, it goes back to Instagram's own icon color.
+     */
+    @Test public void thePickedTintShowsOnlyWhileGhostModeIsOn() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        Settings.GHOST_INDICATOR_COLOR.save(GhostIndicatorColor.YELLOW);
+        GhostHeaderButton.place(header);
+        ImageView button = ghost();
+        GhostHeaderButton.Ghost icon = (GhostHeaderButton.Ghost) button.getDrawable();
+        assertEquals("off, so Instagram's own color", FeedDownloadButton.iconColor(context), icon.color());
+
+        button.performClick();
+        assertTrue(icon.isOn());
+        assertEquals("on, so the picked tint", GhostIndicatorColor.YELLOW.color, icon.color());
+
+        button.performClick();
+        assertFalse(icon.isOn());
+        assertEquals("off again, so Instagram's own color", FeedDownloadButton.iconColor(context), icon.color());
     }
 
     @Test public void aTapTurnsEveryGhostSwitchOnAndOffAndTheIconFollows() {

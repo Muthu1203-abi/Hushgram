@@ -687,6 +687,8 @@ public final class MessagesLock {
 
     /** Instagram left the screen: locked now, or once it's been away as long as Lock again says. */
     static void left() {
+        // The hidden chats go with the screen, whether or not the lock waits to come back (#661).
+        HiddenChats.conceal();
         long delay = open ? lockDelay() : 0;
         if (delay > 0) {
             leftAt = SystemClock.elapsedRealtime();
@@ -696,7 +698,6 @@ public final class MessagesLock {
         }
         leftAt = 0;
         relock(askedAt == 0);
-        HiddenChats.conceal();
     }
 
     /** Away longer than Lock again allows: locked, even before Instagram comes back. */
@@ -705,7 +706,6 @@ public final class MessagesLock {
         if (!open || since == 0 || SystemClock.elapsedRealtime() - since < lockDelay()) return;
         leftAt = 0;
         relock(askedAt == 0);
-        HiddenChats.conceal();
     }
 
     /** The next look at the messages asks again, and what the shade shows of them goes now. */
@@ -783,6 +783,8 @@ public final class MessagesLock {
         try {
             View decor = activity.getWindow().getDecorView();
             ViewGroup window = (ViewGroup) decor;
+            // Switching to another of Instagram's tabs hides the hidden chats again (#661).
+            HiddenChats.followTab(activity);
             if (!switchedOn() && !ChatLocks.any() && !CollectionLocks.any() && !anyCover(window)) {
                 // Nothing to cover and nothing to take down. Before every frame, all that's left
                 // is learning the open chat's name for Lock a chat, and that walks the whole window,
@@ -1612,6 +1614,7 @@ public final class MessagesLock {
         PinLock.resetForTests();
         idsForTests = null;
         idleLookedAt = Long.MIN_VALUE / 2;
+        HiddenChats.forgetTabForTests();
         ChatLocks.resetForTests();
         CollectionLocks.resetForTests();
     }

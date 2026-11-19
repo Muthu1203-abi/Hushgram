@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Fixes
+
+* `Double-tap Messages for hidden chats`: your hidden chats no longer stay showing when you tap another tab, slide to one, or leave Instagram and come back. They're hidden again as soon as you leave the inbox.
+
 ## 0.0.21 (2026-11-18)
 
 ### Features

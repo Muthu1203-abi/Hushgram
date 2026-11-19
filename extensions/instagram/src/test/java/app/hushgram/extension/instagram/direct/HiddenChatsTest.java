@@ -78,6 +78,7 @@ public class HiddenChatsTest {
         MessagesLock.resetForTests();
         Settings.HIDDEN_CHATS.resetToDefault();
         Settings.LOCK_MESSAGES.resetToDefault();
+        Settings.LOCK_AGAIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -732,6 +733,58 @@ public class HiddenChatsTest {
         MessagesLockForTests.leave();
 
         assertFalse("leaving Instagram hides them again", HiddenChats.revealed());
+        assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    }
+
+    @Test
+    public void switchingToAnotherTabHidesTheHiddenChatsAgain() {
+        HiddenChats.add(ALICE, "Alice");
+        int[] selected = {11};
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        HiddenChats.tabs = ignored -> selected[0];
+
+        HiddenChats.reveal();
+        HiddenChats.followTab(activity);
+        assertTrue("the tab they were shown on", HiddenChats.revealed());
+
+        selected[0] = 22;
+        HiddenChats.followTab(activity);
+
+        assertFalse("another tab hides them again", HiddenChats.revealed());
+        assertEquals("every chat but the hidden ones", Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    }
+
+    @Test
+    public void theSameTabOrABarThatSaysNothingLeavesThemShowing() {
+        HiddenChats.add(ALICE, "Alice");
+        int[] selected = {11};
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        HiddenChats.tabs = ignored -> selected[0];
+
+        HiddenChats.reveal();
+        HiddenChats.followTab(activity);
+        HiddenChats.followTab(activity);
+        assertTrue("the same tab again", HiddenChats.revealed());
+
+        selected[0] = 0;
+        HiddenChats.followTab(activity);
+        assertTrue("the bar isn't there to say", HiddenChats.revealed());
+
+        selected[0] = 11;
+        HiddenChats.followTab(activity);
+        assertTrue("back on the tab they were shown on", HiddenChats.revealed());
+    }
+
+    @Test
+    public void leavingInstagramHidesThemAgainEvenWhileTheLockWaits() {
+        HiddenChats.add(ALICE, "Alice");
+        MessagesLockForTests.open();
+        Settings.LOCK_AGAIN.save(LockDelay.ONE_MINUTE);
+        HiddenChats.reveal();
+
+        MessagesLockForTests.leave();
+
+        assertFalse("the lock may wait, the hidden chats don't", HiddenChats.revealed());
         assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
     }
 

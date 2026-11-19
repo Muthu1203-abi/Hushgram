@@ -47,7 +47,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * A ghost button on Home's header, beside the Messages button, that turns Ghost mode on or off the
  * way the long press on New message does: every ghost switch in the build gets the same value and a
  * toast says which way it went. The icon is drawn, not taken from Instagram, and shows the state:
- * an outline while Ghost mode is off, a solid ghost while it's on.
+ * an outline in Instagram's icon color while Ghost mode is off, and the same outline in the tint
+ * picked for it while it's on. The shape never changes, so only the button's color says which way
+ * it is.
  *
  * <p>The patch calls {@link #drew} as the header starts drawing from its state. The button is put in
  * after that call returns, in the row the Messages button sits in, since the header clears its rows
@@ -96,6 +98,21 @@ public final class GhostHeaderButton {
         try {
             View header = lastHeader.get();
             if (header != null && header.isAttachedToWindow()) header.post(() -> placeAll(header));
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "ghost button", failure);
+        }
+    }
+
+    /**
+     * Repaints the last header's button at once, after Ghost mode changed somewhere that keeps no
+     * reference to it: the long press on New message, a tab long press, or the header's own menu.
+     * Those flip the switches, and without this the icon kept the color it had until Instagram next
+     * drew the header. Never throws.
+     */
+    static void refresh() {
+        try {
+            View header = lastHeader.get();
+            if (header != null && header.isAttachedToWindow()) header.post(() -> place(header));
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "ghost button", failure);
         }
@@ -187,8 +204,9 @@ public final class GhostHeaderButton {
         // Picked at each draw, so a pick changed in the settings shows without a restart (#251).
         BooleanSupplier on = () -> GhostMode.on(GhostMode.picked(switches));
         GhostIndicatorColor tint = Settings.GHOST_INDICATOR_COLOR.get();
-        int color = tint == GhostIndicatorColor.INSTAGRAM ? FeedDownloadButton.iconColor(context) : tint.color;
-        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, color, on));
+        int offColor = FeedDownloadButton.iconColor(context);
+        int onColor = tint == GhostIndicatorColor.INSTAGRAM ? offColor : tint.color;
+        button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, offColor, onColor, on));
         button.setScaleType(ImageView.ScaleType.CENTER);
         // A neighbor's own padding, Messages' where it's there, sizes the touch target the same as theirs.
         HomeHeader.padLike(button, neighbor);
@@ -250,21 +268,28 @@ public final class GhostHeaderButton {
 
     /**
      * The ghost, drawn rather than taken from Instagram's resources: an outline with two dots for
-     * eyes while Ghost mode is off, solid with the eyes cut out while it's on. The color is Instagram's
-     * own icon color for the screen's theme, so it follows Instagram's dark mode setting even when
-     * that differs from the phone's.
+     * eyes in both states, so the button's layout never changes and only its color does. Instagram's
+     * own icon color for the screen's theme is used while Ghost mode is off, and the tint picked for
+     * the button while it's on. The icon color follows Instagram's dark mode setting even when that
+     * differs from the phone's.
      */
     static final class Ghost extends Drawable {
         private final float unit;
+        private final int offColor;
+        private final int onColor;
         private final BooleanSupplier on;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path body = new Path();
         private final RectF head = new RectF();
+        /** The alpha the view asked for, kept because the color is set again on every draw. */
+        private int alpha = 255;
 
-        Ghost(float density, int color, BooleanSupplier on) {
+        Ghost(float density, int offColor, int onColor, BooleanSupplier on) {
             unit = density;
+            this.offColor = offColor;
+            this.onColor = onColor;
             this.on = on;
-            paint.setColor(color);
+            paint.setColor(offColor);
             paint.setStrokeWidth(1.8f * density);
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStrokeCap(Paint.Cap.ROUND);
@@ -274,8 +299,9 @@ public final class GhostHeaderButton {
             return on.getAsBoolean();
         }
 
+        /** The color the ghost is drawn in now: the picked tint while Ghost mode is on, Instagram's icon color while it's off. */
         int color() {
-            return paint.getColor();
+            return isOn() ? onColor : offColor;
         }
 
         @Override
@@ -299,18 +325,13 @@ public final class GhostHeaderButton {
             }
             body.close();
             float eyeY = top + half - unit;
-            if (isOn()) {
-                body.addCircle(x - 3 * unit, eyeY, 1.6f * unit, Path.Direction.CW);
-                body.addCircle(x + 3 * unit, eyeY, 1.6f * unit, Path.Direction.CW);
-                paint.setStyle(Paint.Style.FILL);
-                canvas.drawPath(body, paint);
-            } else {
-                paint.setStyle(Paint.Style.STROKE);
-                canvas.drawPath(body, paint);
-                paint.setStyle(Paint.Style.FILL);
-                canvas.drawCircle(x - 3 * unit, eyeY, 1.4f * unit, paint);
-                canvas.drawCircle(x + 3 * unit, eyeY, 1.4f * unit, paint);
-            }
+            paint.setColor(color());
+            paint.setAlpha(alpha);
+            paint.setStyle(Paint.Style.STROKE);
+            canvas.drawPath(body, paint);
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(x - 3 * unit, eyeY, 1.4f * unit, paint);
+            canvas.drawCircle(x + 3 * unit, eyeY, 1.4f * unit, paint);
         }
 
         @Override
@@ -325,6 +346,7 @@ public final class GhostHeaderButton {
 
         @Override
         public void setAlpha(int alpha) {
+            this.alpha = alpha;
             paint.setAlpha(alpha);
             invalidateSelf();
         }

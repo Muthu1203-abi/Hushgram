@@ -3589,7 +3589,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting GHOST_BUTTON_ON_HOME =
             new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
 
-    /** Tint of the Home header Ghost mode button. Instagram keeps its theme-aware tint by default. */
+    /**
+     * Tint of the Home header Ghost mode button while Ghost mode is on. Off, the button keeps
+     * Instagram's theme-aware icon color. Instagram is the default.
+     */
     public static final EnumSetting<GhostIndicatorColor> GHOST_INDICATOR_COLOR =
             new EnumSetting<>("hushgram_ghost_indicator_color", GhostIndicatorColor.INSTAGRAM, true);
 

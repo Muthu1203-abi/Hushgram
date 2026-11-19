@@ -102,6 +102,9 @@ final class GhostMode {
     static boolean flip(List<BooleanSetting> switches) {
         boolean on = !on(switches);
         for (BooleanSetting setting : switches) setting.save(on);
+        // A long press, a tab or the header menu has no reference to the header's button, so ask it
+        // to repaint now rather than waiting for Instagram to draw the header again.
+        GhostHeaderButton.refresh();
         Utils.showToastShort(message(switches, on,
                 L10n.t("Ghost mode partly changed. Check HushGram settings.")));
         return on;

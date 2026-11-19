@@ -4,6 +4,10 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import android.app.Activity;
+import android.view.View;
+import android.view.ViewGroup;
+
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -48,8 +52,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * chats hidden now, and draws them again.
  *
  * <p>Double-tap Messages shows the hidden chats in the inbox by themselves, after the phone's lock
- * or the PIN ({@link #reveal}), until the next double tap or until you leave Instagram ({@link
- * #conceal}) (#661). Search, the folder counts, the unread badge and pushes leave them out all along.
+ * or the PIN ({@link #reveal}), until the next double tap, a switch to one of Instagram's other
+ * tabs ({@link #followTab}), or until you leave Instagram ({@link #conceal}) (#661). Search, the
+ * folder counts, the unread badge and pushes leave them out all along.
  *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
@@ -72,6 +77,7 @@ public final class HiddenChats {
     static final String BADGE_FILTER = "unread badge filter";
     static final String SEARCH = "inbox search filter";
     static final String RECENTS = "recent searches filter";
+    static final String TAB = "inbox tab";
 
     /** Instagram's own names for a chat as the inbox search lists it, and for a chat whose messages matched. */
     private static final String SHARE_TARGET = "com.instagram.model.direct.DirectShareTarget";
@@ -95,6 +101,17 @@ public final class HiddenChats {
 
     static volatile Redrawer redrawer = HiddenChats::redraw;
 
+    /** Which of Instagram's tabs its bar shows selected. Tests put a fake in. */
+    interface Tabs {
+        /** The id of the selected tab, or 0 when the bar isn't there to say. */
+        int selected(Activity activity);
+    }
+
+    static volatile Tabs tabs = HiddenChats::selectedTab;
+
+    /** The tab the hidden chats were shown on, since they were shown; 0 until the bar says. */
+    private static int shownOn;
+
     /** The inbox shows the hidden chats, and only them, until {@link #conceal}. */
     private static volatile boolean revealed;
 
@@ -111,6 +128,7 @@ public final class HiddenChats {
     /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
     static void reveal() {
         revealed = true;
+        shownOn = 0;
         changedSoon();
     }
 
@@ -120,6 +138,49 @@ public final class HiddenChats {
         revealed = false;
         changedSoon();
         return true;
+    }
+
+    /**
+     * Called with the activity in front before each of its frames. The hidden chats are shown on one
+     * of Instagram's tabs, so a tap on another tab or a slide to it hides them again (#661). While
+     * Instagram's bar isn't on screen, or doesn't say which tab is selected, nothing changes.
+     */
+    static void followTab(Activity activity) {
+        try {
+            if (!revealed) {
+                shownOn = 0;
+                return;
+            }
+            int now = tabs.selected(activity);
+            if (now == 0) return;
+            if (shownOn == 0) {
+                shownOn = now;
+                return;
+            }
+            if (now != shownOn) conceal();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, TAB, t);
+        }
+    }
+
+    /** The id of the tab Instagram's bar shows selected, or 0 when it isn't there to say. */
+    private static int selectedTab(Activity activity) {
+        int id = activity.getResources().getIdentifier("tab_bar", "id", Utils.resourcePackage(activity));
+        if (id == 0) return 0;
+        View found = activity.findViewById(id);
+        if (!(found instanceof ViewGroup) || !found.isShown()) return 0;
+        ViewGroup bar = (ViewGroup) found;
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            View tab = bar.getChildAt(i);
+            if (tab.getVisibility() == View.VISIBLE && tab.isSelected()) return tab.getId();
+        }
+        return 0;
+    }
+
+    /** For tests: the tab reads again as Instagram's own bar, with nothing remembered. */
+    static void forgetTabForTests() {
+        tabs = HiddenChats::selectedTab;
+        shownOn = 0;
     }
 
     /**
