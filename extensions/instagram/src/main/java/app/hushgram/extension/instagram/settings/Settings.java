@@ -938,6 +938,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_chats", "", false, false);
 
     /**
+     * Whether a hidden chat has an unread message that hasn't been seen yet (#661). Set when a push
+     * for a hidden chat is dropped, and cleared once the hidden chats are shown. Internal: it isn't
+     * a switch, and a backup leaves it out like the hidden chats.
+     */
+    public static final BooleanSetting HIDDEN_CHATS_UNREAD =
+            new BooleanSetting("hushgram_hidden_chats_unread", FALSE, false, false);
+
+    /**
      * The chats pinned to the top of the Messages inbox on this phone
      * ({@link app.hushgram.extension.instagram.direct.PinnedChats}, #345), in the same lines as
      * {@link #HIDDEN_CHATS}. A chat on the list is the switch, nothing is kept while HushGram is
@@ -2006,6 +2014,23 @@ public class Settings extends BaseSettings {
                     return Collections.singletonList(GLASS_TAB_BAR);
                 }
             });
+
+    /**
+     * Under {@link #GLASS_TAB_BAR_SHRINK_ON_SCROLL}: how small the standard pill gets as a list scrolls
+     * down, in percent of its full size (#638). Starts at 80. Read as the bar is built, so a change asks
+     * for a restart. Off the switch, the pill never shrinks.
+     */
+    public static final IntegerSetting GLASS_TAB_BAR_SHRINK_SCALE =
+            new IntegerSetting("hushgram_glass_tab_bar_shrink_scale_percent", 80, true, new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return GLASS_TAB_BAR.savedValue() && !GLASS_TAB_BAR_LIQUID.savedValue()
+                            && GLASS_TAB_BAR_SHRINK_ON_SCROLL.savedValue();
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(GLASS_TAB_BAR_SHRINK_ON_SCROLL);
+                }
+            }).withRange(50, 100);
 
     /**
      * With {@link #GLASS_TAB_BAR_LIQUID} off: the Material look (#720). The pill is drawn the way Material 3

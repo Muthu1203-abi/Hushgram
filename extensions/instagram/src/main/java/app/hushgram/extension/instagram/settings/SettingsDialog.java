@@ -339,6 +339,7 @@ public final class SettingsDialog extends DialogFragment {
     public void onDismiss(android.content.DialogInterface dialog) {
         super.onDismiss(dialog);
         GhostHeaderButton.settingsClosed();
+        GhostTabStroke.refresh();
     }
 
     @Override

@@ -80,12 +80,17 @@ public final class NavigationSettings {
                 nativeBindings.put(view, binding);
             }
         }
+        // Ghost mode's ring follows the tab even before it's chosen, so a choice made in settings
+        // shows on it at once (#255).
+        if (binding != null) GhostTabStroke.watch(view, tab);
+        else GhostTabStroke.forget(view);
         // A native null setter is teardown. Only the factory may add an entry to a tab without one.
         return binding != null && selected(tab) ? new Press(binding, original) : original;
     }
 
     public static void bind(View view, Object tab) {
         if (view == null) return;
+        GhostTabStroke.watch(view, tab);
         View.OnLongClickListener original = null;
         Binding next;
         synchronized (nativeBindings) {
@@ -140,6 +145,8 @@ public final class NavigationSettings {
                     if (original == null) view.setLongClickable(false);
                 }
             }
+            // A tab chosen for Ghost mode gains the ring, and one no longer chosen loses it (#255).
+            GhostTabStroke.refresh();
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);
         }
@@ -180,6 +187,7 @@ public final class NavigationSettings {
         synchronized (nativeBindings) {
             nativeBindings.clear();
         }
+        GhostTabStroke.forgetForTests();
     }
 
     /**

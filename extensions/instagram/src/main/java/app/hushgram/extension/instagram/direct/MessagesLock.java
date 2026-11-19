@@ -785,6 +785,8 @@ public final class MessagesLock {
             ViewGroup window = (ViewGroup) decor;
             // Switching to another of Instagram's tabs hides the hidden chats again (#661).
             HiddenChats.followTab(activity);
+            // The red dot on the Messages button for hidden chats' unread messages.
+            HiddenChats.renderBadge(activity);
             if (!switchedOn() && !ChatLocks.any() && !CollectionLocks.any() && !anyCover(window)) {
                 // Nothing to cover and nothing to take down. Before every frame, all that's left
                 // is learning the open chat's name for Lock a chat, and that walks the whole window,

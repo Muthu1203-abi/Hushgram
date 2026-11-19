@@ -2058,7 +2058,7 @@ public final class GlassTabBar {
          */
         private boolean scale(boolean on, boolean now) {
             if (on && (!scales || HushgramPause.isPaused())) return false;
-            float target = on ? SHRUNK_SCALE : 1f;
+            float target = on ? Settings.GLASS_TAB_BAR_SHRINK_SCALE.get() / 100f : 1f;
             ValueAnimator running = scaling;
             scaling = null;
             if (running != null) running.cancel();

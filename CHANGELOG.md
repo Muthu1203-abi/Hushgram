@@ -7,6 +7,8 @@ Every HushGram release, newest first.
 ### Fixes
 
 * `Double-tap Messages for hidden chats`: your hidden chats no longer stay showing when you tap another tab, slide to one, or leave Instagram and come back. They're hidden again as soon as you leave the inbox.
+* `Ghost mode`: the tab whose long press turns it on or off now shows a colored ring while Ghost mode is on, so you can see it from the tab bar as well as Home's header.
+* `Glass tab bar`: scrolling a list down now shrinks the standard pill to a size you can set, 50 to 100 percent of its full size, instead of a fixed 80.
 
 ## 0.0.21 (2026-11-18)
 

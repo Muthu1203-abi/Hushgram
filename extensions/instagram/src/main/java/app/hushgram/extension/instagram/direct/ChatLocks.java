@@ -432,7 +432,10 @@ public final class ChatLocks {
             addId(ids, igThreadId);
             if (ids.isEmpty()) return false;
             String account = ChatAccounts.clean(recipient);
-            if (HiddenChats.hides(ids, account)) return true;
+            if (HiddenChats.hides(ids, account)) {
+                HiddenChats.markHiddenUnread();
+                return true;
+            }
             if (!any()) return false;
             String marked = String.join(",", ids);
             mark(notification, marked, account);

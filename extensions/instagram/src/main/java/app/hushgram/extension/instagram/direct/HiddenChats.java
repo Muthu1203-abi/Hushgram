@@ -115,6 +115,9 @@ public final class HiddenChats {
     /** The inbox shows the hidden chats, and only them, until {@link #conceal}. */
     private static volatile boolean revealed;
 
+    /** A hidden chat has an unread message that hasn't been seen yet (#661). */
+    private static volatile boolean hiddenUnread;
+
     private HiddenChats() {
     }
 
@@ -129,6 +132,8 @@ public final class HiddenChats {
     static void reveal() {
         revealed = true;
         shownOn = 0;
+        hiddenUnread = false;
+        Settings.HIDDEN_CHATS_UNREAD.save(false);
         changedSoon();
     }
 
@@ -138,6 +143,32 @@ public final class HiddenChats {
         revealed = false;
         changedSoon();
         return true;
+    }
+
+    /** Whether a hidden chat has an unread message that hasn't been seen yet. */
+    public static boolean hiddenUnread() {
+        return Settings.HIDDEN_CHATS_UNREAD.get() && !ids().isEmpty();
+    }
+
+    /** Records that a hidden chat has an unread message (a push for it was dropped). */
+    public static void markHiddenUnread() {
+        try {
+            if (ids().isEmpty()) return;
+            Settings.HIDDEN_CHATS_UNREAD.save(true);
+            hiddenUnread = true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread", t);
+        }
+    }
+
+    /** Clears the hidden unread marker (the hidden chats were shown). */
+    public static void clearHiddenUnread() {
+        try {
+            Settings.HIDDEN_CHATS_UNREAD.save(false);
+            hiddenUnread = false;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread", t);
+        }
     }
 
     /**
@@ -181,6 +212,81 @@ public final class HiddenChats {
     static void forgetTabForTests() {
         tabs = HiddenChats::selectedTab;
         shownOn = 0;
+    }
+
+    /**
+     * Repaints the hidden unread dot on the Messages tab button now, on the main thread. The dot is
+     * there while a hidden chat has an unread message that hasn't been seen, and gone once the
+     * hidden chats are shown. Never throws into Instagram.
+     */
+    public static void renderBadge(Activity activity) {
+        try {
+            if (activity == null) return;
+            int id = activity.getResources().getIdentifier("direct_tab", "id", Utils.resourcePackage(activity));
+            View tab = id == 0 ? null : activity.findViewById(id);
+            if (tab == null) return;
+            boolean wanted = hiddenUnread() && !revealed;
+            synchronized (badges) {
+                Dot dot = badges.get(tab);
+                if (!wanted) {
+                    if (dot != null) {
+                        tab.getOverlay().remove(dot);
+                        badges.remove(tab);
+                    }
+                    return;
+                }
+                if (dot == null) {
+                    dot = new Dot(tab.getResources().getDisplayMetrics().density);
+                    tab.getOverlay().add(dot);
+                    badges.put(tab, dot);
+                }
+                dot.invalidateSelf();
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread badge", t);
+        }
+    }
+
+    /** The dots currently on Messages tab buttons, so they can be taken off. */
+    private static final java.util.WeakHashMap<View, Dot> badges = new java.util.WeakHashMap<>();
+
+    /** A red dot for the Messages tab button. */
+    static final class Dot extends android.graphics.drawable.Drawable {
+        private final float unit;
+        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+        Dot(float density) {
+            unit = density;
+            paint.setColor(0xFFFF3B30);
+            paint.setStyle(android.graphics.Paint.Style.FILL);
+        }
+
+        @Override
+        public void draw(@androidx.annotation.NonNull android.graphics.Canvas canvas) {
+            android.graphics.Rect b = getBounds();
+            if (b.isEmpty()) return;
+            float radius = 4 * unit;
+            float cx = b.right - radius - 2 * unit;
+            float cy = b.top + radius + 2 * unit;
+            canvas.drawCircle(cx, cy, radius, paint);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+            invalidateSelf();
+        }
+
+        @Override
+        public void setColorFilter(@androidx.annotation.Nullable android.graphics.ColorFilter filter) {
+            paint.setColorFilter(filter);
+            invalidateSelf();
+        }
+
+        @Override
+        public int getOpacity() {
+            return android.graphics.PixelFormat.TRANSLUCENT;
+        }
     }
 
     /**
@@ -796,8 +902,15 @@ public final class HiddenChats {
         redrawer = HiddenChats::redraw;
         parsed = null;
         revealed = false;
+        hiddenUnread = false;
         synchronized (drawn) {
             drawn.clear();
+        }
+        synchronized (badges) {
+            for (View v : new java.util.ArrayList<>(badges.keySet())) {
+                v.getOverlay().remove(badges.get(v));
+            }
+            badges.clear();
         }
     }
 }
