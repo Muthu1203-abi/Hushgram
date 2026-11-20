@@ -80,7 +80,7 @@ public final class NavigationSettings {
                 nativeBindings.put(view, binding);
             }
         }
-        // Ghost mode's ring follows the tab even before it's chosen, so a choice made in settings
+        // Ghost mode's icon stroke follows the tab even before it's chosen, so a choice made in settings
         // shows on it at once (#255).
         if (binding != null) GhostTabStroke.watch(view, tab);
         else GhostTabStroke.forget(view);
@@ -145,7 +145,7 @@ public final class NavigationSettings {
                     if (original == null) view.setLongClickable(false);
                 }
             }
-            // A tab chosen for Ghost mode gains the ring, and one no longer chosen loses it (#255).
+            // A tab chosen for Ghost mode gains the colored icon stroke, and the old choice loses it (#255).
             GhostTabStroke.refresh();
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);

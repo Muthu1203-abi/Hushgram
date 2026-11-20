@@ -6,12 +6,10 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.view.View;
+import android.widget.ImageView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,7 +29,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The ring round the tab whose long press turns Ghost mode: when it shows, its color and where it goes. */
+/** The tab icon stroke for Ghost mode: when it shows, its color and where it goes. */
 @RunWith(RobolectricTestRunner.class)
 public class GhostTabStrokeTest {
     enum Tab { FEED, DIRECT, PROFILE }
@@ -39,8 +37,8 @@ public class GhostTabStrokeTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private Context context;
-    private View direct;
-    private View feed;
+    private ImageView direct;
+    private ImageView feed;
 
     @Before public void prepare() {
         context = RuntimeEnvironment.getApplication();
@@ -48,8 +46,8 @@ public class GhostTabStrokeTest {
         NavigationSettings.forgetTabsForTests();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        direct = new View(context);
-        feed = new View(context);
+        direct = new ImageView(context);
+        feed = new ImageView(context);
         Settings.GHOST_TAB_TARGET.save(NavigationTarget.DIRECT);
         Settings.GHOST_INDICATOR_COLOR.save(GhostIndicatorColor.ORANGE);
         HookStatus.clear();
@@ -73,7 +71,7 @@ public class GhostTabStrokeTest {
         Settings.HIDE_TYPING.save(on);
     }
 
-    @Test public void theTabChosenForGhostModeShowsTheRingOnlyWhileGhostModeIsOn() {
+    @Test public void theTabChosenForGhostModeShowsItsIconStrokeOnlyWhileGhostModeIsOn() {
         GhostTabStroke.watch(direct, Tab.DIRECT);
         GhostTabStroke.watch(feed, Tab.FEED);
 
@@ -89,22 +87,22 @@ public class GhostTabStrokeTest {
         assertFalse("one of its switches is off, so Ghost mode is", GhostTabStroke.showingForTests(direct));
     }
 
-    @Test public void theRingTakesThePickedTintOrInstagramColour() {
+    @Test public void theIconStrokeTakesThePickedTintOrInstagramColour() {
         ghost(true);
         GhostTabStroke.watch(direct, Tab.DIRECT);
 
-        assertEquals(GhostIndicatorColor.ORANGE.color, GhostTabStroke.ringForTests(direct).color);
+        assertEquals(GhostIndicatorColor.ORANGE.color, GhostTabStroke.colorForTests(direct));
 
         Settings.GHOST_INDICATOR_COLOR.save(GhostIndicatorColor.CYAN);
         GhostTabStroke.refresh();
-        assertEquals(GhostIndicatorColor.CYAN.color, GhostTabStroke.ringForTests(direct).color);
+        assertEquals(GhostIndicatorColor.CYAN.color, GhostTabStroke.colorForTests(direct));
 
         Settings.GHOST_INDICATOR_COLOR.save(GhostIndicatorColor.INSTAGRAM);
         GhostTabStroke.refresh();
-        assertEquals(FeedDownloadButton.iconColor(context), GhostTabStroke.ringForTests(direct).color);
+        assertEquals(FeedDownloadButton.iconColor(context), GhostTabStroke.colorForTests(direct));
     }
 
-    @Test public void pauseTakesTheRingOffAndResumePutsItBack() {
+    @Test public void pauseRestoresTheIconAndResumeTintsItAgain() {
         ghost(true);
         GhostTabStroke.watch(direct, Tab.DIRECT);
         assertTrue(GhostTabStroke.showingForTests(direct));
@@ -119,7 +117,7 @@ public class GhostTabStrokeTest {
         assertTrue(GhostTabStroke.showingForTests(direct));
     }
 
-    @Test public void withNoGhostPatchOrNoChosenTabThereIsNoRing() {
+    @Test public void withNoGhostPatchOrNoChosenTabTheIconIsUntinted() {
         ghost(true);
         GhostTabStroke.watch(direct, Tab.DIRECT);
         assertTrue(GhostTabStroke.showingForTests(direct));
@@ -134,8 +132,8 @@ public class GhostTabStrokeTest {
         assertFalse(GhostTabStroke.showingForTests(direct));
     }
 
-    /** A tab Instagram bound is watched, and choosing another tab moves the ring on the next choice. */
-    @Test public void aBoundTabIsWatchedAndTheChoiceMovesTheRing() {
+    /** A tab Instagram bound is watched, and choosing another tab moves the stroke on the next choice. */
+    @Test public void aBoundTabIsWatchedAndTheChoiceMovesTheStroke() {
         NavigationSettings.bind(direct, Tab.DIRECT);
         NavigationSettings.bind(feed, Tab.FEED);
         NavigationSettings.bind(new View(context), Tab.PROFILE);
@@ -150,18 +148,18 @@ public class GhostTabStrokeTest {
         assertTrue(GhostTabStroke.showingForTests(feed));
     }
 
-    /** Turning Ghost mode from its tab puts the ring on at once, not at the next draw of the bar. */
-    @Test public void turningGhostModeOnFromItsTabShowsTheRingAtOnce() {
+    /** Turning Ghost mode from its tab tints the icon at once, not at the next draw of the bar. */
+    @Test public void turningGhostModeOnFromItsTabTintsTheIconAtOnce() {
         GhostTabStroke.watch(direct, Tab.DIRECT);
         assertFalse(GhostTabStroke.showingForTests(direct));
 
         GhostMode.flip(GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild())));
 
         assertTrue(GhostTabStroke.showingForTests(direct));
-        assertNotNull(GhostTabStroke.ringForTests(direct));
+        assertTrue(GhostTabStroke.colorForTests(direct) != 0);
     }
 
-    @Test public void aForgottenTabLosesItsRing() {
+    @Test public void aForgottenTabRestoresItsIcon() {
         ghost(true);
         GhostTabStroke.watch(direct, Tab.DIRECT);
         assertTrue(GhostTabStroke.showingForTests(direct));
@@ -169,7 +167,6 @@ public class GhostTabStrokeTest {
         GhostTabStroke.forget(direct);
 
         assertFalse(GhostTabStroke.showingForTests(direct));
-        assertNull(GhostTabStroke.ringForTests(direct));
         assertEquals(List.of(FamilyNames.REELS_TAB + ": invoked 0, 0 found, 0 missing. Counted: "
                 + GhostTabStroke.SHOWN + " 1, " + GhostTabStroke.HIDDEN + " 1"), HookStatus.report());
     }

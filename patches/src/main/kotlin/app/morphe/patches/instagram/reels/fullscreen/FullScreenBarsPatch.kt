@@ -65,7 +65,7 @@ internal object BarHeightsFingerprint : Fingerprint(
 
 /**
  * Has both bar heights Instagram's window insets listener keeps ask FullScreenBars first, once for
- * every patch that changes them: Full screen Reels and Home (#147) and Glass tab bar, whose floating
+ * every patch that changes them: Full screen Reels and Home (#147) and Liquid Glass navigation bar, whose floating
  * pill lets the screens run down behind the gesture handle (#144). Written twice, the listener would
  * ask twice for each height. The status bar's height asks [BAR_HEIGHT_HOOK], the navigation bar's
  * [NAV_BAR_HEIGHT_HOOK]. The extension can put each height back where the listener keeps it

@@ -40,7 +40,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -154,8 +154,8 @@ public final class ReelBlurBars {
     static volatile FrameSource source = TEXTURE;
 
     /** Whether a bar wears the glass, and whether that glass floats. Swapped in tests, since a test bar has none. */
-    static volatile Predicate<View> wearsGlass = GlassTabBar::wearsGlass;
-    static volatile Predicate<View> floatingGlass = GlassTabBar::wearsFloatingGlass;
+    static volatile Predicate<View> wearsGlass = LiquidGlassNavBarPatch::wearsGlass;
+    static volatile Predicate<View> floatingGlass = LiquidGlassNavBarPatch::wearsFloatingGlass;
 
     /** The system bars' insets on [decor]'s window, or null with none known. Swapped in tests, whose window has none. */
     static volatile Function<View, Rect> barInsets = ReelBlurBars::systemBars;

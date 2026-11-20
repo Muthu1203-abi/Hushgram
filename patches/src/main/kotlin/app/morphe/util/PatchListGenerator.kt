@@ -79,8 +79,14 @@ internal fun main(args: Array<String>) {
 @Suppress("DEPRECATION")
 private fun generatePatchList(version: String, patches: Set<Patch>) {
     val listJson = File("../patches-list.json")
+    val removedPatchNames = setOf(
+        "Install next to Instagram",
+        "Media quality indicator",
+        "Hide hidden chats from search",
+    )
+    val availablePatches = patches.filterNot { it.name in removedPatchNames }
 
-    val appNames = patches
+    val appNames = availablePatches
         .asSequence()
         .flatMap { it.compatibility.orEmpty().asSequence() }
         .mapNotNull { c ->
@@ -90,7 +96,7 @@ private fun generatePatchList(version: String, patches: Set<Patch>) {
         }
         .toMap()
 
-    val patchesMap = patches.sortedBy { it.name }.map {
+    val patchesMap = availablePatches.sortedBy { it.name }.map {
         JsonPatch(
             it.name!!,
             it.description,

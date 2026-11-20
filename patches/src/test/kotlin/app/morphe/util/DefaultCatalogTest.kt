@@ -182,7 +182,7 @@ import app.morphe.patches.instagram.stories.replybox.hideStoryReplyBoxPatch
 import app.morphe.patches.instagram.stories.buttonsroom.storyButtonsRoomPatch
 import app.morphe.patches.instagram.stories.quality.uploadStoriesAtFullQualityPatch
 import app.morphe.patches.instagram.stories.tray.hideSuggestedStoriesPatch
-import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
+import app.morphe.patches.instagram.layout.liquidglass.liquidGlassNavBarPatch
 import app.morphe.patches.instagram.reels.fullscreen.fullScreenBarsPatch
 import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
 import app.morphe.patches.instagram.misc.refreshrate.refreshRatePatch
@@ -236,7 +236,7 @@ class DefaultCatalogTest {
         findReelOriginPatch,
         fontPatch,
         fullResolutionPhotosPatch,
-        glassTabBarPatch,
+        liquidGlassNavBarPatch,
         groupNotificationsPatch,
         hideActiveStatusPatch,
         hideCommentsPatch,

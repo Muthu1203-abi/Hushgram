@@ -8,6 +8,13 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import app.morphe.patcher.patch.booleanOption
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.intOption
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.glass.giveTheCameraTheNavBar
+import app.morphe.patches.instagram.reels.fullscreen.barHeightsPatch
+import app.morphe.patches.instagram.reels.fullscreen.findBarHeights
+import app.morphe.patches.instagram.reels.fullscreen.barHeightStores
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -22,9 +29,10 @@ val liquidGlassNavBarPatch = bytecodePatch(
             "Configure in HushGram settings or profile menu.",
     default = true
 ) {
+    category("Interface")
     compatibleWith(*AppCompatibilities.instagram())
 
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch)
 
     val blurRadius by intOption(
         key = "blurRadius",
@@ -63,6 +71,11 @@ val liquidGlassNavBarPatch = bytecodePatch(
     )
 
     execute {
+        requireStatusMethod("liquidGlassNavBar")
+        val navHeight = findBarHeights().barHeightStores().getOrNull(1)?.field
+            ?: throw PatchException("Liquid Glass navigation bar: Instagram's navigation bar height was not found")
+        giveTheCameraTheNavBar(navHeight)
+
         val extensionClass = mutableClassDefBy(EXTENSION_CLASS)
 
         extensionClass.methods.singleOrNull { it.name == "blurRadiusDp" }?.addInstructions(
@@ -116,5 +129,6 @@ val liquidGlassNavBarPatch = bytecodePatch(
                 }
             }
         }
+        enableStatus("liquidGlassNavBar")
     }
 }

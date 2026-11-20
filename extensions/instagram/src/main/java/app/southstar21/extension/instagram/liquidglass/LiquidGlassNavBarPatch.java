@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.util.WeakHashMap;
+import java.lang.ref.WeakReference;
 
 import app.southstar21.extension.instagram.settings.BooleanSetting;
 import app.southstar21.extension.instagram.settings.Icons;
@@ -18,6 +19,7 @@ import app.southstar21.extension.instagram.settings.PatchSettings;
 import app.southstar21.extension.instagram.settings.ProfileSettingsButton;
 import app.southstar21.extension.instagram.settings.Settings;
 import app.southstar21.extension.instagram.settings.SettingsGroup;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 
 /**
  * Liquid Glass patch: entry point and settings.
@@ -27,6 +29,8 @@ public final class LiquidGlassNavBarPatch {
     static final String TAG = "LiquidGlass";
 
     private static final WeakHashMap<View, LiquidGlassController> installed = new WeakHashMap<>();
+    private static volatile WeakReference<Activity> front = new WeakReference<>(null);
+    private static volatile int navigationInset;
 
     static final IntSetting BLUR_RADIUS = new IntSetting("liquid_glass_blur_radius",
             "Blur radius", "How frosted the glass is.", false,
@@ -108,6 +112,63 @@ public final class LiquidGlassNavBarPatch {
         return false;
     }
 
+    /** One switch in HushGram controls the bar; the source settings page keeps its own enable switch too. */
+    public static boolean isActive() {
+        try {
+            return isIncluded() && SETTINGS.isActive() && SettingsStatus.liquidGlassNavBar()
+                    && app.hushgram.extension.instagram.settings.Settings.GLASS_TAB_BAR.get();
+        } catch (Throwable t) {
+            Log.e(TAG, "Liquid Glass active check failed", t);
+            return false;
+        }
+    }
+
+    /** HushGram's Reels layout uses this switch to keep the video under the new pill. */
+    public static boolean reelsBehindBar() {
+        try {
+            return isActive() && app.hushgram.extension.instagram.settings.Settings.GLASS_TAB_BAR_REELS_BEHIND.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static Activity activityInFront() { return front.get(); }
+
+    /** FullScreenBars asks the new floating bar whether it can take the navigation inset. */
+    public static int navBarHeight(int height) {
+        Activity activity = front.get();
+        if (!isActive() || !extendContentBehindBar() || activity == null || !hasInstalledBar(activity)) return height;
+        if (height > 0) navigationInset = height;
+        return 0;
+    }
+
+    public static int navBarHeight(int height, int hidden) {
+        if (height <= 0 || hidden > 0) return height;
+        return navBarHeight(height);
+    }
+
+    public static int navBarHeightOverTheKeyboard(int height) { return height; }
+    public static void navBarHeightTaken(int height, boolean hidden) { }
+    public static void heightsTold() { }
+
+    public static int cameraNavBarHeight(int kept) { return kept <= 0 ? navigationInset : kept; }
+
+    public static boolean wearsGlass(View view) {
+        return view != null && isActive() && installed.containsKey(view);
+    }
+
+    public static boolean wearsFloatingGlass(View view) {
+        return wearsGlass(view) && extendContentBehindBar();
+    }
+
+    private static boolean hasInstalledBar(Activity activity) {
+        for (View bar : installed.keySet()) {
+            if (bar != null && bar.isAttachedToWindow() && bar.getVisibility() == View.VISIBLE
+                    && bar.getRootView() == activity.getWindow().getDecorView()) return true;
+        }
+        return false;
+    }
+
     // The three methods below are overwritten by the patch with the chosen option values,
     // which become the defaults of the settings above.
 
@@ -148,14 +209,17 @@ public final class LiquidGlassNavBarPatch {
                 @Override public void onActivityCreated(Activity activity, Bundle savedInstanceState) {}
                 @Override public void onActivityStarted(Activity activity) {}
                 @Override public void onActivityResumed(Activity activity) {
-                    if (isMainActivity(activity)) {
+                    front = new WeakReference<>(activity);
+                    if (isMainActivity(activity) && isIncluded()) {
                         ProfileSettingsButton.ensureInstalled(activity);
-                        if (SETTINGS.isActive()) {
+                        if (isActive()) {
                             onMainActivityReady(activity);
                         }
                     }
                 }
-                @Override public void onActivityPaused(Activity activity) {}
+                @Override public void onActivityPaused(Activity activity) {
+                    if (front.get() == activity) front = new WeakReference<>(null);
+                }
                 @Override public void onActivityStopped(Activity activity) {}
                 @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
                 @Override public void onActivityDestroyed(Activity activity) {}
@@ -172,6 +236,7 @@ public final class LiquidGlassNavBarPatch {
     /** Called by {@link InstagramHooks} when this patch is included and switched on. */
     public static void onMainActivityReady(Activity activity) {
         try {
+            if (!isActive()) return;
             View bar = findView(activity, "tab_bar");
             if (!(bar instanceof ViewGroup) || installed.containsKey(bar)) return;
             if (!(bar.getParent() instanceof ViewGroup)) return;

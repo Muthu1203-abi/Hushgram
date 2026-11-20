@@ -15,12 +15,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 
 /**
  * Helper for Fill the screen, under Full screen Reels (#288).
@@ -392,9 +392,6 @@ public final class ReelFill {
      * away (Instagram's own bar or the glass one), or reels run behind the floating glass bar.
      */
     static boolean tabBarRoom() {
-        GlassReelsHide hide = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
-        return (hide != null && hide != GlassReelsHide.NEVER)
-                || (Settings.GLASS_TAB_BAR.get() && Settings.GLASS_TAB_BAR_FLOAT.get()
-                        && Settings.GLASS_TAB_BAR_REELS_BEHIND.get());
+        return LiquidGlassNavBarPatch.reelsBehindBar();
     }
 }

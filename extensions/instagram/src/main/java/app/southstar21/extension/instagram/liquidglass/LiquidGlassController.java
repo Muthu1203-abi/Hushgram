@@ -382,7 +382,7 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
      * end up behind the pill. Everywhere else content scrolls underneath the glass.
      */
     private boolean contentBehindBar() {
-        return extendContent && !isReelsSelected();
+        return extendContent && (!isReelsSelected() || LiquidGlassNavBarPatch.reelsBehindBar());
     }
 
     private boolean isReelsSelected() {

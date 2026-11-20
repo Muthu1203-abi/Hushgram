@@ -21,6 +21,11 @@ import org.junit.Test
  * with what the Manager presents.
  */
 class ReadmePatchNamesTest {
+    private val removedFromCatalog = setOf(
+        "Install next to Instagram",
+        "Media quality indicator",
+        "Hide hidden chats from search",
+    )
     private data class ReadmeRow(val name: String, val description: String, val included: Boolean)
 
     /**
@@ -147,11 +152,11 @@ class ReadmePatchNamesTest {
         assertEquals(
             "a patch ships with no row in the README table",
             emptyList<String>(),
-            (declared - listed).sorted(),
+            (declared - listed - removedFromCatalog).sorted(),
         )
         assertEquals(
             "the generated patch list and patch sources name different patches",
-            declared.sorted(),
+            (declared - removedFromCatalog).sorted(),
             shipped.keys.sorted(),
         )
         assertEquals(

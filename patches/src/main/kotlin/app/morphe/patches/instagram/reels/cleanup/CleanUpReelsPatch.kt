@@ -22,6 +22,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.reels.live.findReelsItemInserts
 import app.morphe.patches.instagram.reels.partnership.findReelsPage
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -115,8 +116,37 @@ val cleanUpReelsPatch = bytecodePatch(
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)
         }
+        applyClearModeShareTouch()
         enableStatus("reelDeclutter")
     }
+}
+
+private const val CLEAR_MODE_SHARE_TOUCH = "Lapp/hushgram/extension/instagram/reels/ReelClearMode;->shareTouch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z"
+private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
+
+/** Routes a tap on the transparent Share button before Instagram's full-screen tap pauses the reel. */
+private fun BytecodePatchContext.applyClearModeShareTouch() {
+    val activity = classDefByOrNull(FRAGMENT_ACTIVITY)
+        ?: throw PatchException("$PATCH: this build has no $FRAGMENT_ACTIVITY for the clear-mode Share touch")
+    val touch = activity.methods.singleOrNull {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.name == "dispatchTouchEvent" && it.returnType == "Z" &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(MOTION_EVENT) && it.implementation != null
+    } ?: throw PatchException("$PATCH: expected one $FRAGMENT_ACTIVITY->dispatchTouchEvent(MotionEvent), found none or more than one")
+    val method = mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single {
+        it.name == touch.name && it.parameterTypes.map(CharSequence::toString) == listOf(MOTION_EVENT)
+    }
+    method.requireLocals(PATCH, 1)
+    method.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p1 }, $CLEAR_MODE_SHARE_TOUCH
+            move-result v0
+            if-eqz v0, :instagram_touch
+            const/4 v0, 0x1
+            return v0
+        """.trimIndent(),
+        ExternalLabel("instagram_touch", method.getInstruction(0)),
+    )
 }
 
 /**

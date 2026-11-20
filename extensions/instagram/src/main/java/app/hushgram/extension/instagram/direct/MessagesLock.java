@@ -660,6 +660,10 @@ public final class MessagesLock {
         }
 
         @Override public void onActivityResumed(Activity activity) {
+            // A revealed hidden-chat list is only for the foreground session that revealed it.
+            // Conceal before installing the first pre-draw check: waiting for onActivityStopped
+            // can leave the reveal flag set across a fast background/foreground transition.
+            HiddenChats.conceal();
             follow(activity);
         }
 

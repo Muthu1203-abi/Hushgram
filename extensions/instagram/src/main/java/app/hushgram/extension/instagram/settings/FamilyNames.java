@@ -88,12 +88,13 @@ public final class FamilyNames {
     public static final String INBOX_SEARCH = "Hide the search bar in Messages";
     public static final String INBOX_SUGGESTIONS = "Hide suggested accounts in DMs";
     public static final String INSTANTS = "Hide Instants";
+    public static final String INSTANT_UPLOAD = "Upload Instant from gallery";
     public static final String SHARE_SHEET = "Hide group buttons on the share sheet";
     public static final String REPOST_BUTTON = "Hide the Repost button";
     public static final String HIDE_SHARE_BUTTON = "Hide the Share button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
     public static final String PHONE_LAYOUT = "Phone layout on big screens";
-    public static final String GLASS_TAB_BAR = "Glass tab bar";
+    public static final String GLASS_TAB_BAR = "Liquid Glass navigation bar";
     public static final String FULL_SCREEN_BARS = "Full screen Reels and Home";
     public static final String SAVED_ON_PROFILE = "Saved on your profile";
     public static final String STOP_HEARTBEAT = "Stop background wake-ups";

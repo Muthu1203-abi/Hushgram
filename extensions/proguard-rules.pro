@@ -16,6 +16,11 @@
 -keep class app.hushgram.extension.** {
   *;
 }
+# Liquid Glass is carried under its original extension namespace and its bytecode patch looks up
+# the entry point by descriptor. Keep that payload too, or R8 removes the class before patching.
+-keep class app.southstar21.extension.** {
+  *;
+}
 # Proguard can strip away kotlin intrinsics methods that are used by extension Kotlin code. Unclear why.
 -keep class kotlin.jvm.internal.Intrinsics {
     public static *;

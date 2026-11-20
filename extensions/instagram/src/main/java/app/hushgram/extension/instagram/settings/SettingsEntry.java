@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.direct.InstantUpload;
 import app.hushgram.extension.instagram.download.ReelColumnFit;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.AmbientLight;
@@ -55,7 +56,7 @@ import app.hushgram.extension.instagram.media.BackgroundPlay;
 import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
-import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 import app.hushgram.extension.instagram.misc.PureBlackNav;
 import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.misc.TabIcons;
@@ -161,7 +162,7 @@ public final class SettingsEntry {
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
-        GlassTabBar.install(context);
+        if (SettingsStatus.liquidGlassNavBar()) LiquidGlassNavBarPatch.install(context);
         GlassChat.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
@@ -195,6 +196,7 @@ public final class SettingsEntry {
         AppIcon.install(context);
         TextSize.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
+        if (SettingsStatus.instantUpload()) InstantUpload.install(context);
         if (SettingsStatus.backgroundPlay()) BackgroundPlay.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
         SaveLeftovers.sweepAfterStart(context);

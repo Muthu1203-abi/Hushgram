@@ -31,6 +31,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.misc.BottomSpace;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -323,7 +324,7 @@ public final class FullScreenBars {
      * and put its text box under the navigation bar, and Instagram never told it the real height (#209).
      */
     static boolean keepsListeners() {
-        return eitherOn() || (Settings.GLASS_TAB_BAR.get() && Settings.GLASS_TAB_BAR_FLOAT.get());
+        return eitherOn() || (LiquidGlassNavBarPatch.isActive() && LiquidGlassNavBarPatch.extendContentBehindBar());
     }
 
     /** Tests give the names ids of their own, since a test app has none of Instagram's. */
@@ -425,13 +426,13 @@ public final class FullScreenBars {
         try {
             int hidden = keys || noBar ? 0 : hiddenNavHeight(height);
             if (keys) {
-                kept = GlassTabBar.navBarHeightOverTheKeyboard(kept);
+                kept = LiquidGlassNavBarPatch.navBarHeightOverTheKeyboard(kept);
             } else if (height == 0 && hidden == 0 && navTaken && navOffered > 0 && !noBar) {
                 // The 0 offered back is the one HushGram answered for the pill, not a missing bar, so
                 // Instagram keeps it and the pill keeps the bar's room under itself.
-                GlassTabBar.navBarHeightTaken(navOffered, false);
+                LiquidGlassNavBarPatch.navBarHeightTaken(navOffered, false);
             } else {
-                kept = GlassTabBar.navBarHeight(kept, hidden);
+                kept = LiquidGlassNavBarPatch.navBarHeight(kept, hidden);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
@@ -503,7 +504,7 @@ public final class FullScreenBars {
     private static boolean keyboardInFront() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false;
         Activity activity = resumed.get();
-        if (activity == null) activity = GlassTabBar.activityInFront();
+        if (activity == null) activity = LiquidGlassNavBarPatch.activityInFront();
         Window window = activity == null ? null : activity.getWindow();
         WindowInsets insets = window == null ? null : window.getDecorView().getRootWindowInsets();
         return insets != null && insets.isVisible(WindowInsets.Type.ime());
@@ -520,7 +521,7 @@ public final class FullScreenBars {
      */
     private static int navBarInFront() {
         try {
-            Activity front = GlassTabBar.activityInFront();
+            Activity front = LiquidGlassNavBarPatch.activityInFront();
             Activity last = resumed.get();
             if (testNavBar != WINDOWS_OWN) {
                 Activity activity = front != null ? front : last;
@@ -650,7 +651,7 @@ public final class FullScreenBars {
         } finally {
             telling = false;
         }
-        GlassTabBar.heightsTold();
+        LiquidGlassNavBarPatch.heightsTold();
         HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TOLD);
     }
 
@@ -752,7 +753,7 @@ public final class FullScreenBars {
             }
             // A window left with no bar at its foot keeps the 0: there's no bar to give room for.
             if (navTaken && navOffered > 0 && !anyHidden(false) && navBarInFront() != 0) {
-                int answer = GlassTabBar.navBarHeight(navOffered, 0);
+                int answer = LiquidGlassNavBarPatch.navBarHeight(navOffered, 0);
                 if (answer > 0) {
                     keepNavBarHeight(answer);
                     navTaken = false;
@@ -781,7 +782,7 @@ public final class FullScreenBars {
                 return;
             }
             if (!navTaken || navOffered <= 0 || navBarInFront() == 0) return;
-            int answer = GlassTabBar.navBarHeightOverTheKeyboard(navOffered);
+            int answer = LiquidGlassNavBarPatch.navBarHeightOverTheKeyboard(navOffered);
             if (answer <= 0) return;
             keepNavBarHeight(answer);
             navTaken = false;
@@ -808,7 +809,7 @@ public final class FullScreenBars {
             navTaken = true;
             keptNav = 0;
             // The window it came back from may have had the height given through, which left the pill no room.
-            if (navBarInFront() != 0) GlassTabBar.navBarHeightTaken(navOffered, hiddenNavHeight(0) > 0);
+            if (navBarInFront() != 0) LiquidGlassNavBarPatch.navBarHeightTaken(navOffered, hiddenNavHeight(0) > 0);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height again", failure);
         }

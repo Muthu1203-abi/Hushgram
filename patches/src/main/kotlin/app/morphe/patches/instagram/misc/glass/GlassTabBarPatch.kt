@@ -7,17 +7,10 @@ package app.morphe.patches.instagram.misc.glass
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patches.instagram.media.surface.videoSurfacePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.enableStatus
-import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.reels.fullscreen.barHeightStores
 import app.morphe.patches.instagram.reels.fullscreen.barHeightsPatch
 import app.morphe.patches.instagram.reels.fullscreen.findBarHeights
-import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -30,45 +23,13 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val GLASS_TAB_BAR = "$EXTENSION_PACKAGE/misc/GlassTabBar;"
-internal const val CAMERA_NAV_BAR_HEIGHT_HOOK = "$GLASS_TAB_BAR->cameraNavBarHeight(I)I"
+internal const val CAMERA_NAV_BAR_HEIGHT_HOOK = "Lapp/southstar21/extension/instagram/liquidglass/LiquidGlassNavBarPatch;->cameraNavBarHeight(I)I"
 
 /** The camera's 9:16 layout, by the name Instagram keeps for it as a Parcelable. */
 internal const val CAMERA_LAYOUT =
     "Lcom/instagram/creation/capture/quickcapture/aspectratioutil/targetviewsizeprovider/NineSixteenLayoutConfigImpl;"
 
-/**
- * Draws Instagram's tab bar as a floating, rounded glass pill. See GlassTabBar in the extension.
- *
- * The extension finds the bar by the id Instagram's own code looks it up by, once an activity
- * resumes, and the application-start hook the settings patch already writes is what starts the
- * watching. This patch switches the status method on, so the settings screen offers the switches and
- * the extension acts. One change to Instagram's code is shared with Full screen Reels and Home
- * ([barHeightsPatch]): the navigation bar's height Instagram pads its screens by asks the extension
- * first, which answers 0 while a floating pill shows, so the screens run down behind the gesture
- * handle and the pill keeps itself above it (#144). The camera's layout asks again for the height it
- * read ([giveTheCameraTheNavBar], #646). In the default selection with its switch off.
- */
-@Suppress("unused")
-val glassTabBarPatch = bytecodePatch(
-    name = "Glass tab bar",
-    description = "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it " +
-        "(Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. " +
-        "With the liquid look off, `Shrink the pill as you scroll` makes the pill smaller while you scroll down, " +
-        "and `Material look` makes it a solid pill in your phone's colors. " +
-        "Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
-) {
-    category("Interface")
-    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch, videoSurfacePatch)
-    compatibleWith(*AppCompatibilities.instagram())
-
-    execute {
-        requireStatusMethod("glassTabBar")
-        giveTheCameraTheNavBar(findBarHeights().barHeightStores()[1].field)
-        enableStatus("glassTabBar")
-    }
-}
-
-private fun refuse(why: String): Nothing = throw PatchException("Glass tab bar: $why")
+private fun refuse(why: String): Nothing = throw PatchException("Liquid Glass navigation bar: $why")
 
 /**
  * The camera's 9:16 layout reads the navigation bar's height Instagram keeps ([nav]) once, as its

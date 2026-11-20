@@ -236,6 +236,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean instantUpload() {
+        return false;
+    }
+
     /** Rewritten by the Show when someone was last active patch. */
     public static boolean lastActive() {
         return false;
@@ -617,6 +621,10 @@ public final class SettingsStatus {
     }
 
     public static boolean glassTabBar() {
+        return false;
+    }
+
+    public static boolean liquidGlassNavBar() {
         return false;
     }
 

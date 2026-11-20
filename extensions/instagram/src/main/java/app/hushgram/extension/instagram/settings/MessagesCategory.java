@@ -13,6 +13,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.chatGlassTintRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.lockDelayRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.lockToggle;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.info;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.unlockWithRow;
 
@@ -32,6 +33,7 @@ final class MessagesCategory {
         if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.SPLIT_NOTES_ROW)
                 || build.contains(PatchFamily.INBOX_SEARCH)
                 || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.INSTANTS)
+                || build.contains(PatchFamily.INSTANT_UPLOAD)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.DM_MEDIA_SEEN)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
@@ -84,6 +86,10 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.HIDE_INSTANTS, L10n.t("Hide Instants"),
                         L10n.t("Removes the stack of Instants (quick photos from friends) from your messages. "
                                 + "Restart Instagram to see the change.")));
+            }
+            if (build.contains(PatchFamily.INSTANT_UPLOAD)) {
+                messages.addPreference(info(context, L10n.t("Upload Instant from gallery"),
+                        L10n.t("In the Instants camera, tap Gallery to choose a photo. Press the shutter to send it.")));
             }
             if (build.contains(PatchFamily.THREAD_SEEN)) {
                 messages.addPreference(toggle(context, Settings.READ_WITHOUT_SEEN_RECEIPT,

@@ -6,7 +6,10 @@ package app.hushgram.extension.instagram.reels;
 
 import android.graphics.Rect;
 import android.os.SystemClock;
+import android.app.Activity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
@@ -17,7 +20,9 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -111,9 +116,9 @@ import kotlin.jvm.functions.Function1;
  * clear mode skips it. No other vibration goes through here.
  *
  * <p>Leaving clear mode yourself, by its exit button or the menu, forgets it, and the next reels
- * show their buttons. What is kept is small and holds no view: whether clear mode is wanted, the
- * reason your turn-on gave (an enum constant), a few reel ids, and for the length of the wait the
- * handler, weakly, as the handler is held for starting. It lives in memory only. Nothing is carried
+ * show their buttons. What is kept is small and lives in memory only: whether clear mode is wanted,
+ * the reason your turn-on gave (an enum constant), a few reel ids, weak page references, and for
+ * the length of the wait the handler, weakly, as the handler is held for starting. Nothing is carried
  * or started while the switch is off, HushGram is paused, the settings aren't ready, or anything
  * here fails, and Instagram's own turn-on and turn-off always run as they would.
  *
@@ -384,6 +389,11 @@ public final class ReelClearMode {
 
     /** The reel pages whose buttons {@link #chrome} hid for clear mode, weakly, oldest first (#740). */
     private static final ArrayDeque<WeakReference<Object>> HIDDEN = new ArrayDeque<>();
+    /** Pages Instagram has faded out in its own clear mode, including when Keep clear mode is off. */
+    private static final WeakHashMap<Object, Boolean> CLEAR_MODE_PAGES = new WeakHashMap<>();
+    private static WeakReference<View> sharePressed = new WeakReference<>(null);
+    private static final Rect sharePressedBounds = new Rect();
+    private static boolean shareGesture;
 
     /** How many pages {@link #HIDDEN} holds, read without its lock on every alpha write. */
     private static volatile int hiddenCount;
@@ -731,6 +741,13 @@ public final class ReelClearMode {
      * Instagram's again. Anything else, or a failure here, keeps what was asked for.
      */
     public static float chrome(@Nullable Object page, float asked, float now) {
+        if (page != null) {
+            // Instagram sets this alpha to zero for clear mode. Keep the page even when the
+            // carry-to-next-reel switch is off, so a tap on its invisible Share target can route
+            // to Share instead of falling through to the video player's pause handler.
+            if (asked <= 0f) CLEAR_MODE_PAGES.put(page, Boolean.TRUE);
+            else CLEAR_MODE_PAGES.remove(page);
+        }
         if (!wanted) {
             if (hiddenCount != 0 && page != null) released(page);
             return asked;
@@ -756,6 +773,112 @@ public final class ReelClearMode {
             HookStatus.threw(FAMILY, "clear mode buttons", failure);
             return asked;
         }
+    }
+
+    /**
+     * Handles a tap on the invisible Share button in clear mode. The actual button remains in
+     * Instagram's view tree, but its clear-mode alpha makes Instagram's own touch handling send the
+     * tap to the video. Find the Share-labelled clickable view through transparent ancestors and
+     * invoke its existing click listener. A missing target leaves the event alone.
+     */
+    public static boolean shareTouch(@Nullable Activity activity, @Nullable MotionEvent event) {
+        try {
+            if (activity == null || event == null || CLEAR_MODE_PAGES.isEmpty()) {
+                sharePressed = new WeakReference<>(null);
+                sharePressedBounds.setEmpty();
+                shareGesture = false;
+                return false;
+            }
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                sharePressed = new WeakReference<>(null);
+                sharePressedBounds.setEmpty();
+                shareGesture = false;
+                View decor = activity.getWindow() == null ? null : activity.getWindow().peekDecorView();
+                if (decor == null) return false;
+                int[] rootAt = new int[2];
+                decor.getLocationOnScreen(rootAt);
+                float relativeX = (event.getRawX() - rootAt[0]) / Math.max(1, decor.getWidth());
+                float relativeY = (event.getRawY() - rootAt[1]) / Math.max(1, decor.getHeight());
+                // Share sits on the lower part of the Reels action rail. This keeps a Share label
+                // elsewhere in an open sheet from being mistaken for the hidden Reels button.
+                if (relativeX < 0.68f || relativeY < 0.55f || relativeY > 0.96f) return false;
+                View target = shareTarget(decor, event.getRawX(), event.getRawY(), false);
+                if (target == null) return false;
+                int[] at = new int[2];
+                target.getLocationOnScreen(at);
+                sharePressedBounds.set(at[0], at[1], at[0] + target.getWidth(), at[1] + target.getHeight());
+                sharePressed = new WeakReference<>(target);
+                shareGesture = true;
+                return true;
+            }
+            if (!shareGesture) return false;
+            View pressed = sharePressed.get();
+            if (action == MotionEvent.ACTION_UP) {
+                boolean hit = sharePressedBounds.contains((int) event.getRawX(), (int) event.getRawY());
+                sharePressed = new WeakReference<>(null);
+                sharePressedBounds.setEmpty();
+                shareGesture = false;
+                if (hit && pressed != null && pressed.isEnabled()) pressed.performClick();
+                return true;
+            }
+            if (action == MotionEvent.ACTION_CANCEL) {
+                sharePressed = new WeakReference<>(null);
+                sharePressedBounds.setEmpty();
+                shareGesture = false;
+                return true;
+            }
+            if (action == MotionEvent.ACTION_POINTER_DOWN) {
+                // A multi-touch gesture isn't a Share tap, but keep consuming the stream that
+                // started on the hidden target so it can't fall through and pause the reel.
+                sharePressed = new WeakReference<>(null);
+                sharePressedBounds.setEmpty();
+                return true;
+            }
+            return true;
+        } catch (Throwable failure) {
+            sharePressed = new WeakReference<>(null);
+            sharePressedBounds.setEmpty();
+            shareGesture = false;
+            HookStatus.threw(FAMILY, "clear mode Share touch", failure);
+            return false;
+        }
+    }
+
+    /** Finds a clickable Share view at the touch point, ignoring alpha on clear-mode ancestors. */
+    @Nullable
+    private static View shareTarget(View view, float x, float y, boolean shareAncestor) {
+        if (view.getVisibility() != View.VISIBLE || !view.isEnabled()) return null;
+        boolean share = shareAncestor || namesShare(view);
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        if (x < at[0] || x >= at[0] + view.getWidth() || y < at[1] || y >= at[1] + view.getHeight()) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                View target = shareTarget(group.getChildAt(i), x, y, share);
+                if (target != null) return target;
+            }
+        }
+        return share && view.isClickable() ? view : null;
+    }
+
+    /** The Android view id or accessibility label Instagram gives the Reels Share action. */
+    private static boolean namesShare(View view) {
+        StringBuilder names = new StringBuilder();
+        CharSequence description = view.getContentDescription();
+        if (description != null) names.append(description).append(' ');
+        CharSequence transition = view.getTransitionName();
+        if (transition != null) names.append(transition).append(' ');
+        names.append(view.getClass().getName()).append(' ');
+        Object tag = view.getTag();
+        if (tag instanceof CharSequence) names.append(tag).append(' ');
+        if (view.getId() != View.NO_ID) {
+            try {
+                names.append(view.getResources().getResourceEntryName(view.getId())).append(' ');
+            } catch (Throwable ignored) { }
+        }
+        return names.toString().toLowerCase(Locale.ROOT).contains("share");
     }
 
     // ------------------------------------------------------------------ the Full screen icon (#480)
@@ -1226,6 +1349,10 @@ public final class ReelClearMode {
         }
         aiming = null;
         access = PATCHED;
+        CLEAR_MODE_PAGES.clear();
+        sharePressed = new WeakReference<>(null);
+        sharePressedBounds.setEmpty();
+        shareGesture = false;
     }
 
     /** How many reel pages are hidden for clear mode, waiting to get their buttons back. For tests. */

@@ -50,7 +50,7 @@ import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -215,8 +215,8 @@ public final class AmbientLight {
     /** The tab bar last found, so each layout needn't search the window for it. */
     @Nullable private static WeakReference<View> barRef;
     /** Whether a tab bar wears the glass, and whether its pill floats. Swapped in tests. */
-    static volatile Predicate<View> wearsGlass = GlassTabBar::wearsGlass;
-    static volatile Predicate<View> floatingGlass = GlassTabBar::wearsFloatingGlass;
+    static volatile Predicate<View> wearsGlass = LiquidGlassNavBarPatch::wearsGlass;
+    static volatile Predicate<View> floatingGlass = LiquidGlassNavBarPatch::wearsFloatingGlass;
     /** Whether each view class asked about is Instagram's media frame. */
     private static final Map<Class<?>, Boolean> frames = new WeakHashMap<>();
     private static final Runnable TICK = AmbientLight::tick;
