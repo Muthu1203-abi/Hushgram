@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 
@@ -18,7 +19,7 @@ public final class LikedReelsScroll {
     /** Returns Instagram's clips-liked source for this selected patch. */
     public static Object source(Object original) {
         try {
-            if (original == null || HushgramPause.isPaused()) return original;
+            if (original == null || HushgramPause.isPaused() || !Settings.LIKED_REELS_SCROLL.get()) return original;
 
             Object[] sources = original.getClass().getEnumConstants();
             if (sources == null) return original;

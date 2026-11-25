@@ -5464,6 +5464,9 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_developer_options", TRUE);
     public static final BooleanSetting DIRECTLY_OPEN_METACONFIG =
             new BooleanSetting("hushgram_directly_open_metaconfig", TRUE, parent(DEVELOPER_OPTIONS));
+    /** Continue through liked Reels: swiping a reel opened from Your activity > Likes stays in your likes. */
+    public static final BooleanSetting LIKED_REELS_SCROLL =
+            new BooleanSetting("hushgram_liked_reels_scroll", TRUE);
     // Retained for the release input set; no patch exposes this control in the catalog.
     public static final BooleanSetting MEDIA_QUALITY_INDICATOR =
             new BooleanSetting("hushgram_media_quality_indicator", FALSE);
