@@ -26,6 +26,8 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
 
     /** On tablets and landscape the pill stops growing at this width. */
     private static final int MAX_PILL_WIDTH_DP = 520;
+    /** Space between a reel's raised controls and the top of the pill. */
+    private static final int REELS_LIFT_GAP_DP = 8;
 
     private final ViewGroup bar;
     private final NavbarStyle.Source styleSource;
@@ -37,6 +39,8 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
     /** Siblings whose bottom margin reserves room for the tab bar, and which we now manage. */
     private final java.util.WeakHashMap<View, Boolean> managedContent = new java.util.WeakHashMap<>();
     private final BackdropSampler sampler;
+    /** Keeps a reel's caption, buttons and seek bar above the pill while Reels run behind it. */
+    private final ReelsLift reelsLift;
     /** Copies of videos playing under the bar, which the glass can't record (see SurfaceSnapshots). */
     private final SurfaceSnapshots snapshots;
     private final android.graphics.RectF snapshotRegion = new android.graphics.RectF();
@@ -73,6 +77,7 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         this.lens = new LiquidGlassLens(bar.getContext(), bar, glass, density, styleSource);
         this.reelsTabId = bar.getResources().getIdentifier("clips_tab", "id", "com.instagram.android");
         this.sampler = new BackdropSampler(bar, glass::setBackdropLuminance);
+        this.reelsLift = new ReelsLift(bar, density);
         this.snapshots = new SurfaceSnapshots(bar);
         glass.setSnapshots(snapshots);
     }
@@ -174,6 +179,7 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
                 glass.invalidateSelf();
             }
             lens.sync();
+            liftReels();
             if (bar.getVisibility() == View.VISIBLE && !preview) {
                 glass.getPill().round(sampleRect);
                 sampler.maybeSample(sampleRect, dp(20));
@@ -183,6 +189,22 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
             android.util.Log.e(LiquidGlassNavBarPatch.TAG, "Disabling liquid glass", t);
         }
         return true;
+    }
+
+    /**
+     * With Reels running behind the pill, the video fills the screen under the glass, so the reel's
+     * author, caption, buttons and seek bar are raised to end just above the pill's top. They follow
+     * the pill when Vertical position or the Reels bottom gap moves it, and the seek bar takes the
+     * Reel seek bar position setting on top.
+     */
+    private void liftReels() {
+        boolean active = !preview && bar.getVisibility() == View.VISIBLE && isReelsSelected() && contentBehindBar();
+        float pillTop = 0f;
+        if (active) {
+            bar.getLocationInWindow(location);
+            pillTop = location[1] + glass.getPill().top;
+        }
+        reelsLift.apply(bar, active, pillTop, REELS_LIFT_GAP_DP, LiquidGlassNavBarPatch.reelSeekBarOffsetDp());
     }
 
     private void enforce() {

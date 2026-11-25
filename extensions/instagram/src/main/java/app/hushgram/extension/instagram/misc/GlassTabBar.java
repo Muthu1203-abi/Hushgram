@@ -122,16 +122,16 @@ public final class GlassTabBar {
     /** Home's pager on an account whose tabs swipe sideways. It sits beside the content, not in it. */
     static final String SWIPE_PAGER = "swipeable_tab_view_pager";
     /** The root of the Reels viewer, in the Reels tab and wherever a reel opens over another tab. */
-    static final String REELS_ROOT = "root_clips_layout";
+    public static final String REELS_ROOT = "root_clips_layout";
     /** The strip Instagram lays over a reel's seek bar to widen it for touches, and the seek bar. */
     public static final String TOUCH_STRIP = "clips_expanded_touch_view";
-    static final String SCRUBBER = "scrubber";
+    public static final String SCRUBBER = "scrubber";
     /** A reel's author, caption and the buttons beside them, which share a layer over the video with the seek bar. */
-    static final String REEL_INFO = "clips_media_info_component";
+    public static final String REEL_INFO = "clips_media_info_component";
     /** What holds a reel's video. Only views beside it are raised, so the video never moves. */
-    static final String REEL_MEDIA = "clips_media_component";
+    public static final String REEL_MEDIA = "clips_media_component";
     /** Where Instagram puts what shows under a reel: a paused reel's controls, a comment field and the like (#260). */
-    static final String REEL_FOOTERS = "clips_footer_mask_container";
+    public static final String REEL_FOOTERS = "clips_footer_mask_container";
     /** The Search tab, a child of the bar, which the liquid look puts in a circle of its own (#65). */
     static final String SEARCH_TAB = "search_tab";
     /** The Reels tab, a child of the bar. With it selected a reel keeps the pill's slot while the bar hides (#347). */
@@ -469,7 +469,7 @@ public final class GlassTabBar {
      * short of [stop] holds the video.
      */
     @Nullable
-    static View reelBand(View anchor, int media, View stop) {
+    public static View reelBand(View anchor, int media, View stop) {
         if (media == 0) return null;
         View below = null, at = anchor;
         for (int depth = 0; depth < 16 && at != stop; depth++) {
@@ -602,7 +602,7 @@ public final class GlassTabBar {
      * Puts each shown view under [view] whose id is [info] or [scrubber] in [anchors], and each whose id
      * is [footers] in [footerViews], without looking inside those.
      */
-    static void reelAnchors(View view, int info, int scrubber, int footers, java.util.List<View> anchors,
+    public static void reelAnchors(View view, int info, int scrubber, int footers, java.util.List<View> anchors,
             java.util.List<View> footerViews, int depth) {
         if (depth > 60 || view.getVisibility() != View.VISIBLE) return;
         int own = view.getId();
