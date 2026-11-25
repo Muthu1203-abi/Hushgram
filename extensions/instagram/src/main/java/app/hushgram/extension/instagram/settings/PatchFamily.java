@@ -329,6 +329,7 @@ public enum PatchFamily {
             Settings.HIDE_REEL_LOCK_MESSAGE),
     REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL,
             Settings.REEL_AUTO_ADVANCE),
+    LIKED_REELS_SCROLL(FamilyNames.LIKED_REELS_SCROLL, "likedReelsScroll", null),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,
             Settings.REEL_SCROLL_FROM_PROFILE, Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO,
             Settings.PLAY_ONE_REEL, Settings.REEL_CAP),
@@ -348,6 +349,8 @@ public enum PatchFamily {
             Settings.DEFAULT_PLAYBACK_QUALITY),
     DATA_SAVER(FamilyNames.DATA_SAVER, "dataSaver", null, Settings.DATA_SAVER),
     TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
+    OPEN_DEVELOPER_OPTIONS(FamilyNames.OPEN_DEVELOPER_OPTIONS, "developerOptions", null,
+            Settings.DEVELOPER_OPTIONS, Settings.DIRECTLY_OPEN_METACONFIG),
     PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode"),
     VERSION_CODE(FamilyNames.VERSION_CODE, "versionCode", "the raised version code");
 

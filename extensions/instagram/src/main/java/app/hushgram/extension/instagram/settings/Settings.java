@@ -5456,4 +5456,16 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SIGN_IN_NOTICE_HIDDEN =
             new BooleanSetting("hushgram_sign_in_notice_hidden", FALSE, false, false);
 
+    public static final IntegerSetting CLEAR_MODE_SHARE_TOUCH_SLOP_DP =
+            new IntegerSetting("hushgram_clear_mode_share_touch_slop_dp", 18, false).withRange(0, 48);
+    public static final EnumSetting<GhostIndicatorColor> GHOST_INDICATOR_COLOR =
+            new EnumSetting<>("hushgram_ghost_indicator_color", GhostIndicatorColor.INSTAGRAM, true);
+    public static final BooleanSetting DEVELOPER_OPTIONS =
+            new BooleanSetting("hushgram_developer_options", TRUE);
+    public static final BooleanSetting DIRECTLY_OPEN_METACONFIG =
+            new BooleanSetting("hushgram_directly_open_metaconfig", TRUE, parent(DEVELOPER_OPTIONS));
+    // Retained for the release input set; no patch exposes this control in the catalog.
+    public static final BooleanSetting MEDIA_QUALITY_INDICATOR =
+            new BooleanSetting("hushgram_media_quality_indicator", FALSE);
+
 }

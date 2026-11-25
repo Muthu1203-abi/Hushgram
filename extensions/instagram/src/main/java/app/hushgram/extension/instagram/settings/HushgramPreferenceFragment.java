@@ -4588,6 +4588,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return tabRow(context, NavigationRow.Use.GHOST);
     }
 
+    static ListPreference ghostIndicatorColorRow(Context context) {
+        ListPreference row = new ListPreference(context);
+        row.setKey(Settings.GHOST_INDICATOR_COLOR.key);
+        row.setTitle(L10n.t("Ghost mode button color"));
+        row.setDialogTitle(L10n.t("Ghost mode button color"));
+        GhostIndicatorColor[] colors = GhostIndicatorColor.values();
+        CharSequence[] labels = new CharSequence[colors.length];
+        CharSequence[] values = new CharSequence[colors.length];
+        for (int i = 0; i < colors.length; i++) {
+            labels[i] = colors[i] == GhostIndicatorColor.INSTAGRAM ? L10n.t("Instagram")
+                    : L10n.t(colors[i].name());
+            values[i] = colors[i].name();
+        }
+        row.setEntries(labels);
+        row.setEntryValues(values);
+        row.setValue(Settings.GHOST_INDICATOR_COLOR.savedValue().name());
+        row.setSummary(L10n.t("Choose the Ghost mode button tint. Restart Instagram to see a change."));
+        return row;
+    }
+
     /** The row choosing the tab whose long press opens Your saved profiles (#629). */
     static NavigationRow savedProfilesTabRow(Context context) {
         return tabRow(context, NavigationRow.Use.SAVED_PROFILES);

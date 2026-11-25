@@ -175,6 +175,8 @@ public final class FamilyNames {
     public static final String REEL_DOUBLE_TAP_SKIP = "Double tap to skip on Reels";
     public static final String HIDE_REEL_2X_POPUP = "Hide the 2x popup on Reels";
     public static final String REEL_AUTO_SCROLL = "Keep Reels auto scroll on";
+    public static final String LIKED_REELS_SCROLL = "Continue through liked Reels";
+    public static final String OPEN_DEVELOPER_OPTIONS = "Open developer options";
     public static final String REEL_SCROLLING = "Stop Reels scrolling";
     public static final String SWIPE_TO_PROFILE = "Swipe left to open the profile";
     public static final String REEL_PROFILE_TAB_BAR = "Keep the tab bar on a reel's profile";

@@ -984,4 +984,7 @@ public final class SettingsStatus {
     public static boolean liveSeen() {
         return false;
     }
+
+    /** Rewritten by the Liquid Glass navigation bar patch. */
+    public static boolean liquidGlassNavBar() { return false; }
 }

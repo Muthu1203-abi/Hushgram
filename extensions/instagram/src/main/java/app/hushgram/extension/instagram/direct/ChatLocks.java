@@ -433,7 +433,6 @@ public final class ChatLocks {
             if (ids.isEmpty()) return false;
             String account = ChatAccounts.clean(recipient);
             if (HiddenChats.hides(ids, account)) {
-                HiddenChats.markHiddenUnread();
                 return true;
             }
             if (!any()) return false;
