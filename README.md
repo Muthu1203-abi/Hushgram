@@ -4,6 +4,16 @@
 **Version:** 457.0.0.55.73  
 **Patches:** 202
 
+## Muthu's changes from upstream HushGram
+
+This is a modified HushGram build, updated by Muthu on 25 November 2026. The upstream HushGram code and notices remain under GPL-3.0; this repository keeps the same license.
+
+- **Continue through liked Reels:** swiping from Your activity > Likes continues through the liked-Reels feed.
+- **Liquid Glass navigation bar:** includes a live settings preview, individual bottom-gap controls for Feed, Reels, Messages, Explore and Profile, plus controls for bar height and Reel seek-bar placement. The Liquid Glass implementation is adapted from [southstar21-patches](https://github.com/southstar21dev/southstar21-patches), also GPL-3.0.
+- **Clear Mode Share touch:** tapping the hidden Share-button area opens Share without the tap pausing the Reel.
+- **Open developer options:** adds an opt-in shortcut from the Home tab.
+- **Intentionally omitted upstream patches:** Install next to Instagram, Glass tab bar, Upload Instant from gallery, Hide hidden chats from search and Media quality indicator.
+
 | Patch | Use |
 |---|---|
 | Accent color | Swaps Instagram's blue on Follow buttons, links and other highlights for purple, pink, red, orange, green, teal or your wallpaper's colors (Material You, on Android 12 and newer). Its `Classic colors` switch brings back Instagram's older look, with a navy dark mode, charcoal gray panels and an off-white light mode, and it works with the accent off too. Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout. |
