@@ -22,7 +22,9 @@ jobs:
           java-version: '17'
 
       - name: Build patch bundle
-        run: ./gradlew :patches:buildAndroid
+        run: |
+          chmod +x gradlew
+          ./gradlew :patches:buildAndroid
 
       - name: Publish bundle on GitHub Releases
         uses: softprops/action-gh-release@v2
