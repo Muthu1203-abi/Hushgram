@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.download.reel.addMuteButtonToClearMode
 import app.morphe.patches.instagram.download.reel.findClearModeRowAdd
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -31,6 +32,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -94,7 +96,7 @@ class ClearModeHookTest {
         val stubs = listOf(
             "$CLEAR_MODE_ENTER_STUB($anyType$anyType)V", "$CLEAR_MODE_ID_STUB($anyType)$stringType",
             "$CLEAR_MODE_ACTION_STUB($anyType)$anyType", "$CLEAR_MODE_SET_ACTION_STUB($anyType$anyType)V",
-            "${CLEAR_MODE_CHROME_STUB}(${anyType}F)V",
+            "${CLEAR_MODE_CHROME_STUB}(${anyType}F)V", "$CLEAR_MODE_LEAVE_STUB($anyType$anyType$anyType)V",
         )
         for (signature in hooks.map { it.substringAfter("->") } + stubs) {
             assertTrue("$signature is not in the extension: $declared", signature in declared)
@@ -437,7 +439,10 @@ class ClearModeHookTest {
             val written = context.written(classes)
             assertTrue("$expected: something was written to $written", written.isEmpty())
             val stubs = context.classDefBy(CLEAR_MODE).methods.filter {
-                it.name in setOf(CLEAR_MODE_ENTER_STUB, CLEAR_MODE_ID_STUB, CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB, CLEAR_MODE_CHROME_STUB)
+                it.name in setOf(
+                    CLEAR_MODE_ENTER_STUB, CLEAR_MODE_ID_STUB, CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB, CLEAR_MODE_CHROME_STUB,
+                    CLEAR_MODE_LEAVE_STUB,
+                )
             }
             assertTrue("$expected: a stub was filled", stubs.none { stub -> stub.code().any { it.opcode == Opcode.CHECK_CAST } })
         }
@@ -541,7 +546,7 @@ class ClearModeHookTest {
             // 456 drops all nine markers, and on every build the handler's turn-on is inlined into its
             // callers (386214574's LX/09HX;->A03, LX/0PHO;->A0E and LX/09Ip;->A0A read the handler's
             // action and run it themselves), so everything is found by the strings it keeps.
-            assertTrue("$label: only 456 drops clear mode's markers", label.contains("-456.0.0.53.78-"))
+            assertTrue("$label: only 456 drops clear mode's markers", label.contains("-457.0.0.55.73-"))
             anchoredBuild(bundle, label, declared)
             return
         }
@@ -664,16 +669,40 @@ class ClearModeHookTest {
                     method.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is FieldReference && ref.definingClass == reasonType } }
             }
         }
-        // Each class with an action and a turn-off taking the reason may be the handler.
-        val handlers = near.filter { holder ->
-            holder.instanceFields.any { it.type == function1 } && holder.methods.any { method ->
-                method.returnType == "V" && method.parameterTypes.size == 2 && method.parameterTypes[1].toString() == reasonType
+        // Each class with an action and a turn-off taking the reason may be the handler. 457's armeabi-v7a
+        // (386314340) inlines the turn-off into its callers, so there it's the class with an action whose
+        // other action, the turn-off's, a method touching the reason reads off it and runs with two objects.
+        val turnOffActions = near.flatMap { it.methods }.flatMap { method ->
+            val code = method.code()
+            code.indices.mapNotNull { at ->
+                val call = code[at].methodRef()
+                val read = code.getOrNull(at - 2)
+                if (code[at].opcode != Opcode.INVOKE_INTERFACE || call?.name != "invoke" || call.parameterTypes.size != 2 ||
+                    read?.opcode != Opcode.IGET_OBJECT
+                ) {
+                    return@mapNotNull null
+                }
+                ((read as ReferenceInstruction).reference as FieldReference).takeIf { it.type == call.definingClass }
             }
+        }
+        // That handler takes no reason and reads none of its constants, so it isn't near them.
+        val nearTypes = near.mapTo(HashSet()) { it.type }
+        val inlinedHandlers = FixtureDex.classes(bundle, turnOffActions.map { it.definingClass }.filterTo(HashSet()) { it !in nearTypes }).values
+        val handlers = (near + inlinedHandlers).filter { holder ->
+            holder.instanceFields.any { it.type == function1 } && (
+                holder.methods.any { method ->
+                    method.returnType == "V" && method.parameterTypes.size == 2 && method.parameterTypes[1].toString() == reasonType
+                } || turnOffActions.any { it.definingClass == holder.type }
+            )
         }
         val handlerTypes = handlers.map { it.type }.toSet()
         assertTrue("$name: no class may be the handler", handlerTypes.isNotEmpty())
         val items = handlers.flatMap { it.methods }.filter { it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == reasonType }
             .map { it.parameterTypes[0].toString() }
+        // Where the turn-off is inlined, its action's type and every type the exit button holds, the reel among them.
+        val inlinedTypes = handlers.flatMap { it.instanceFields }.map { it.type }.filter { it != function1 } +
+            near.filter { holder -> holder.instanceFields.any { it.type == stateType } && holder.instanceFields.any { it.type in handlerTypes } }
+                .flatMap { it.instanceFields }.map { it.type }
         val takingReason = near.flatMap { it.methods }.filter { method -> method.parameterTypes.any { it.toString() == reasonType } }
         val tagged = takingReason.flatMap { it.code() }.filter { it.opcode == Opcode.INSTANCE_OF }.mapNotNull { it.type() }
         val scrollStates = loading.flatMap { it.methods }.filter { FixtureDex.loads(it, REEL_SCROLL_STATE_TRACE, byType) }
@@ -686,13 +715,29 @@ class ClearModeHookTest {
             }
         }
         val known = (loading + near + touching).mapTo(HashSet()) { it.type }
-        val types = (items + tagged + scrollStates + called).filter { it.startsWith("L") && it !in known }.toSet()
-        val sliced = (loading + near + touching + FixtureDex.classes(bundle, types).values).distinctBy { it.type }
+        val types = (items + inlinedTypes + handlerTypes + tagged + scrollStates + called).filter { it.startsWith("L") && it !in known }.toSet()
+        // Pinch for clear mode's read of its flag sits in the action the pinch listener runs, which reads the reel state too.
+        val pinchReaders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == stateType } }) { method ->
+            method.code().any { it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == PINCH_CLEAR_MODE_FLAG }
+        }.mapTo(HashSet()) { it.definingClass }
+        assertTrue("$name: nothing reads the pinch flag", pinchReaders.isNotEmpty())
+        // And it writes the reel's clear mode state through an interface or the store's static write,
+        // which the patch checks are public, along with everything its stub casts to.
+        val writeCalls = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+        val pinchWrites = FixtureDex.classes(bundle, pinchReaders).values.flatMap { it.methods }.flatMap { it.code() }
+            .filter { it.opcode in writeCalls }
+            .mapNotNull { it.methodRef() }
+            .filter { call -> call.returnType == "V" && call.parameterTypes.map(Any::toString).lastOrNull() == "Z" }
+            .flatMap { call -> listOf(call.definingClass) + call.parameterTypes.map(Any::toString) }
+            .filterTo(HashSet()) { it.startsWith("LX/") }
+        val sliced = (loading + near + touching + FixtureDex.classes(bundle, types + pinchReaders + pinchWrites).values).distinctBy { it.type }
         val classes = FixtureDex.withStringPools(bundle, sliced).distinctBy { it.type } +
-            ExtensionDex.classDef(CLEAR_MODE) + ExtensionDex.classDef(MUTE_ICON_TYPE)
+            ExtensionDex.classDef(CLEAR_MODE) + ExtensionDex.classDef(MUTE_ICON_TYPE) + ExtensionDex.classDef(REEL_PINCH_CLEAR_MODE)
         val context = PatchContexts.of(classes.distinctBy { it.type })
 
         val found = context.findClearMode()
+        // Clean up Reels finds the pinch's places before Keep clear mode on changes anything.
+        val pinch = context.findPinchClearMode(found)
         assertNull("$name: there's a turn-on to hook", found.enable)
         assertNull("$name: there's a seek bar row to hook", found.row)
         assertEquals("$name: the reason is the one naming the swipe away", reasonType, found.reason)
@@ -719,7 +764,7 @@ class ClearModeHookTest {
 
         sharedHooks(
             context, name, declared,
-            Sites(found.dismiss, found.enabled, found.paged, found.button, found.chrome, found.scrolled, found.setup),
+            Sites(found.dismiss, found.enabled, found.paged, found.button, found.chrome, found.scrolled, found.setup, found.inlined),
             handlerType, itemType, actionName,
         )
 
@@ -756,17 +801,208 @@ class ClearModeHookTest {
         assertEquals("$name: the set action stub writes the action", action, write[2].referenceText())
         val reelId = context.method(CLEAR_MODE, CLEAR_MODE_ID_STUB)
         assertEquals("$name: the stub reads the reel's id", "$itemType->getId()$stringType", reelId[1].referenceText())
+
+        pinchHooks(context, name, pinch, found.button, stateType, itemType)
     }
 
-    /** The methods both ways of finding clear mode hook the same way. */
+    /**
+     * Pinch for clear mode (#744) on 456: the one read of the pinch flag sits in a method asking
+     * whether the reel is in clear mode and is answered through the hook right after its
+     * move-result, ahead of the branch it decides. The two writes of the reel's state after that ask
+     * become calls to [PINCH_CLEAR_MODE_TURN] with the same registers, and the state stub makes the
+     * write. In the exit button's render, which Keep clear mode on hooked first, the icon's drawable
+     * goes through [CLEAR_MODE_EXIT_ICON] right before the icon's call, and the circle and the tap
+     * each go through [CLEAR_MODE_EXIT_PART] right after their move-results, with the modifier they
+     * were handed, cast back. Nothing else in the render moves.
+     */
+    private fun pinchHooks(
+        context: BytecodePatchContext,
+        name: String,
+        found: PinchClearModeHooks,
+        button: Method,
+        stateType: String,
+        itemType: String,
+    ) {
+        val load = found.pinch
+        assertEquals("$name: the pinch flag is a yes or no", "Z", load.answer)
+        assertTrue("$name: the pinch flag's read is its own", !load.shared)
+        assertEquals("$name: the exit button is Keep clear mode on's", "$button", "${found.button}")
+        val first = found.parts ?: throw AssertionError("$name: the exit button's parts weren't found")
+        val stock = context.mutableClassDefBy(load.type).methods.single { it.sameAs(load) }.code()
+        assertTrue("$name: the reader asks the reel state", stock.any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is FieldReference && ref.definingClass == stateType } })
+        val write = found.write
+        val takes = write.parameterTypes.map(Any::toString)
+        val static = found.static
+        if (static) {
+            // Where Redex inlined the interface's method: the store's static write, handed the reel, the state's key, the store and a boxed yes or no.
+            assertEquals("$name: the pinch's static write takes the reel, a key, a store, a value and a yes or no", 5, takes.size)
+            assertEquals("$name: the reel first", itemType, takes[0])
+            assertEquals("$name: then an object and a yes or no", listOf(anyType, "Z"), takes.drop(3))
+            assertEquals("$name: the hook for a static write", PINCH_CLEAR_MODE_WRITE, found.hook)
+        } else {
+            assertEquals("$name: the pinch's write takes the reel and a yes or no", listOf(itemType, "Z"), takes)
+            assertEquals("$name: the hook for an interface's write", PINCH_CLEAR_MODE_TURN, found.hook)
+        }
+        assertEquals("$name: two writes, on and off", 2, found.writes.size)
+        assertTrue("$name: both after the flag's read", found.writes.all { it > load.resultAt + 1 })
+        val calls = if (static) setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) else setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+        assertTrue("$name: both the same kind of call", found.writes.all { stock[it].opcode in calls })
+        assertTrue("$name: the write's class is public", AccessFlags.PUBLIC.isSet(context.classDefBy(write.definingClass).accessFlags))
+        val casts = if (static) takes.take(3) else listOf(write.definingClass, itemType)
+        for (type in casts) assertTrue("$name: $type is public", AccessFlags.PUBLIC.isSet(context.classDefBy(type).accessFlags))
+        if (static) {
+            val writer = context.classDefBy(write.definingClass).methods.single { it.name == write.name && it.parameterTypes.map(Any::toString) == takes }
+            assertTrue("$name: the static write is public", AccessFlags.PUBLIC.isSet(writer.accessFlags) && AccessFlags.STATIC.isSet(writer.accessFlags))
+        }
+        val renderMethod = {
+            context.mutableClassDefBy(button.definingClass).methods.single {
+                it.name == button.name && it.returnType == button.returnType &&
+                    it.parameterTypes.map(Any::toString) == button.parameterTypes.map(Any::toString)
+            }
+        }
+        val render = { renderMethod().code() }
+        val before = render()
+        // Keep clear mode on went into this render first and moved its places, so they're read again
+        // from the hooked render, the way the patch reads them.
+        val parts = renderMethod().exitButtonParts()
+        assertTrue("$name: the exit button kept its registers through Keep clear mode on", parts.sameShape(first))
+        assertEquals("$name: the icon's call", EXIT_BUTTON_DRAWABLE, before[parts.icon].methodRef()?.parameterTypes?.first()?.toString())
+        assertEquals("$name: the tap's answer is what the icon gets", parts.tapAnswer, before[parts.icon].registers()[1])
+        assertEquals("$name: the tap's move-result", parts.tapAnswer, (before[parts.tap + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: the circle's move-result", parts.circleAnswer, (before[parts.circle + 1] as OneRegisterInstruction).registerA)
+
+        context.pinchClearMode(found)
+
+        val read = context.mutableClassDefBy(load.type).methods.single { it.sameAs(load) }.code()
+        assertEquals("$name: two instructions go in after the read", stock.size + 2, read.size)
+        assertCall("$name: the pinch hook", read[load.resultAt + 1], PINCH_CLEAR_MODE, listOf(load.register))
+        assertEquals("$name: the pinch hook's answer", Opcode.MOVE_RESULT, read[load.resultAt + 2].opcode)
+        assertEquals("$name: into the read's register", load.register, (read[load.resultAt + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$name: then the branch it decides", stock[load.resultAt + 1].opcode, read[load.resultAt + 3].opcode)
+        assertTrue("$name: Instagram's read stays", read[load.callAt].methodRef()?.returnType == "Z")
+        for (at in found.writes) {
+            // The flag's hook went in above the writes, two instructions.
+            assertCall("$name: the write's hook", read[at + 2], found.hook, stock[at].registers())
+        }
+        assertEquals(
+            "$name: nothing else in the reader changes",
+            stock.filterIndexed { at, _ -> at !in found.writes }.map { it.opcode },
+            read.filterIndexed { at, _ -> at !in (load.resultAt + 1..load.resultAt + 2) && at - 2 !in found.writes }.map { it.opcode },
+        )
+        val state = context.method(REEL_PINCH_CLEAR_MODE, if (static) PINCH_CLEAR_MODE_PUT_STUB else PINCH_CLEAR_MODE_STATE_STUB)
+        val original = if (static) Opcode.INVOKE_STATIC else Opcode.INVOKE_INTERFACE
+        assertEquals(
+            "$name: the write stub",
+            List(casts.size) { Opcode.CHECK_CAST } + listOf(original, Opcode.RETURN_VOID),
+            state.take(casts.size + 2).map { it.opcode },
+        )
+        assertEquals("$name: the write stub casts", casts, state.take(casts.size).map { it.type() })
+        assertEquals("$name: the write stub makes the pinch's write", "$write", state[casts.size].referenceText())
+        assertEquals("$name: with everything the write takes", takes.indices.map { it } + if (static) emptyList() else listOf(takes.size), state[casts.size].registers())
+        // The other shape's stub stays empty.
+        val other = context.method(REEL_PINCH_CLEAR_MODE, if (static) PINCH_CLEAR_MODE_STATE_STUB else PINCH_CLEAR_MODE_PUT_STUB)
+        assertEquals("$name: the other write stub only returns", listOf(Opcode.RETURN_VOID), other.map { it.opcode })
+
+        val after = render()
+        assertEquals("$name: eight instructions go into the render", before.size + 8, after.size)
+        val icons = after.indices.filter { after[it].referenceText() == CLEAR_MODE_EXIT_ICON }
+        assertEquals("$name: one icon hook", 1, icons.size)
+        val icon = icons.single()
+        assertEquals("$name: the icon hook takes the icon's drawable", listOf(parts.iconDrawable), after[icon].registers())
+        assertEquals("$name: and answers into it", parts.iconDrawable, (after[icon + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: right before the icon's call", "${before[parts.icon].methodRef()}", "${after[icon + 2].methodRef()}")
+        val kept = after.indices.filter { after[it].referenceText() == CLEAR_MODE_EXIT_PART }
+        assertEquals("$name: the circle and the tap", 2, kept.size)
+        val (circle, tap) = kept
+        assertEquals("$name: the circle's hook right after its move-result", "${before[parts.circle].methodRef()}", "${after[circle - 2].methodRef()}")
+        assertCall("$name: the circle's hook", after[circle], CLEAR_MODE_EXIT_PART, listOf(parts.circleBefore, parts.circleAnswer))
+        assertEquals("$name: the tap's hook right after its move-result", "${before[parts.tap].methodRef()}", "${after[tap - 2].methodRef()}")
+        assertCall("$name: the tap's hook", after[tap], CLEAR_MODE_EXIT_PART, listOf(parts.tapBefore, parts.tapAnswer))
+        assertEquals("$name: the tap's hook goes before the icon's", icon - 3, tap)
+        for ((at, answer) in listOf(circle to parts.circleAnswer, tap to parts.tapAnswer)) {
+            assertEquals("$name: the part's answer", Opcode.MOVE_RESULT_OBJECT, after[at + 1].opcode)
+            assertEquals("$name: into the part's register", answer, (after[at + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$name: cast back", Opcode.CHECK_CAST, after[at + 2].opcode)
+            assertEquals("$name: to the modifier", parts.modifier, after[at + 2].type())
+        }
+        val unhooked = after.filterIndexed { at, _ -> at !in (icon..icon + 1) && at !in (circle..circle + 2) && at !in (tap..tap + 2) }
+        assertEquals("$name: nothing else in the render changes", before.map { it.opcode }, unhooked.map { it.opcode })
+    }
+
+    private fun Method.sameAs(load: FlagLoad) =
+        name == load.name && returnType == load.returnType && parameterTypes.map(CharSequence::toString) == load.parameters
+
+    /** Hide the exit button in clear mode (#744): every hook it and Pinch for clear mode write is in the extension, public and static. */
+    @Test
+    fun thePinchHooksAreInTheExtension() {
+        val declared = ExtensionDex.classDef(REEL_PINCH_CLEAR_MODE).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        val stubs = listOf(
+            "$REEL_PINCH_CLEAR_MODE->$PINCH_CLEAR_MODE_STATE_STUB($anyType${anyType}Z)V",
+            "$REEL_PINCH_CLEAR_MODE->$PINCH_CLEAR_MODE_PUT_STUB($anyType$anyType$anyType${anyType}Z)V",
+        )
+        for (hook in listOf(PINCH_CLEAR_MODE, PINCH_CLEAR_MODE_TURN, PINCH_CLEAR_MODE_WRITE, CLEAR_MODE_EXIT_ICON, CLEAR_MODE_EXIT_PART) + stubs) {
+            assertTrue("$hook is not in the extension: $declared", hook in declared)
+        }
+    }
+
+    /** A render shaped like 456's exit button, with [tapAnswer] and the instructions in [between] the tap and the icon. */
+    private fun exitRender(tapAnswer: Int = 4, between: String = "", icons: Int = 1, jumpToIcon: Boolean = false): Method {
+        val shapes = "Lfixture/Shapes;"
+        val modifier = "Lfixture/Modifier;"
+        val drawable = EXIT_BUTTON_DRAWABLE
+        return method(button, "render", listOf(modifier), "Lfixture/Node;", 9, """
+            const/4 v0, 0x0
+            const/4 v1, 0x0
+            const/4 v2, 0x0
+            ${if (jumpToIcon) "if-eqz v0, :icon" else "nop"}
+            invoke-static { v2, v8 }, $shapes->circle($drawable$modifier)$modifier
+            move-result-object v3
+            invoke-static { v3, v0 }, $shapes->tap(${modifier}Lkotlin/jvm/functions/Function1;)$modifier
+            move-result-object v$tapAnswer
+            $between
+            :icon
+            ${"invoke-static { v1, v$tapAnswer }, $shapes->icon($drawable$modifier)Lfixture/Node;\n".repeat(icons)}
+            move-result-object v5
+            return-object v5
+        """)
+    }
+
+    /** The exit button's parts are read where 456 has them, and a render shaped any other way is refused. */
+    @Test
+    fun theExitButtonsPartsAreFoundOnlyWhereTheyFit() {
+        val parts = exitRender().exitButtonParts()
+        assertEquals("the icon", 8, parts.icon)
+        assertEquals("its drawable", 1, parts.iconDrawable)
+        assertEquals("the circle", 4, parts.circle)
+        assertEquals("its answer", 3, parts.circleAnswer)
+        assertEquals("the modifier handed to it", 8, parts.circleBefore)
+        assertEquals("the tap", 6, parts.tap)
+        assertEquals("its answer", 4, parts.tapAnswer)
+        assertEquals("the modifier handed to it", 3, parts.tapBefore)
+        assertEquals("Lfixture/Modifier;", parts.modifier)
+        for ((render, why) in listOf(
+            exitRender(tapAnswer = 3) to "writes a modifier over the one it was handed",
+            exitRender(between = "move-object v4, v3") to "doesn't get its modifier straight from the call adding its tap",
+            exitRender(icons = 2) to "expected one call building the exit button's icon, found 2",
+            exitRender(jumpToIcon = true) to "jumps into a place a hook goes",
+        )) {
+            val refused = assertThrows(PatchException::class.java) { render.exitButtonParts() }
+            assertTrue("${refused.message} isn't why: $why", refused.message!!.contains(why))
+        }
+    }
+
+    /** The methods both ways of finding clear mode hook the same way, and the turn-off's runs where it's inlined. */
     private class Sites(
-        val dismiss: Method,
+        val dismiss: Method?,
         val enabled: Method,
         val paged: Method,
         val render: Method,
         val chrome: Method,
         val scrolled: Method,
         val setup: Method,
+        val inlined: InlinedTurnOff? = null,
     )
 
     /**
@@ -796,17 +1032,32 @@ class ClearModeHookTest {
 
         // The turn-off: this, the reel and the reason, right after the action's call, and the branch
         // around a missing action lands past the hook.
-        val newDismiss = after(dismiss)
-        assertEquals("$name: the turn-off grew", dismiss.code().size + 1, newDismiss.size)
-        val left = newDismiss.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
-        val dismissThis = dismiss.implementation!!.registerCount - 3
-        assertEquals(
-            "$name: the turn-off hands over this, the reel and the reason",
-            listOf(dismissThis, dismissThis + 1, dismissThis + 2),
-            newDismiss[left].registers(),
-        )
-        assertEquals("$name: the turn-off's action comes just before", "invoke", newDismiss[left - 1].methodRef()?.name)
-        assertEquals("$name: a missing action skips the turn-off's hook", left + 1, newDismiss.target(newDismiss.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+        if (dismiss == null) {
+            inlinedTurnOff(context, name, sites.inlined, handlerType)
+        } else {
+            val newDismiss = after(dismiss)
+            assertEquals("$name: the turn-off grew", dismiss.code().size + 1, newDismiss.size)
+            val left = newDismiss.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
+            val dismissThis = dismiss.implementation!!.registerCount - 3
+            assertEquals(
+                "$name: the turn-off hands over this, the reel and the reason",
+                listOf(dismissThis, dismissThis + 1, dismissThis + 2),
+                newDismiss[left].registers(),
+            )
+            assertEquals("$name: the turn-off's action comes just before", "invoke", newDismiss[left - 1].methodRef()?.name)
+            assertEquals("$name: a missing action skips the turn-off's hook", left + 1, newDismiss.target(newDismiss.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+            // The extension takes a reel out of clear mode for a pinch through that same turn-off (#744).
+            val reasonType = dismiss.parameterTypes[1].toString()
+            val leave = context.method(CLEAR_MODE, CLEAR_MODE_LEAVE_STUB)
+            assertEquals(
+                "$name: the leave stub",
+                listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+                leave.take(5).map { it.opcode },
+            )
+            assertEquals("$name: the leave stub casts", listOf(handlerType, itemType, reasonType), leave.take(3).map { it.type() })
+            assertEquals("$name: the leave stub runs the turn-off", "$handlerType->${dismiss.name}($itemType$reasonType)V", leave[3].referenceText())
+            assertEquals("$name: with the handler, the reel and the reason", listOf(0, 1, 2), leave[3].registers())
+        }
 
         // The viewer's turn-on: the reel read off the pager goes through the extension and comes back
         // in the same register, cast to the reel, in front of Instagram's own test, and no reel only returns.
@@ -929,6 +1180,59 @@ class ClearModeHookTest {
             listOf((newSetup[ready - 1] as TwoRegisterInstruction).registerB),
             newSetup[ready].registers(),
         )
+    }
+
+    /**
+     * 457's armeabi-v7a (386314340), which inlines the handler's turn-off into its callers: right after
+     * each caller's run of the turn-off action, the hook with the handler the action was read off, the
+     * reel and the reason the action got, a missing action's branch landing elsewhere. Where the
+     * action's read writes over the handler, the handler is copied into another local right before
+     * it. The leave stub runs the action the same way, then tells the extension, for a pinch (#744).
+     */
+    private fun inlinedTurnOff(context: BytecodePatchContext, name: String, inlined: InlinedTurnOff?, handlerType: String) {
+        assertTrue("$name: no turn-off and no runs of its action", inlined != null && inlined.runs.isNotEmpty())
+        for (run in inlined!!.runs) {
+            val where = "$name: ${run.method.definingClass}->${run.method.name}"
+            val now = context.now(run.method)
+            assertEquals(
+                "$where: grew",
+                run.method.code().count { it.opcode != Opcode.NOP } + if (run.copy == null) 1 else 2,
+                now.count { it.opcode != Opcode.NOP },
+            )
+            assertEquals("$where: hooked once", 1, now.count { it.referenceText() == CLEAR_MODE_LEFT })
+            val left = now.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
+            assertEquals("$where: the action's call comes just before", inlined.call, now[left - 1].referenceText())
+            val handed = now[left - 1].registers()
+            assertEquals("$where: a missing action is tested", Opcode.IF_EQZ, now[left - 2].opcode)
+            assertTrue("$where: a missing action skips the hook", now.target(left - 2) != left)
+            val read = now[left - 3] as TwoRegisterInstruction
+            assertEquals("$where: the action is read off the handler", inlined.action, now[left - 3].referenceText())
+            assertEquals("$where: the action read is the one run", handed[0], read.registerA)
+            val (reason, reel) = if (inlined.reasonFirst) handed[1] to handed[2] else handed[2] to handed[1]
+            val handler = if (run.copy == null) {
+                read.registerB
+            } else {
+                val copy = now[left - 4] as TwoRegisterInstruction
+                assertTrue("$where: the handler is copied", now[left - 4].opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16))
+                assertEquals("$where: from the register the action is read off", read.registerB, copy.registerB)
+                assertTrue("$where: into a register nothing here uses", copy.registerA != read.registerB && copy.registerA !in handed)
+                copy.registerA
+            }
+            assertEquals("$where: the hook hands over the handler, the reel and the reason", listOf(handler, reel, reason), now[left].registers())
+        }
+        val leave = context.method(CLEAR_MODE, CLEAR_MODE_LEAVE_STUB)
+        assertEquals(
+            "$name: the leave stub",
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID),
+            leave.take(6).map { it.opcode },
+        )
+        assertEquals("$name: the leave stub casts to the handler", handlerType, leave[0].type())
+        assertEquals("$name: the leave stub reads the turn-off action", inlined.action, leave[1].referenceText())
+        assertEquals("$name: and runs it", inlined.call, leave[3].referenceText())
+        assertEquals("$name: with the reason and the reel", if (inlined.reasonFirst) listOf(0, 3, 2) else listOf(0, 2, 3), leave[3].registers())
+        assertEquals("$name: then tells the extension", CLEAR_MODE_LEFT, leave[4].referenceText())
+        assertEquals("$name: with the handler, the reel and the reason", listOf(1, 2, 3), leave[4].registers())
+        assertEquals("$name: no action skips both", 5, leave.target(2))
     }
 
     /** [method]'s code as the context has it now. */

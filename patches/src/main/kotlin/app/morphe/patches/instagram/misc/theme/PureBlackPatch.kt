@@ -47,6 +47,15 @@ internal val BLACK_BACKGROUNDS = setOf(
 internal const val PRISM_BLACK_COLOR = "@color/igds_prism_black"
 
 /**
+ * The colors one decoded values/colors.xml gives Prism's black, #ff0c1014, as styles name them. 457
+ * folds igds_prism_black into camera_settings_background, a color of the same value, so its styles
+ * name that instead of [PRISM_BLACK_COLOR].
+ */
+internal fun prismBlackColors(colors: String): Set<String> =
+    Regex("""<color name="([^"]+)">#(?:ff)?0c1014</color>""", RegexOption.IGNORE_CASE).findAll(colors)
+        .mapTo(linkedSetOf()) { "@color/${it.groupValues[1]}" }
+
+/**
  * A stock color that's #ff000000 already. Setting igds_prism_black itself would have the patcher
  * re-encode the color table, and that breaks the color state lists Instagram shares between two
  * entries (on 449 three of them named files the patched APK didn't have).
@@ -75,28 +84,33 @@ internal val COMPOSE_PALETTES = listOf(
 internal const val SHEET_BACKGROUND = "igds_color_elevated_background"
 
 /**
- * The dark theme's styles that set [SHEET_BACKGROUND]: Prism's dark palette, and the two overlays
- * Instagram lays over it when its gray overrides are on, the last of which wins. The light theme's
- * sheets are white already and have no style here. The patch fails unless all three change.
+ * The dark theme's styles that set [SHEET_BACKGROUND]: Prism's dark palette, the two overlays
+ * Instagram lays over it when its gray overrides are on, the last of which wins, and the base dark
+ * palette Prism's inherits from. An install Instagram doesn't give Prism (a second copy from Install
+ * next to Instagram showed it) reads the base one, bds_grey_9, #ff262626 (#835). The light theme's
+ * sheets are white already and have no style here. The patch fails unless all four change.
  */
 internal val DARK_SHEETS = listOf(
     "IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark", "IgdsElevatedBackgroundFixDark",
+    "IgdsSemanticColorsDark",
 )
 
 /**
  * The theme attribute the story viewer's root (reel_viewer_root) fills with, which shows in the
  * strip above a story and behind its reply bar, and the color a story's picture shows while it
- * loads. Prism sets it to igds_prism_gray_09, #ff25292e, in both themes (#279).
+ * loads. Prism sets it to igds_prism_gray_09, #ff25292e, in both themes (#279); 457 names that gray
+ * camera_settings_secondary_background, a color of the same value it folded it into.
  */
 internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 
 /**
- * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette and its gray
- * overrides. The light theme's style keeps its gray. On 453 a test account's viewer draws [PRISM_BLACK]
- * in those bands in both themes, without Pure black, and [PURE_BLACK] with it (#322). The patch fails
- * unless both change.
+ * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette, its gray overrides,
+ * and the base dark palette an install without Prism reads, bds_grey_9 there (#835). The light
+ * theme's style keeps its gray. On 453 a test account's viewer draws [PRISM_BLACK] in those bands
+ * in both themes, without Pure black, and [PURE_BLACK] with it (#322). The patch fails unless all
+ * three change.
  */
-internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
+internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark", "IgdsSemanticColorsDark")
 
 /**
  * The theme attribute the menu you get by holding a message or a chat in the inbox fills with
@@ -111,6 +125,23 @@ internal const val MENU_BACKGROUND = "igds_context_menu_background_color"
  * patch fails unless both change.
  */
 internal val DARK_MENUS = listOf("IgdsPrismBGBlurFallbackFixDark", "IgdsSemanticColorsDark")
+
+/**
+ * The theme attributes Instagram's toasts and snackbars fill with, the bars that pop up at the bottom
+ * to say something was done (#816): the 95% gray most of them use (igds_prism_toast_95_alpha_background,
+ * #f2212328 on 456), its see-through 50% twin under a blur (igds_prism_toast_background), and the
+ * gray the older bar and a photo's tags share (ig_toast_background, #f225292e).
+ */
+internal val TOAST_BACKGROUNDS = listOf(
+    "igds_color_toast_95_alpha_background", "igds_color_toast_background", "igds_color_tag_or_toast_background",
+)
+
+/**
+ * The dark theme's styles that set [TOAST_BACKGROUNDS]: the base dark palette sets all three, and
+ * Prism's dark palette sets the older bar's again. The light theme's bars keep Instagram's dark gray.
+ * The patch fails unless each of the three changes.
+ */
+internal val DARK_TOASTS = listOf("IgdsSemanticColorsDark", "IgdsPrismSemanticColorsExperimentDark")
 
 /**
  * The dark theme Instagram's newer comments screen wraps itself in (#538). It sets the screen's and
@@ -189,15 +220,16 @@ internal fun blackenLaunchScreen(styles: Document): Int {
 
 /**
  * Points each of [BLACK_BACKGROUNDS] that a style in one decoded styles.xml sets to
- * [PRISM_BLACK_COLOR] at [PURE_BLACK_COLOR] instead, and answers the styles it changed.
+ * [PRISM_BLACK_COLOR], or another of [blacks] ([prismBlackColors]), at [PURE_BLACK_COLOR] instead,
+ * and answers the styles it changed.
  */
-internal fun blackenStyles(styles: Document): List<String> {
+internal fun blackenStyles(styles: Document, blacks: Set<String> = setOf(PRISM_BLACK_COLOR)): List<String> {
     val list = styles.getElementsByTagName("style")
     val changed = mutableListOf<String>()
     for (style in (0 until list.length).map { list.item(it) as Element }) {
         val items = style.getElementsByTagName("item")
         val black = (0 until items.length).map { items.item(it) as Element }.filter { item ->
-            item.getAttribute("name").substringAfter(':') in BLACK_BACKGROUNDS && item.textContent.trim() == PRISM_BLACK_COLOR
+            item.getAttribute("name").substringAfter(':') in BLACK_BACKGROUNDS && item.textContent.trim() in blacks
         }
         black.forEach { it.textContent = PURE_BLACK_COLOR }
         if (black.isNotEmpty()) changed += style.getAttribute("name")
@@ -225,6 +257,14 @@ internal fun blackenStories(styles: Document): List<String> = blackenAttribute(s
  * text keep their colors.
  */
 internal fun blackenMenus(styles: Document): List<String> = blackenAttribute(styles, MENU_BACKGROUND, DARK_MENUS)
+
+/**
+ * Points each of [TOAST_BACKGROUNDS] at [PURE_BLACK_COLOR] in each of [DARK_TOASTS] that one decoded
+ * styles.xml holds, and answers the attributes it changed. A bar's text, icon and button keep their
+ * colors.
+ */
+internal fun blackenToasts(styles: Document): List<String> =
+    TOAST_BACKGROUNDS.filter { blackenAttribute(styles, it, DARK_TOASTS).isNotEmpty() }
 
 /**
  * Points each of [COMMENT_BACKGROUNDS] at [PURE_BLACK_COLOR] in [COMMENT_COLORS] if one decoded
@@ -331,7 +371,7 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 /**
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
  * [blackenSheets] owns, the story viewer [blackenStories] owns, the held-message menu
- * [blackenMenus] owns, the comments theme [blackenComments] owns and the dark launch screen
+ * [blackenMenus] owns, the toasts [blackenToasts] owns, the comments theme [blackenComments] owns and the dark launch screen
  * [blackenLaunchScreen] owns, and into the Likes row's own attribute [blackenRowStyles] owns, which
  * the row [routeRow] owns fills with from then on. Only that row's file, values/attrs.xml, the styles
  * files that name [PRISM_BLACK_COLOR] or [ROW_BACKGROUND] and the night ones naming
@@ -357,10 +397,12 @@ internal fun ResourcePatchContext.blackenThemes() {
     ) {
         throw PatchException("$PATCH: $PURE_BLACK_COLOR is no longer #%08x".format(PURE_BLACK))
     }
+    val blacks = setOf(PRISM_BLACK_COLOR) + prismBlackColors(colors.readText())
     val backgrounds = mutableListOf<String>()
     val sheets = mutableListOf<String>()
     val stories = mutableListOf<String>()
     val menus = mutableListOf<String>()
+    val toasts = mutableListOf<String>()
     val comments = mutableListOf<String>()
     val launchScreens = mutableListOf<String>()
     val rowStyles = mutableListOf<String>()
@@ -368,16 +410,17 @@ internal fun ResourcePatchContext.blackenThemes() {
         val file = File(directory, "styles.xml")
         if (!file.isFile) return@forEach
         val text = file.readText()
-        val palettes = PRISM_BLACK_COLOR in text
+        val palettes = blacks.any { it in text }
         val launch = isNightValues(directory.name) && SPLASH_BACKGROUND_COLOR in text
         val row = ROW_BACKGROUND in text
         if (!palettes && !launch && !row) return@forEach
         document("res/${directory.name}/styles.xml").use { styles ->
             if (palettes) {
-                backgrounds += blackenStyles(styles)
+                backgrounds += blackenStyles(styles, blacks)
                 sheets += blackenSheets(styles)
                 stories += blackenStories(styles)
                 menus += blackenMenus(styles)
+                toasts += blackenToasts(styles)
                 comments += blackenComments(styles)
             }
             if (row) rowStyles += blackenRowStyles(styles)
@@ -387,7 +430,7 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (rowStyles.isEmpty()) throw PatchException("$PATCH: no style sets $ROW_BACKGROUND for $ROW_ATTRIBUTE to follow")
     val missing = DARK_PALETTES - backgrounds.toSet()
     if (missing.isNotEmpty()) {
-        throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to $PRISM_BLACK_COLOR")
+        throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to ${blacks.joinToString(" or ")}")
     }
     val gray = DARK_SHEETS - sheets.toSet()
     if (gray.isNotEmpty()) throw PatchException("$PATCH: ${gray.joinToString()} no longer set $SHEET_BACKGROUND")
@@ -395,6 +438,8 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (grayStories.isNotEmpty()) throw PatchException("$PATCH: ${grayStories.joinToString()} no longer set $STORY_BACKGROUND")
     val grayMenus = DARK_MENUS - menus.toSet()
     if (grayMenus.isNotEmpty()) throw PatchException("$PATCH: ${grayMenus.joinToString()} no longer set $MENU_BACKGROUND")
+    val grayToasts = TOAST_BACKGROUNDS - toasts.toSet()
+    if (grayToasts.isNotEmpty()) throw PatchException("$PATCH: ${DARK_TOASTS.joinToString()} no longer set ${grayToasts.joinToString()}")
     val grayComments = COMMENT_BACKGROUNDS - comments.toSet()
     if (grayComments.isNotEmpty()) throw PatchException("$PATCH: $COMMENT_COLORS no longer sets ${grayComments.joinToString()}")
     if (launchScreens.none { "v31" in it.split('-') }) {

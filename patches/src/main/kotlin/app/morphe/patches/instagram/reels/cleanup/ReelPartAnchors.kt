@@ -46,15 +46,20 @@ internal val RENDER_STRINGS = mapOf(
     "ProductTagCTAComponent_render" to "product_tag_cta_component",
     "RelatedAdsPivotCTAComponent_render" to "Shop with Muse",
     "ShopLensCtaComponent_render" to "ShopLensCta",
+    // 457 dropped the bar's render marker; its render still names the card it opens.
+    "ShopLensBarCtaComponent_render" to "ShopNowCardCta",
     "ShopLensPausePillComponent_render" to "ShopLensPausePill",
     "ClipsFriendlyViewerComponent_render" to "clips_friendly_viewer_component",
+    // 457 dropped the comment preview's render marker; its render still names its text component.
+    "ClipsInlineCommentSocialContextComponent_render" to "clips_inline_comment_text_component",
 )
 
 /** Parts whose render is the one loading a resource id or a flag of its own, by marker. */
 internal val RENDER_LITERALS = mapOf(
-    "ClipsFollowButtonComponent_render" to 0x8112950000677bL,
-    "ClipsMetaAiPillComponent_render" to 0x7f0801d5L,
-    "PollCTAComponent_render" to 0x7f1102e7L,
+    // 457 moved it from 456's 0x8112950000677b.
+    "ClipsFollowButtonComponent_render" to 0x81126f00006726L,
+    "ClipsMetaAiPillComponent_render" to 0x7f0801deL,
+    "PollCTAComponent_render" to 0x7f1102f5L,
 )
 
 private const val SUBSCRIPTION = "SubscriptionCtaButtonComponent_render"
@@ -68,12 +73,12 @@ private const val BUBBLES_CHECK = "ClipsInfoOverlayUseCase_shouldShowFloatingBub
 internal const val AUTHOR_INFO = "clips_author_info_component"
 
 /** The affiliate pill's icon, which the product tag's render loads too; only the affiliate's reads the affiliate info. */
-internal const val AFFILIATE_ICON = 0x7f0829e8L
+internal const val AFFILIATE_ICON = 0x7f08131fL
 internal const val AFFILIATE_INFO = "Lcom/instagram/api/schemas/ProductAffiliateInformationDict;"
 
 /** The Ray-Ban Meta glasses icon of the shop pills, and the semi-transparent pills' background. */
-internal const val GLASSES_ICON = 0x7f082479L
-internal const val SEMI_BACKGROUND = 0x7f08053fL
+internal const val GLASSES_ICON = 0x7f080e0cL
+internal const val SEMI_BACKGROUND = 0x7f080559L
 
 /** The dwell CTA's text, which two renders load: the shopping CTA's keeps four fields, the other many more. */
 internal const val DWELL_CTA = "trans_key_dwell_cta"
@@ -83,7 +88,7 @@ private const val SHOPPING_CTA_FIELDS = 4
 internal const val INFO_OVERLAY = "clips_info_overlay_component"
 
 /** The clips UFI's render loads this id, right before it builds the share count. */
-internal const val UFI_ID = 0x7f0b3b7aL
+internal const val UFI_ID = 0x7f0b3b57L
 internal const val LIKE_BUTTON = "like_button"
 internal const val COMMENT_BUTTON_NAME = "comment_button"
 internal const val SAVE_BUTTON = "save_button"
@@ -238,9 +243,24 @@ internal class ReelPartFinder(private val context: BytecodePatchContext) {
             COMMENT_BAR_SHOW -> controllerMethods(holding(COMMENT_BAR_CREATED)).filter { it.loadsLiteral(COMMENT_BAR_SHOWN) }
             COMMENT_BAR_HIDE -> commentBarHide()
             DIRECT_REPLY_BAR_CREATED -> methodsLoading(DIRECT_REPLY_BAR_NAME).filter { it.name == "onViewCreated" }
-            DIRECT_REPLY_BAR_SHOW -> found[SPOTLIGHT_REPLY_BAR_SHOW].orEmpty()
-            DIRECT_REPLY_BAR_HIDE -> found[SPOTLIGHT_REPLY_BAR_HIDE].orEmpty()
+            DIRECT_REPLY_BAR_SHOW -> directReplyBarOverride(found[SPOTLIGHT_REPLY_BAR_SHOW].orEmpty())
+            DIRECT_REPLY_BAR_HIDE -> directReplyBarOverride(found[SPOTLIGHT_REPLY_BAR_HIDE].orEmpty())
             else -> throw PatchException("it has none")
+        }
+    }
+
+    /**
+     * The direct reply bar's show or hide, when Redex purged its marker: the controller's own override
+     * of the Spotlight reply bar's [spotlight] method when it has one (456.1's armeabi-v7a build), or
+     * else the Spotlight's, which Redex merged with the direct one's into the class both extend.
+     */
+    private fun directReplyBarOverride(spotlight: List<Method>): List<Method> {
+        val controller = holding(DIRECT_REPLY_BAR_CREATED).definingClass
+        return spotlight.map { merged ->
+            context.classDefByOrNull(controller)?.methods?.firstOrNull {
+                it.name == merged.name && it.returnType == merged.returnType && it.implementation != null &&
+                    it.parameterTypes.map(Any::toString) == merged.parameterTypes.map(Any::toString)
+            } ?: merged
         }
     }
 

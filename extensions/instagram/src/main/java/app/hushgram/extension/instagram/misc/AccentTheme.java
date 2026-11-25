@@ -5,16 +5,27 @@
 package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.util.TypedValue;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -72,6 +83,21 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * too. Litho trees, the feed's post buttons among them, read their icon colors from the theme of the
  * context they're built on, which isn't always one the overrides or the theme util reached, so the
  * icon style also goes onto each such theme as Litho takes it up ({@link #lithoIcons}, #724).
+ *
+ * <p>With {@link Settings#ACCENT_TEXT} on under it, the picked color's text style goes on after the
+ * icon style, wherever that does (#187). It points {@code igds_color_primary_text} and
+ * {@code igds_color_text_and_icon_primary} at the same link shade, so names, captions and titles take
+ * it. Secondary text stays gray.
+ *
+ * <p>With {@link Settings#ACCENT_PILLS} on, Saved's filters take the picked color through
+ * {@link #savedFilter} as each gets its background (#187): the outlined ones a border and title in the
+ * link shade, the selected one the picked fill.
+ *
+ * <p>With {@link Settings#ACCENT_REELS} on, the buttons beside a reel and their counts take the picked
+ * color (#187). The column reads one color for its counts, white over the video, and builds its buttons
+ * with no color filter for their white icons there, so the color goes through {@link #reelButtons(int)}
+ * as the column reads it and each button's filter through {@link #reelButtons(ColorFilter)} as the
+ * column builds the button.
  *
  * <p>With {@link Settings#ACCENT_RINGS} on, the picked color's ring style goes on (#187). It points the
  * {@code igds_color_gradient_*} attributes Instagram's story rings read at the picked shades. Other
@@ -134,6 +160,49 @@ public final class AccentTheme {
 
     /** What's counted each time a tab's icon is told a color and takes the picked one instead (#663). */
     static final String TAB_ICONS = "Tab icons given the accent color";
+
+    /** What's counted each time a reel's button column takes the picked color for its counts or icons (#187). */
+    static final String REEL_BUTTONS = "Reel buttons given the accent color";
+
+    /** What's counted each time a top bar's icon, a profile tab or the Search tab's Saved bookmark takes the picked color (#187). */
+    static final String BAR_ICONS = "Top bar and profile tab icons given the accent color";
+
+    /** Counted each time the text style goes onto a theme. */
+    static final String TEXT = "themes given accent text";
+
+    /** Counted when Text in the accent color is on but the build has no text styles. */
+    static final String TEXT_MISSING = "themes left with Instagram's text color, the text styles are missing";
+
+    /** Counted each time one of Saved's filters takes the accent. */
+    static final String PILLS = "Saved filters given the accent color";
+
+    /**
+     * The background Saved's filters are given: a selector of two pills, the one you're on filled with
+     * Instagram's secondary button color and the others outlined 1.25dp in its stroke color.
+     */
+    static final String SAVED_TAB = "saved_tab_background";
+
+    /** The corner radius of those pills, round at their height. */
+    static final String CHIP_RADIUS = "igds_chip_radius";
+
+    /** The outlined pill's border width, as Instagram draws it. */
+    static final float PILL_STROKE_DP = 1.25f;
+
+    /** {@link #CHIP_RADIUS} as Instagram 457 has it, for a build without it. */
+    static final float CHIP_RADIUS_DP = 99f;
+
+    /** How far apart a color's channels can be for {@link #barIcons(int)} to take it for a gray. */
+    static final int NEUTRAL_SPREAD = 0x18;
+
+    /**
+     * The brightness range {@link #barIcons(int)} reads as a tab you aren't on: Instagram's secondary
+     * icon gray, #737373 on a light screen and #a8a8a8 on a dark one, and not its near black or white.
+     */
+    static final int SECONDARY_LOW = 0x50;
+    static final int SECONDARY_HIGH = 0xd0;
+
+    /** The filters {@link #barIconFilter(int)} made, one per color, as the top bar's own maker keeps them. */
+    private static final Map<Integer, ColorFilter> BAR_FILTERS = new HashMap<>();
 
     /** What's counted each time a theme a Litho tree reads its colors from takes the icon style (#724). */
     static final String LITHO_ICONS = "Litho themes given accent icons";
@@ -213,6 +282,15 @@ public final class AccentTheme {
 
     /** What's counted each time a gray secondary button, Edit profile and Share profile among them, takes an accent background's shade (#187). */
     static final String SECONDARY_BUTTONS = "Secondary buttons given accent backgrounds";
+
+    /** What's counted each time an opened chat's black or white background or header takes the page shade (#528). */
+    static final String CHAT_BACKGROUNDS = "Chat backgrounds and headers given the page shade";
+
+    /** The key Instagram keeps its Dark mode choice under in its default preferences, -1 for the system's. */
+    static final String DARK_MODE_KEY = "dark_mode_toggle_setting";
+
+    /** {@link #DARK_MODE_KEY}'s value for Dark mode on, and for off. */
+    static final int DARK_MODE_ON = 2, DARK_MODE_OFF = 1;
 
     /** The theme attribute Instagram's other secondary buttons read their fill from, the first of the patch's SECONDARY_BUTTONS. */
     static final String SECONDARY_BUTTON_ATTRIBUTE = "igds_color_secondary_button_panavision";
@@ -376,12 +454,14 @@ public final class AccentTheme {
         }
         if (Settings.ACCENT_ICONS.get()) {
             int attr = id(resources, ICON_ATTRIBUTE, "attr", app);
-            int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, attr)), "style", app);
+            boolean dark = attr != 0 && dark(context, theme, attr);
+            int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark), "style", app);
             if (icons == 0) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
             } else {
                 theme.applyStyle(icons, true);
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
+                applyText(resources, theme, app, hue, dark);
             }
         }
         if (Settings.ACCENT_RINGS.get()) {
@@ -458,23 +538,76 @@ public final class AccentTheme {
      * either. Answers [value] itself for any other color. Never throws.
      */
     public static long composeSurface(long value) {
+        return composeSurface(value, null);
+    }
+
+    /**
+     * {@link #composeSurface(long)}, reading the shades from the styles through [context] (the app's when
+     * null) when no theme has been styled yet. See {@link #styledSurfaces}.
+     */
+    static long composeSurface(long value, @Nullable Context context) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             if ((value & 0xffffffffL) != 0) return value;
             int argb = (int) (value >>> 32);
             int step = surfaceStep(argb & 0xffffff);
-            int[] surfaces = paintedSurfaces();
-            if (step < 0) {
-                step = lightStep(argb & 0xffffff);
-                surfaces = paintedLightSurfaces();
-            }
-            if (step < 0 || surfaces == null) return value;
+            boolean dark = step >= 0;
+            if (!dark) step = lightStep(argb & 0xffffff);
+            if (step < 0) return value;
+            int[] surfaces = dark ? paintedSurfaces() : paintedLightSurfaces();
+            if (surfaces == null) surfaces = styledSurfaces(context, dark);
+            if (surfaces == null) return value;
             HookStatus.counted(FamilyNames.ACCENT_COLOR, SURFACES);
             return (long) (argb & 0xff000000 | surfaces[step] & 0xffffff) << 32;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
             return value;
         }
+    }
+
+    /**
+     * The shades a [dark] theme or a light one takes from Classic colors' style, or from the picked
+     * color's backgrounds, read from the style alone through [context] (the app's when null) and kept as
+     * {@link #rememberSurfaces} keeps a styled theme's. Instagram builds its Compose palettes on a thread
+     * of its own as it starts, while the first screen's theme is still being styled, so the first grays
+     * they asked for were answered as Instagram's own and the Messages rows stayed black all session
+     * (#528). Only for the kind of screen the app will show, since a light screen writes its text in
+     * the dark grays, and not for Material You's or a typed color, whose shades load with the first
+     * screen. Null when none of that holds or the style can't be read.
+     */
+    @Nullable
+    static int[] styledSurfaces(@Nullable Context context, boolean dark) {
+        if (!Utils.settingsReady()) return null;
+        Context app = context != null ? context : Utils.getContext();
+        if (app == null || showsDark(app) != dark) return null;
+        Resources resources = app.getResources();
+        String style = null;
+        if (Settings.CLASSIC_COLORS.get()) {
+            style = classicStyle(dark);
+        } else if (dark && Settings.ACCENT_BACKGROUNDS.get()) {
+            AccentHue hue = AccentColor.picked();
+            if (hue != null && hue != AccentHue.WALLPAPER && hue != AccentHue.CUSTOM) style = backgroundStyle(hue, true);
+        }
+        if (style == null) return null;
+        String pkg = Utils.resourcePackage(app);
+        int id = id(resources, style, "style", pkg);
+        if (id == 0) return null;
+        Resources.Theme theme = resources.newTheme();
+        theme.applyStyle(id, true);
+        rememberSurfaces(resources, theme, pkg, dark);
+        return dark ? paintedSurfaces() : paintedLightSurfaces();
+    }
+
+    /**
+     * Instagram's own Dark mode choice, kept in its default preferences under {@link #DARK_MODE_KEY}:
+     * {@link #DARK_MODE_ON} or {@link #DARK_MODE_OFF}, else the system's. Each screen lays it on as it
+     * opens, so the app's configuration still holds the system's while the palettes are built.
+     */
+    static boolean showsDark(Context app) {
+        int mode = app.getSharedPreferences(app.getPackageName() + "_preferences", Context.MODE_PRIVATE).getInt(DARK_MODE_KEY, -1);
+        if (mode == DARK_MODE_ON) return true;
+        if (mode == DARK_MODE_OFF) return false;
+        return (app.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     }
 
     /**
@@ -521,6 +654,87 @@ public final class AccentTheme {
 
     /** Meta's blue on a light screen and on a dark one. */
     private static final int META_BLUE_ON_LIGHT = 0x0064e0, META_BLUE_ON_DARK = 0x0082fb;
+
+    /**
+     * Injected where an opened chat hands its background to the view behind the messages, with the
+     * layers Instagram built from the chat's theme (#528). The default theme paints the page a plain
+     * black, or white on a light screen, and the strip behind the status bar the header's black, both
+     * taken from the chat theme and not from Instagram's theme, so Classic colors and Backgrounds in the
+     * accent color left the chat black under a colored page. With either painting, each plain layer of
+     * Instagram's page black takes the dark page shade, and with Classic colors on, each white one takes
+     * the light page shade, the way {@link #composeSurface} answers Compose's. The strip's shape is
+     * copied, not changed, since Instagram keeps it for the next chat. A chat theme of its own (a
+     * gradient, a picture or another color) keeps its look. Changes nothing with the switches off,
+     * HushGram paused or anything thrown.
+     */
+    public static void chatBackground(@Nullable Drawable background) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (!(background instanceof LayerDrawable)) return;
+            LayerDrawable layers = (LayerDrawable) background;
+            boolean painted = false;
+            for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+                Drawable shaded = shaded(layers.getDrawable(i));
+                if (shaded == null) continue;
+                layers.setDrawable(i, shaded);
+                painted = true;
+            }
+            if (painted) HookStatus.counted(FamilyNames.ACCENT_COLOR, CHAT_BACKGROUNDS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "chat background", failure);
+        }
+    }
+
+    /** A copy of a plain color or a solid shape in [layer] holding the page shade {@link #chatShade} gives its color, or null for none. */
+    @Nullable
+    private static Drawable shaded(@Nullable Drawable layer) {
+        if (layer instanceof ColorDrawable) {
+            int color = ((ColorDrawable) layer).getColor();
+            int shade = chatShade(color);
+            return shade == color ? null : new ColorDrawable(shade);
+        }
+        if (!(layer instanceof ShapeDrawable)) return null;
+        Paint paint = ((ShapeDrawable) layer).getPaint();
+        int shade = chatShade(paint.getColor());
+        Drawable.ConstantState state = layer.getConstantState();
+        if (shade == paint.getColor() || paint.getShader() != null || state == null) return null;
+        Drawable copy = state.newDrawable().mutate();
+        if (!(copy instanceof ShapeDrawable) || copy == layer) return null;
+        ((ShapeDrawable) copy).getPaint().setColor(shade);
+        return copy;
+    }
+
+    /**
+     * Injected right after an opened chat's header row takes the header color of the chat's theme, with
+     * the header (#528). The default theme's header is a plain black, or white on a light screen, so
+     * it stayed black over a colored page. Gives a plain background of Instagram's page black or white
+     * the page shade, as {@link #chatBackground} does the strip above it. Changes nothing with the
+     * switches off, HushGram paused or anything thrown.
+     */
+    public static void chatHeader(@Nullable View header) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (header == null || !(header.getBackground() instanceof ColorDrawable)) return;
+            int color = ((ColorDrawable) header.getBackground()).getColor();
+            int shade = chatShade(color);
+            if (shade == color) return;
+            header.setBackgroundColor(shade);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CHAT_BACKGROUNDS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "chat header", failure);
+        }
+    }
+
+    /**
+     * The opaque page shade an opaque chat background of Instagram's page black or white takes while
+     * the backgrounds are painted, or [color] itself.
+     */
+    static int chatShade(int color) {
+        if (color >>> 24 != 0xff) return color;
+        int rgb = color & 0xffffff;
+        int[] surfaces = surfaceStep(rgb) == 0 ? paintedSurfaces() : lightStep(rgb) == 0 ? paintedLightSurfaces() : null;
+        return surfaces == null ? color : 0xff000000 | surfaces[0] & 0xffffff;
+    }
 
     /**
      * Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Meta's stands for, or -1: its menus' surface
@@ -764,7 +978,8 @@ public final class AccentTheme {
             String app = Utils.resourcePackage(context);
             int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
             int glyph = id(resources, GLYPH_ATTRIBUTE, "attr", app);
-            int style = icon == 0 || glyph == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, icon)), "style", app);
+            boolean dark = icon != 0 && glyph != 0 && dark(context, theme, icon);
+            int style = icon == 0 || glyph == 0 ? 0 : id(resources, iconStyle(hue, dark), "style", app);
             if (style == 0) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
                 return;
@@ -774,6 +989,7 @@ public final class AccentTheme {
             if (themeColor(theme, glyph) == styleColor(theme, style, glyph)) return;
             theme.applyStyle(style, true);
             HookStatus.counted(FamilyNames.ACCENT_COLOR, LITHO_ICONS);
+            applyText(resources, theme, app, hue, dark);
             Logger.printDebug(() -> "Accent color: icons on the Litho theme of " + context.getClass().getName());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Litho icons", failure);
@@ -927,12 +1143,224 @@ public final class AccentTheme {
         }
     }
 
+    /**
+     * Injected at the return of the method a reel's button column reads its color with, for the color
+     * it read, [color] (#187): the white Instagram writes the counts in over the video, or the theme's
+     * text color in the column's look under the video, which also tints its icons. With Reel buttons in
+     * the accent color on, answers the picked color's link shade for a dark screen when [color] reads
+     * light and its shade for a light screen when it reads dark, with [color]'s alpha, as
+     * {@link #tabIcons(int)} does for the tab bar. Answers [color] with the switch off, HushGram paused
+     * or anything thrown.
+     */
+    public static int reelButtons(int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_REELS.get()) return color;
+            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int buttons = (color & 0xff000000) | (shade & 0xffffff);
+            if (buttons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, REEL_BUTTONS);
+            return buttons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "reel buttons", failure);
+            return color;
+        }
+    }
+
+    /**
+     * Injected where a reel's button column builds each of its buttons, for the color filter the button
+     * is built with, [filter] (#187). Over the video the column builds them with none, so their icons
+     * keep the white they're drawn in. With Reel buttons in the accent color on, answers a filter that
+     * multiplies what an icon draws by the picked color's link shade for a dark screen: white turns into
+     * that shade, the dark shadow under an icon stays dark and a liked heart's red stays a red. A filter
+     * Instagram built is kept, since it's made from {@link #reelButtons(int)}'s answer. Answers [filter]
+     * with the switch off, HushGram paused or anything thrown.
+     */
+    @Nullable
+    public static ColorFilter reelButtons(@Nullable ColorFilter filter) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (filter != null) return filter;
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_REELS.get()) return null;
+            int shade = AccentColor.swap(LINK_ON_DARK, hue) & 0xffffff;
+            ReelFilter known = reelFilter;
+            if (known == null || known.shade != shade) {
+                known = new ReelFilter(shade, new LightingColorFilter(shade, 0));
+                reelFilter = known;
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, REEL_BUTTONS);
+            return known.filter;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "reel button icons", failure);
+            return filter;
+        }
+    }
+
+    /** The filter {@link #reelButtons(ColorFilter)} last made, kept with its shade so each icon shares it. */
+    @Nullable
+    private static volatile ReelFilter reelFilter;
+
+    /** A filter multiplying by [shade], an RGB with no alpha. */
+    private static final class ReelFilter {
+        final int shade;
+        final ColorFilter filter;
+
+        ReelFilter(int shade, ColorFilter filter) {
+            this.shade = shade;
+            this.filter = filter;
+        }
+    }
+
     /** {@link #tabIcons(int)} for the color a tab is told to use while it isn't selected, which comes boxed. Null stays null. */
     @Nullable
     public static Integer tabIcons(@Nullable Integer color) {
         if (color == null) return null;
         int icons = tabIcons(color.intValue());
         return icons == color ? color : Integer.valueOf(icons);
+    }
+
+    /**
+     * Injected where a screen's top bar colors its back arrow and buttons, and where a profile's
+     * Posts, Reels, Reposts and Tagged tabs are told their colors, for that color, [color] (#187). Both
+     * read Instagram's text and icon color, or a gray for a tab you aren't on, rather than the icon
+     * color the theme holds, so with Icons in the accent color on they stayed white or black. Answers
+     * the picked color's link shade for a dark screen when [color] reads light and its shade for a light
+     * screen when it reads dark, as {@link #tabIcons(int)} does. A gray in between keeps 60% of its
+     * alpha, so the tabs you aren't on stay dimmer than the one you are. A color of its own, like a red
+     * or Instagram's blue, and a see-through one are left as they are. Answers [color] with the switch
+     * off, HushGram paused or anything thrown.
+     */
+    public static int barIcons(int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            int alpha = color >>> 24;
+            if (hue == null || alpha == 0 || !neutral(color) || !Settings.ACCENT_ICONS.get()) return color;
+            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int brightness = brightness(color);
+            if (brightness >= SECONDARY_LOW && brightness <= SECONDARY_HIGH) alpha = alpha * 3 / 5;
+            int icons = (alpha << 24) | (shade & 0xffffff);
+            if (icons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
+            return icons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "bar icons", failure);
+            return color;
+        }
+    }
+
+    /**
+     * Injected in place of the top bar's own maker of the color filter it lays on its buttons, which
+     * keeps one SRC_ATOP filter per color (#187). Answers the same kind of filter for
+     * {@link #barIcons(int)}'s answer to [color], kept the same way, so with the switch off the bar gets
+     * the filter it always did.
+     */
+    public static ColorFilter barIconFilter(int color) {
+        int icons = barIcons(color);
+        synchronized (BAR_FILTERS) {
+            ColorFilter filter = BAR_FILTERS.get(icons);
+            if (filter == null) {
+                filter = new PorterDuffColorFilter(icons, PorterDuff.Mode.SRC_ATOP);
+                BAR_FILTERS.put(icons, filter);
+            }
+            return filter;
+        }
+    }
+
+    /**
+     * Injected in place of the top bar's ImageView.setColorFilter(int) on its back arrow (#187): lays
+     * {@link #barIcons(int)}'s answer to [color] on [view] the way that call does.
+     */
+    public static void setBarIconColor(ImageView view, int color) {
+        view.setColorFilter(barIcons(color));
+    }
+
+    /**
+     * Injected right after the Search tab's top bar makes its Saved bookmark, [view] (#187). The
+     * bookmark's drawable carries Instagram's text and icon color, so with Icons in the accent color on
+     * this lays the color [view]'s theme holds for {@link #ICON_ATTRIBUTE} over it. Leaves it alone with
+     * the switch off, HushGram paused, no plain color there or anything thrown.
+     */
+    public static void searchSaved(ImageView view) {
+        try {
+            Integer color = view == null ? null : iconColor(view.getContext());
+            if (color == null) return;
+            view.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "search saved", failure);
+        }
+    }
+
+    /**
+     * Injected where one of Saved's filters, [tab], is about to be given [background], the drawable
+     * Instagram just loaded for the id [id] (#187); the answer is given in its place. Saved's filters
+     * along the top (All, Collections, Reels and the rest) are tabs whose background is
+     * {@link #SAVED_TAB}: a selector filling the one you're on with Instagram's secondary button color
+     * and outlining the others in its stroke color, which other borders share, so no style can reach
+     * them alone. With Filters in the accent color on, the answer is the same two pills in the picked
+     * color: the outlined ones bordered in its link shade for the screen, the selected one filled
+     * with its fill. The tab's title follows, in the link shade, or white on the fill (black on a
+     * light one). Any other background, the switch off, HushGram paused or anything thrown answers
+     * [background] and leaves the tab as it is.
+     */
+    public static Drawable savedFilter(Drawable background, View tab, int id) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (background == null || tab == null || id == 0 || hue == null || !Settings.ACCENT_PILLS.get()) return background;
+            Context context = tab.getContext();
+            Resources resources = context.getResources();
+            String app = Utils.resourcePackage(context);
+            if (id != id(resources, SAVED_TAB, "drawable", app)) return background;
+            float density = resources.getDisplayMetrics().density;
+            int round = id(resources, CHIP_RADIUS, "dimen", app);
+            float radius = round != 0 ? resources.getDimension(round) : CHIP_RADIUS_DP * density;
+            // Without the icon attribute, the screen's night mode decides.
+            boolean dark = dark(context, context.getTheme(), id(resources, ICON_ATTRIBUTE, "attr", app));
+            int link = 0xff000000 | AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int fill = 0xff000000 | AccentColor.swap(FILL, hue);
+            GradientDrawable picked = new GradientDrawable();
+            picked.setCornerRadius(radius);
+            picked.setColor(fill);
+            GradientDrawable others = new GradientDrawable();
+            others.setCornerRadius(radius);
+            others.setColor(0);
+            others.setStroke(Math.max(1, Math.round(PILL_STROKE_DP * density)), link);
+            StateListDrawable pills = new StateListDrawable();
+            pills.addState(new int[] {android.R.attr.state_selected}, picked);
+            pills.addState(new int[0], others);
+            if (tab instanceof TextView) {
+                TextView title = (TextView) tab;
+                ColorStateList titles = new ColorStateList(
+                        new int[][] {{android.R.attr.state_selected}, {}},
+                        new int[] {readsLight(fill) ? 0xff000000 : 0xffffffff, link});
+                title.setTextColor(titles);
+                for (Drawable icon : title.getCompoundDrawablesRelative()) {
+                    if (icon == null) continue;
+                    title.setCompoundDrawableTintList(titles);
+                    break;
+                }
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, PILLS);
+            return pills;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "saved filter", failure);
+            return background;
+        }
+    }
+
+    /** Whether [rgb] is a gray, its channels no more than {@link #NEUTRAL_SPREAD} apart. */
+    static boolean neutral(int rgb) {
+        int red = (rgb >> 16) & 0xff;
+        int green = (rgb >> 8) & 0xff;
+        int blue = rgb & 0xff;
+        return Math.max(red, Math.max(green, blue)) - Math.min(red, Math.min(green, blue)) <= NEUTRAL_SPREAD;
+    }
+
+    /** [rgb]'s weighted brightness, 0 to 255, the one {@link #readsLight} reads. */
+    private static int brightness(int rgb) {
+        return (299 * ((rgb >> 16) & 0xff) + 587 * ((rgb >> 8) & 0xff) + 114 * (rgb & 0xff)) / 1000;
     }
 
     /**
@@ -993,6 +1421,27 @@ public final class AccentTheme {
     /** The style pointing Instagram's icon attribute at [hue]'s link shade for a dark theme or a light one (#8). */
     static String iconStyle(AccentHue hue, boolean dark) {
         return "HushGramAccentIcons_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /** The style pointing Instagram's primary text attributes at [hue]'s link shade for a dark theme or a light one (#187). */
+    static String textStyle(AccentHue hue, boolean dark) {
+        return "HushGramAccentText_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /**
+     * Lays [hue]'s text style for a [dark] theme or a light one onto [theme] right after its icon style
+     * with Text in the accent color on (#187), counting it, or counting it missing on a build without
+     * the text styles.
+     */
+    private static void applyText(Resources resources, Resources.Theme theme, String app, AccentHue hue, boolean dark) {
+        if (!Settings.ACCENT_TEXT.get()) return;
+        int text = id(resources, textStyle(hue, dark), "style", app);
+        if (text == 0) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT_MISSING);
+            return;
+        }
+        theme.applyStyle(text, true);
+        HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT);
     }
 
     /** The style pointing the gradient Instagram's story rings read at [hue]'s shades (#187). */

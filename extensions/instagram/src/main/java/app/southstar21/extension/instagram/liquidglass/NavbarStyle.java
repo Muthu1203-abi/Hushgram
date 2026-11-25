@@ -57,9 +57,22 @@ final class NavbarStyle {
             0, 60, "dp", () -> 22)
             .help("Space between the bar and the left and right edges of the screen. Bigger margins make a shorter, more floating bar.");
     static final IntSetting BOTTOM_GAP = new IntSetting("liquid_glass_bottom_gap",
-            "Bottom gap", "Space under the bar.", false,
+            "Default bottom gap", "Fallback gap used until a page gets its own value.", false,
             0, 40, "dp", () -> 8)
-            .help("Space between the bar and the bottom of the screen.");
+            .help("Fallback space under the bar. Each page can override this below.");
+    static final IntSetting FEED_BOTTOM_GAP = pageGap("feed", "Feed");
+    static final IntSetting REELS_BOTTOM_GAP = pageGap("reels", "Reels");
+    static final IntSetting MESSAGES_BOTTOM_GAP = pageGap("messages", "Messages");
+    static final IntSetting EXPLORE_BOTTOM_GAP = pageGap("explore", "Explore");
+    static final IntSetting PROFILE_BOTTOM_GAP = pageGap("profile", "Profile");
+    static final IntSetting REEL_SEEK_BAR_POSITION = new IntSetting("liquid_glass_reel_seek_bar_position",
+            "Reel seek bar position", "Move the Reel seek bar up or down without changing its captions or buttons.",
+            false, -40, 40, "dp", () -> 0)
+            .help("Adjust the Reel seek bar independently from the caption and action buttons. In the live preview, tap Reels and drag this slider. Positive values move it up; negative values move it down.");
+    static final IntSetting VERTICAL_POSITION = new IntSetting("liquid_glass_vertical_position",
+            "Vertical position", "Move the bar up or down. Positive moves it up; negative moves it down.", false,
+            -80, 80, "dp", () -> 0)
+            .help("Move the tab bar to avoid overlapping Reel controls. Positive values move it up; negative values move it down. The preview follows while you drag.");
     static final IntSetting ROUNDNESS = new IntSetting("liquid_glass_roundness",
             "Roundness", "100% is a full pill.", false,
             10, 100, "%", () -> 100)
@@ -91,6 +104,13 @@ final class NavbarStyle {
             50, 100, "%", () -> 83)
             .help("Scrolling down a feed shrinks the bar out of the way. This sets how small it gets.");
 
+    private static IntSetting pageGap(String key, String title) {
+        return new IntSetting("liquid_glass_" + key + "_bottom_gap", title + " bottom gap",
+                "Space under the tab bar on the " + title.toLowerCase(java.util.Locale.ROOT) + " page. Tap that tab in the preview to see it.",
+                false, 0, 40, "dp", BOTTOM_GAP::get)
+                .help("Adjust the space under the bar on " + title + ". Tap the matching tab in the live preview to check it.");
+    }
+
     // endregion
 
     // region Snapshot
@@ -114,6 +134,8 @@ final class NavbarStyle {
     final int heightDp;
     final int sideMarginDp;
     final int bottomGapDp;
+    /** Positive moves the bar up; negative moves it down. */
+    final int verticalPositionDp;
     /** 0..1, 1 = a full pill. */
     final float roundness;
     final int tabInsetDp;
@@ -159,6 +181,7 @@ final class NavbarStyle {
         heightDp = i(HEIGHT);
         sideMarginDp = i(SIDE_MARGIN);
         bottomGapDp = i(BOTTOM_GAP);
+        verticalPositionDp = i(VERTICAL_POSITION);
         roundness = i(ROUNDNESS) / 100f;
         tabInsetDp = i(TAB_INSET);
         selectionShade = i(SELECTION_SHADE) / 100f;
@@ -200,6 +223,48 @@ final class NavbarStyle {
         get();
         return new NavbarStyle(31 * (changes + 1) + overrides.hashCode() + 0x40000000, overrides);
     }
+
+    /** Current style with the bottom gap chosen for the selected page. */
+    static NavbarStyle forTab(int index) {
+        int tab = clampTab(index);
+        NavbarStyle base = get();
+        if (tabStyles == null || tabStylesVersion != base.version) {
+            tabStyles = new NavbarStyle[5];
+            for (int i = 0; i < tabStyles.length; i++) {
+                IntSetting setting = gapSetting(i);
+                tabStyles[i] = withOverrides(java.util.Collections.singletonMap(BOTTOM_GAP.key, setting.get()));
+            }
+            tabStylesVersion = base.version;
+        }
+        return tabStyles[tab];
+    }
+
+    /** The page's default gap, used by the preview's hold-to-compare state. */
+    static NavbarStyle defaultForTab(int index) {
+        int tab = clampTab(index);
+        IntSetting setting = gapSetting(tab);
+        java.util.Map<String, Integer> values = defaultValues();
+        values.put(BOTTOM_GAP.key, setting.getDefault());
+        return withOverrides(values);
+    }
+
+    private static int clampTab(int index) {
+        return Math.max(0, Math.min(4, index));
+    }
+
+    private static IntSetting gapSetting(int index) {
+        switch (index) {
+            case 1: return REELS_BOTTOM_GAP;
+            case 2: return MESSAGES_BOTTOM_GAP;
+            case 3: return EXPLORE_BOTTOM_GAP;
+            case 4: return PROFILE_BOTTOM_GAP;
+            case 0:
+            default: return FEED_BOTTOM_GAP;
+        }
+    }
+
+    private static NavbarStyle[] tabStyles;
+    private static int tabStylesVersion = -1;
 
     // endregion
 
@@ -311,6 +376,10 @@ final class NavbarStyle {
         if (setting == HEIGHT) return new int[]{50, 80};
         if (setting == SIDE_MARGIN) return new int[]{0, 50};
         if (setting == BOTTOM_GAP) return new int[]{0, 30};
+        if (setting == FEED_BOTTOM_GAP || setting == REELS_BOTTOM_GAP
+                || setting == MESSAGES_BOTTOM_GAP || setting == EXPLORE_BOTTOM_GAP
+                || setting == PROFILE_BOTTOM_GAP) return new int[]{0, 30};
+        if (setting == VERTICAL_POSITION) return new int[]{-60, 60};
         if (setting == ROUNDNESS) return new int[]{20, 100};
         if (setting == TAB_INSET) return new int[]{0, 30};
         if (setting == SELECTION_SHADE) return new int[]{0, 250};

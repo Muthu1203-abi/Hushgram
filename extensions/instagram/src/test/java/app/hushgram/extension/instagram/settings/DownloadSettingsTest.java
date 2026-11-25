@@ -102,6 +102,7 @@ public class DownloadSettingsTest {
         Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
         Settings.HIDE_SOUND_REELS.resetToDefault();
+        Settings.HIDE_SOUND_HOME.resetToDefault();
         Settings.TEXT_BUTTON_ON_REELS.resetToDefault();
         Settings.SPEED_BUTTON_ON_REELS.resetToDefault();
         Settings.FULL_SCREEN_BUTTON_ON_REELS.resetToDefault();
@@ -259,6 +260,37 @@ public class DownloadSettingsTest {
             assertEquals(-1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
             assertEquals(-1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+        }
+    }
+
+    /**
+     * Also on Home (#822) sits right under the Hidden sounds row with Home's reads in the build, off
+     * to start and waiting for Hide reels by sound. It goes in a settings file, and a build without
+     * Home's reads has neither the row nor the key.
+     */
+    @Test
+    public void alsoOnHomeSitsUnderHiddenSoundsWithHomesReadsInTheBuild() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.FEED_SUGGESTIONS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.HIDE_SOUND_HOME.key);
+            assertTrue("Also on Home isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Also on Home", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("hidden sound"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW) + 1, indexOfKey(rows, Settings.HIDE_SOUND_HOME.key));
+            assertFalse("it waits for Hide reels by sound", row.isEnabled());
+            ((SwitchPreference) page.findPreference(Settings.HIDE_SOUND_REELS.key)).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_HOME.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.HIDE_SOUND_HOME.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_HOME.key));
         }
     }
 
@@ -622,8 +654,10 @@ public class DownloadSettingsTest {
             assertTrue(row instanceof SwitchPreference);
             assertFalse(((SwitchPreference) row).isChecked());
             assertEquals("Ask for VP9 instead of AV1", String.valueOf(row.getTitle()));
-            assertEquals("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, "
-                    + "both to watch and to save. Takes a restart.", String.valueOf(row.getSummary()));
+            assertEquals("Tells Instagram your phone has no AV1 decoder, which takes a restart. A post or reel that "
+                    + "still comes as AV1 is saved as VP9 from Instagram's website when it offers one. Stories can "
+                    + "still be AV1, and Convert to keep the full size turns those into H.264.",
+                    String.valueOf(row.getSummary()));
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ASK_FOR_VP9.key));
         }
 
@@ -759,6 +793,35 @@ public class DownloadSettingsTest {
     }
 
     /**
+     * Block and Playback speed for a feed post's menu (#743) follow Details, start off, belong to
+     * the feed video patch and go in a settings file. A build with no feed menu has neither row.
+     */
+    @Test
+    public void thePostMenuRowsFollowDetails() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int details = indexOfKey(rows, Settings.POST_DETAILS.key);
+            assertEquals(details + 1, indexOfKey(rows, Settings.POST_MENU_BLOCK.key));
+            assertEquals(details + 2, indexOfKey(rows, Settings.POST_MENU_SPEED.key));
+            assertEquals("Block in a post's menu", String.valueOf(rows.get(details + 1).getTitle()));
+            assertEquals("Speed in a post's menu", String.valueOf(rows.get(details + 2).getTitle()));
+            assertFalse(((SwitchPreference) rows.get(details + 1)).isChecked());
+            assertFalse(((SwitchPreference) rows.get(details + 2)).isChecked());
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.POST_MENU_BLOCK));
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.POST_MENU_SPEED));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.POST_MENU_BLOCK.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.POST_MENU_SPEED.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(-1, indexOfKey(rows, Settings.POST_MENU_BLOCK.key));
+            assertEquals(-1, indexOfKey(rows, Settings.POST_MENU_SPEED.key));
+        }
+    }
+
+    /**
      * Save photos at full size (#500) sits right under Download feed photos when the full resolution
      * patch is in the build too, since that patch reports the larger screen the original needs. It
      * starts on, waits for Download feed photos, asks for a restart and goes in a settings file. A
@@ -837,7 +900,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
             int choose = indexOfKey(rows, Settings.DOWNLOAD_CHOOSE_PAGES.key);
-            assertEquals(indexOfKey(rows, Settings.POST_DETAILS.key) + 1, choose);
+            assertEquals(indexOfKey(rows, Settings.POST_MENU_SPEED.key) + 1, choose);
             SwitchPreference row = (SwitchPreference) rows.get(choose);
             assertEquals("Choose carousel pages", String.valueOf(row.getTitle()));
             assertFalse("Choose carousel pages starts off", row.isChecked());

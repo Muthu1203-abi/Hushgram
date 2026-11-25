@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassBlurRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabIconSizeRow;
@@ -94,6 +95,11 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.MENU_BUTTON_ON_HOME, L10n.t("Menu button on Home's header"),
                         L10n.t("Adds a menu button at the top of Home with your viewing history, Ghost mode and "
                                 + "HushGram settings. Restart Instagram to see the change.")));
+                if (HomeMenuButton.logout.wired()) {
+                    glass.addPreference(toggle(context, Settings.LOGOUT_IN_HOME_MENU, L10n.t("Log out in Home's menu"),
+                            L10n.t("Adds Log out after HushGram settings in the list the menu button on Home's header "
+                                    + "opens. It starts the same Log out as Instagram's own settings.")));
+                }
                 glass.addPreference(toggle(context, Settings.HISTORY_BUTTON_ON_HOME, L10n.t("History button on Home's header"),
                         L10n.t("Adds a clock at the top of Home that opens your viewing history in one tap. Restart "
                                 + "Instagram to see the change.")));
@@ -113,11 +119,17 @@ final class TabBarCategory {
                 glass.addPreference(page.tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
                 glass.addPreference(tabIconSizeRow(context));
+                glass.addPreference(toggle(context, Settings.FULL_SIZE_REELS_ICON, L10n.t("Full-size Reels icon"),
+                        L10n.t("Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. "
+                                + "Tab icon size still sizes every icon on top of that.")));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Liquid Glass navigation bar"),
                         L10n.t("Uses the Liquid Glass bar with scroll shrinking and draggable tab selection. Open the sliders button "
                                 + "on your profile to customize its style, glass, shape and selection.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
+                        L10n.t("Blurs the content visible through the Liquid Glass pill, including Reels. Turn this off to keep it clear.")));
+                glass.addPreference(glassBlurRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REELS_BEHIND, L10n.t("Run Reels behind the tab bar"),
                         L10n.t("The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.")));
             }

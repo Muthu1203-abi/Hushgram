@@ -52,6 +52,7 @@ public class ViewingHistorySettingsTest {
     @After public void restore() {
         PatchFamily.inBuildForTests = null;
         Settings.VIEWING_HISTORY.resetToDefault();
+        Settings.VIEWING_HISTORY_GRID.resetToDefault();
         Context context = RuntimeEnvironment.getApplication();
         ViewingHistory.clear(context);
     }
@@ -299,6 +300,106 @@ public class ViewingHistorySettingsTest {
         }
     }
 
+    /**
+     * #773: the button by Clear shows the rows as a grid of big pictures, three across, and back.
+     * The grid keeps the tabs, the search, a tap and a long press, and the page opens the way it
+     * was left, a choice that stays out of backups.
+     */
+    @Test public void theGridShowsBigPicturesAndThePageOpensTheWayItWasLeft() throws Exception {
+        long now = System.currentTimeMillis();
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        ViewingHistoryPage.forgetPictures();
+        ViewingHistoryRows.add(context, Kind.PROFILE, "zed", "zed", now - 3_000L);
+        ViewingHistoryRows.add(context, Kind.REEL, "2_2", "amy", "https://scontent.cdninstagram.com/g.jpg", now - 2_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "1949525278281554174_2", "amy", now - 1_000L);
+        android.graphics.Bitmap cover = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888);
+        java.util.Set<String> asked = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+        Runnable restore = ViewingHistoryRows.fetchAnswering(cover, asked);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        assertFalse("the page's own choice, not a setting to back up",
+                ConfigurationBackup.eligible().containsKey(Settings.VIEWING_HISTORY_GRID.key));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            assertNull("not a row of the settings", settings.findPreference(Settings.VIEWING_HISTORY_GRID.key));
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals("the list to begin with", android.view.View.VISIBLE, page.list.getVisibility());
+            assertEquals(android.view.View.GONE, page.grid.getVisibility());
+            assertEquals("Show as grid", String.valueOf(page.layout.getContentDescription()));
+
+            page.layout.performClick();
+            assertTrue(Settings.VIEWING_HISTORY_GRID.savedValue());
+            assertEquals(android.view.View.GONE, page.list.getVisibility());
+            assertEquals(android.view.View.VISIBLE, page.grid.getVisibility());
+            assertEquals(android.view.View.GONE, page.empty.getVisibility());
+            assertEquals("Show as list", String.valueOf(page.layout.getContentDescription()));
+            // The grid counts its columns when it's measured.
+            page.grid.measure(android.view.View.MeasureSpec.makeMeasureSpec(900, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(1600, android.view.View.MeasureSpec.EXACTLY));
+            assertEquals(ViewingHistoryPage.GRID_COLUMNS, page.grid.getNumColumns());
+            assertEquals(3, page.grid.getAdapter().getCount());
+
+            android.widget.FrameLayout reel = (android.widget.FrameLayout) page.grid.getAdapter().getView(1, null, page.grid);
+            reel.measure(android.view.View.MeasureSpec.makeMeasureSpec(300, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED));
+            assertEquals("a square tile", 300, reel.getMeasuredHeight());
+            assertEquals("@amy", String.valueOf(ViewingHistoryPage.Tiles.caption(reel).getText()));
+            String said = String.valueOf(reel.getContentDescription());
+            assertTrue(said, said.startsWith("@amy, Reel, "));
+            assertEquals("the tile says it all", android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO,
+                    ViewingHistoryPage.Tiles.caption(reel).getImportantForAccessibility());
+            assertNotNull("its kind in the corner", ViewingHistoryPage.Tiles.badge(reel).getDrawable());
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            android.graphics.drawable.Drawable shown = ViewingHistoryPage.Tiles.picture(reel).getDrawable();
+            assertTrue(String.valueOf(shown), shown instanceof android.graphics.drawable.BitmapDrawable
+                    && ((android.graphics.drawable.BitmapDrawable) shown).getBitmap() == cover);
+            assertEquals(Collections.singleton("https://scontent.cdninstagram.com/g.jpg"), new java.util.HashSet<>(asked));
+
+            page.tabs[2].performClick();
+            assertEquals("the tabs sort the grid too", 1, page.grid.getAdapter().getCount());
+            page.tabs[0].performClick();
+            page.search.setText("zed");
+            assertEquals("and the search", 1, page.grid.getAdapter().getCount());
+            page.search.setText("nobody");
+            assertEquals(android.view.View.GONE, page.grid.getVisibility());
+            assertEquals(android.view.View.VISIBLE, page.empty.getVisibility());
+            assertEquals("Nothing matches.", String.valueOf(page.empty.getText()));
+            page.search.setText("");
+            assertEquals(android.view.View.VISIBLE, page.grid.getVisibility());
+
+            assertTrue(page.grid.getOnItemLongClickListener().onItemLongClick(page.grid, reel, 1, 1));
+            android.widget.PopupMenu popup = org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu();
+            assertNotNull("a long press opens the list's menu", popup);
+            assertEquals(Arrays.asList("Show all from this account", "Open", "Copy link", "Open profile", "Copy username",
+                    "Remove from history", "Remove all from this account"), titles(popup.getMenu()));
+            popup.dismiss();
+            page.dialog.dismiss();
+
+            ViewingHistoryPage again = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals("it opens the way it was left", android.view.View.VISIBLE, again.grid.getVisibility());
+            assertEquals(android.view.View.GONE, again.list.getVisibility());
+            again.layout.performClick();
+            assertFalse(Settings.VIEWING_HISTORY_GRID.savedValue());
+            assertEquals(android.view.View.VISIBLE, again.list.getVisibility());
+            assertEquals(android.view.View.GONE, again.grid.getVisibility());
+            assertEquals("Show as grid", String.valueOf(again.layout.getContentDescription()));
+
+            again.layout.performClick();
+            again.grid.performItemClick(null, 0, 0);
+            android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+            assertEquals("a tap opens it, as a row's does", "https://www.instagram.com/p/BsOGulcndj-/", String.valueOf(opened.getData()));
+        } finally {
+            restore.run();
+            ViewingHistoryPage.forgetPictures();
+        }
+    }
+
     @Test public void aRowLeadsToItsPostOrItsPerson() {
         assertEquals("the world record egg's real address", "https://www.instagram.com/p/BsOGulcndj-/",
                 String.valueOf(ViewingHistoryPage.link(ViewingHistoryRows.row(Kind.POST, "1949525278281554174_2", "amy"))));
@@ -334,12 +435,14 @@ public class ViewingHistorySettingsTest {
             android.widget.PopupMenu popup = org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu();
             assertNotNull("a long press opens the menu", popup);
             android.view.Menu menu = popup.getMenu();
-            assertEquals(Arrays.asList("Copy link", "Open profile", "Remove from history"), titles(menu));
+            assertEquals(Arrays.asList("Show all from this account", "Open", "Copy link", "Open profile", "Copy username",
+                    "Remove from history", "Remove all from this account"), titles(menu));
             popup.dismiss();
 
             android.view.Menu story = new android.widget.PopupMenu(context, page.list).getMenu();
             ViewingHistoryPage.fill(story, ViewingHistoryRows.row(Kind.STORY, "3_3", "bob"));
-            assertEquals("a story's tap already goes to its person", Arrays.asList("Copy link", "Remove from history"), titles(story));
+            assertEquals("a story's tap already goes to its person", Arrays.asList("Show all from this account", "Open",
+                    "Copy link", "Copy username", "Remove from history", "Remove all from this account"), titles(story));
             android.view.Menu nameless = new android.widget.PopupMenu(context, page.list).getMenu();
             ViewingHistoryPage.fill(nameless, ViewingHistoryRows.row(Kind.STORY, "4_4", ""));
             assertEquals("nothing to link to, so only the removal", Collections.singletonList("Remove from history"), titles(nameless));
@@ -361,6 +464,65 @@ public class ViewingHistorySettingsTest {
             assertTrue(page.pick(ViewingHistoryPage.OPEN_PROFILE, post));
             android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
             assertEquals("https://www.instagram.com/amy/", String.valueOf(opened.getData()));
+            assertEquals(context.getPackageName(), opened.getPackage());
+        }
+    }
+
+    /**
+     * #228's longer menu: everything kept from a row's account, opening it, copying the account's
+     * username, and taking everything from that account off the list, its profile included, while
+     * an account whose name only starts the same stays.
+     */
+    @Test public void aLongPressShowsCopiesOpensAndRemovesEverythingFromAnAccount() throws Exception {
+        long now = System.currentTimeMillis();
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        ViewingHistoryRows.add(context, Kind.PROFILE, "amy", "amy", now - 5_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "5_5", "amyx", now - 4_000L);
+        ViewingHistoryRows.add(context, Kind.STORY, "3_3", "bob", now - 3_000L);
+        ViewingHistoryRows.add(context, Kind.REEL, "2_2", "amy", now - 2_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "1949525278281554174_2", "amy", now - 1_000L);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals(5, page.list.getAdapter().getCount());
+            ViewingHistory.Row post = (ViewingHistory.Row) page.list.getAdapter().getItem(0);
+            ViewingHistory.Row story = (ViewingHistory.Row) page.list.getAdapter().getItem(2);
+            assertEquals("bob", story.owner);
+
+            page.tabs[1].performClick();
+            assertTrue(page.pick(ViewingHistoryPage.SHOW_ACCOUNT, story));
+            assertTrue("every kind again", page.tabs[0].isSelected());
+            assertEquals("@bob", String.valueOf(page.search.getText()));
+            assertEquals(1, page.list.getAdapter().getCount());
+            page.search.setText("");
+
+            assertTrue(page.pick(ViewingHistoryPage.COPY_USERNAME, post));
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            assertEquals("amy", String.valueOf(clipboard.getPrimaryClip().getItemAt(0).getText()));
+            assertEquals("Copied", ShadowToast.getTextOfLatestToast());
+
+            assertTrue(page.pick(ViewingHistoryPage.REMOVE_ACCOUNT, post));
+            assertEquals("amy's post, reel and profile off the page at once", 2, page.list.getAdapter().getCount());
+            String said = ShadowToast.getTextOfLatestToast();
+            assertTrue(said, said.startsWith("Removed ") && said.contains("3") && said.endsWith(" from history"));
+            Utils.awaitBackgroundTasksForTests();
+            ViewingHistory.forgetForTests();
+            assertEquals("and off the list kept on the phone", 2, ViewingHistory.count(context));
+            for (ViewingHistory.Row left : ViewingHistory.entries(context)) {
+                assertFalse(left.id, ViewingHistory.of(left, "AMY"));
+            }
+            assertEquals("nothing of theirs is left", 0, ViewingHistory.removeAll(context, "amy"));
+            assertEquals("no name, nothing goes", 0, ViewingHistory.removeAll(context, ""));
+
+            assertTrue(page.pick(ViewingHistoryPage.OPEN, story));
+            android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+            assertEquals("a story opens its person, as a tap does", "https://www.instagram.com/bob/", String.valueOf(opened.getData()));
             assertEquals(context.getPackageName(), opened.getPackage());
         }
     }

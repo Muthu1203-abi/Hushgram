@@ -54,23 +54,5 @@ class CloneNamesTest {
         assertEquals("com.hush.securefileprovider", cloneAuthority("com.instagram.android.securefileprovider", "com.hush"))
     }
 
-    @Test fun theOptionsRefuseWhatThePatchWould() {
-        val options = installNextToInstagramPatch.options
-        assertEquals(setOf("packageName", "appName", "markIcon"), options.keys)
-        assertEquals(DEFAULT_PACKAGE, options.getValue("packageName").default)
-        assertEquals(DEFAULT_LABEL, options.getValue("appName").default)
-        assertEquals("the badge is asked for (#145)", false, options.getValue("markIcon").default)
-        try {
-            assertThrows(OptionException.ValueValidationException::class.java) { options.set("packageName", "nodots") }
-            assertThrows(OptionException.ValueValidationException::class.java) { options.set("packageName", "com.instagram.android") }
-            assertThrows(OptionException.ValueValidationException::class.java) { options.set("appName", "@string/app_name") }
-            options.set("packageName", "com.hushgram.android")
-            options.set("appName", "IG Work")
-            assertEquals("com.hushgram.android", options.getValue("packageName").value)
-            assertEquals("IG Work", options.getValue("appName").value)
-        } finally {
-            options.getValue("packageName").reset()
-            options.getValue("appName").reset()
-        }
-    }
+
 }

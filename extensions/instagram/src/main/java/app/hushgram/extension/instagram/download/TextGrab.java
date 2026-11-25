@@ -39,6 +39,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import app.hushgram.extension.instagram.media.PlayerSurfaces;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -118,12 +119,8 @@ public final class TextGrab {
         }
 
         @Override public void surface(SurfaceView view, Bitmap into, Consumer<Boolean> done) {
-            if (view.getHolder().getSurface() == null || !view.getHolder().getSurface().isValid()) {
-                done.accept(false);
-                return;
-            }
-            PixelCopy.request(view, into, result -> done.accept(result == PixelCopy.SUCCESS),
-                    new Handler(Looper.getMainLooper()));
+            // The player's own surface first: a reel it plays there leaves the SurfaceView's empty (#801).
+            PlayerSurfaces.copy(view, into, new Handler(Looper.getMainLooper()), done);
         }
     };
 
@@ -416,6 +413,14 @@ public final class TextGrab {
      * showing the page, or the app when there's none, which then starts Lens in a task of its own.
      */
     static void send(Context from, File file, String family) {
+        sendPicture(from, file, "image/jpeg", family);
+    }
+
+    /**
+     * {@link #send} for a picture of [type] in the same folder, such as the photo Details' Read text with
+     * Lens fetched (#839).
+     */
+    static void sendPicture(Context from, File file, String type, String family) {
         try {
             if (from instanceof Activity && (((Activity) from).isFinishing() || ((Activity) from).isDestroyed())) {
                 Logger.printDebug(() -> "copy text: " + from.getClass().getSimpleName() + " closed before sending");
@@ -428,7 +433,7 @@ public final class TextGrab {
             }
             Uri uri = new Uri.Builder().scheme("content").authority(provider)
                     .appendPath(CACHE_ROOT).appendPath(FOLDER).appendPath(file.getName()).build();
-            Intent share = new Intent(Intent.ACTION_SEND).setType("image/jpeg").putExtra(Intent.EXTRA_STREAM, uri)
+            Intent share = new Intent(Intent.ACTION_SEND).setType(type).putExtra(Intent.EXTRA_STREAM, uri)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             share.setClipData(ClipData.newRawUri("", uri));
             int task = from instanceof Activity ? 0 : Intent.FLAG_ACTIVITY_NEW_TASK;

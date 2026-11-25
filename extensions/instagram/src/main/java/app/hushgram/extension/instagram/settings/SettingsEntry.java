@@ -38,17 +38,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
-import app.hushgram.extension.instagram.direct.InstantUpload;
 import app.hushgram.extension.instagram.download.ReelColumnFit;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.feed.CarouselArrows;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
+import app.hushgram.extension.instagram.feed.CommentBox;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.CommentGifs;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
 import app.hushgram.extension.instagram.feed.FeedSaveRow;
 import app.hushgram.extension.instagram.feed.HideCaptions;
+import app.hushgram.extension.instagram.feed.ProfileFollowCounts;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
@@ -60,7 +61,9 @@ import app.southstar21.extension.instagram.liquidglass.LiquidGlassNavBarPatch;
 import app.hushgram.extension.instagram.misc.PureBlackNav;
 import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.misc.TabIcons;
+import app.hushgram.extension.instagram.direct.CenterChatName;
 import app.hushgram.extension.instagram.direct.GlassChat;
+import app.hushgram.extension.instagram.download.CallRecorder;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
@@ -164,6 +167,8 @@ public final class SettingsEntry {
         }
         if (SettingsStatus.liquidGlassNavBar()) LiquidGlassNavBarPatch.install(context);
         GlassChat.install(context);
+        CenterChatName.install(context);
+        CallRecorder.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
         ReelsTopBar.install(context);
@@ -175,8 +180,10 @@ public final class SettingsEntry {
         ProfileSaved.install(context);
         SavedFastScroll.install(context);
         CommentEmojiRow.install(context);
+        CommentBox.install(context);
         CommentGifs.install(context);
         FeedFollowButton.install(context);
+        ProfileFollowCounts.install(context);
         FeedSaveRow.install(context);
         HideCaptions.install(context);
         FollowingFeed.install(context);
@@ -196,7 +203,6 @@ public final class SettingsEntry {
         AppIcon.install(context);
         TextSize.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
-        if (SettingsStatus.instantUpload()) InstantUpload.install(context);
         if (SettingsStatus.backgroundPlay()) BackgroundPlay.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
         SaveLeftovers.sweepAfterStart(context);

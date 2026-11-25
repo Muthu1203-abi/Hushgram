@@ -98,6 +98,22 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * into a layout goes through the extension as the view builds its color list ([swapImageTints]), and an
  * android:tint, as the verified badge on a profile's top bar has, as the view finishes
  * ([swapImageViewTints]).
+ *
+ * The buttons beside a reel are white over the video: the column reads that white for its counts and
+ * builds its buttons with no color filter there. The color goes through the extension as the column
+ * reads it, and each button's filter as the column builds the button ([tintReelButtons]), which answers
+ * the picked color with its own switch on (#187).
+ *
+ * A screen's top bar lays Instagram's text and icon color on its back arrow and buttons, and a
+ * profile's tabs are told that color or a gray, so the icon style never reached them. Their colors go
+ * through the extension as the bar makes its filters and as a tab is told its colors, and the Search
+ * tab's Saved bookmark as its bar keeps it ([tintBarIcons]), which answers the picked color with Icons
+ * in the accent color on (#187).
+ *
+ * Saved's filters are tabs whose pill background reads Instagram's stroke and secondary button colors,
+ * which other borders and buttons share. Each tab's background goes through the extension between its
+ * load and the tab ([tintSavedFilters]), which answers pills in the picked color with Filters in the
+ * accent color on (#187).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -129,8 +145,13 @@ val accentColorPatch = bytecodePatch(
         swapComposeSurfaces()
         swapDspColors()
         fillSecondaryButtons()
+        paintChatBackground()
+        paintChatHeader()
         tintHeaderIcons()
         tintTabIcons()
+        tintReelButtons()
+        tintBarIcons()
+        tintSavedFilters()
         tintLithoIcons()
         tintRepostAnimation()
         tintChipDot()

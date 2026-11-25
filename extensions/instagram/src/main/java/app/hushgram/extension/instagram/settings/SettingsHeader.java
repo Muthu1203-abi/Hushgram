@@ -22,7 +22,7 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 
 /**
- * The top of the page with Black settings page on (#455): HushGram's icon, its name in Instagram's
+ * The top of the page with Black settings page on (#455): HushGram's icon, Muthu in Instagram's
  * gradient and the version line, centred over the rows. Nothing on it can be tapped.
  */
 final class SettingsHeader extends Preference {
@@ -36,7 +36,7 @@ final class SettingsHeader extends Preference {
         super(context);
         setKey(KEY);
         // What it shows, for anything that reads rows by their titles.
-        setTitle("HushGram");
+        setTitle("Muthu");
         setPersistent(false);
         setSelectable(false);
     }
@@ -63,7 +63,7 @@ final class SettingsHeader extends Preference {
 
         TextView name = new TextView(context);
         name.setTag(NAME);
-        name.setText("HushGram");
+        name.setText("Muthu");
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
         name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         name.setGravity(Gravity.CENTER);

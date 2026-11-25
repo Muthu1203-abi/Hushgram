@@ -134,10 +134,15 @@ class PureBlackTest {
                     <style name="StoryCommentColorsDark" parent="IgdsSemanticColorsDark">
                         <item name="igds_color_elevated_background">@color/bds_grey_9_95_transparent</item>
                     </style>
+                    <style name="IgdsSemanticColorsDark">
+                        <item name="igds_color_elevated_background">@color/bds_grey_9</item>
+                        <item name="igds_color_highlight_background">@color/bds_grey_9</item>
+                    </style>
                 </resources>
             """.trimIndent().byteInputStream(),
         )
 
+        // The base dark palette last: an install without Prism reads its #ff262626 (#835).
         assertEquals(DARK_SHEETS, blackenSheets(styles))
 
         val items = styles.getElementsByTagName("item").let { list ->
@@ -157,6 +162,8 @@ class PureBlackTest {
                 "igds_color_elevated_background_dark" to "@color/igds_prism_gray_1500",
                 "igds_color_elevated_background" to "@color/abc_decor_view_status_guard_light",
                 "igds_color_elevated_background" to "@color/bds_grey_9_95_transparent",
+                "igds_color_elevated_background" to PURE_BLACK_COLOR,
+                "igds_color_highlight_background" to "@color/bds_grey_9",
             ),
             items,
         )
@@ -164,8 +171,9 @@ class PureBlackTest {
     }
 
     /**
-     * The story viewer's gray goes pure black in both dark styles that set it (#279). The light
-     * theme's style, a story's other grays and the sheets, which blackenSheets owns, stay.
+     * The story viewer's gray goes pure black in each dark style that sets it (#279), the base dark
+     * palette an install without Prism reads included (#835). The light theme's style, a story's
+     * other grays and the sheets, which blackenSheets owns, stay.
      */
     @Test
     fun theDarkStoriesGetPureBlack() {
@@ -190,7 +198,11 @@ class PureBlackTest {
             """.trimIndent().byteInputStream(),
         )
 
-        assertEquals(listOf("IgdsPrismGrayOverridesDark", "IgdsPrismSemanticColorsExperimentDark"), blackenStories(styles))
+        // The base dark palette too: an install without Prism reads its gray (#835).
+        assertEquals(
+            listOf("IgdsPrismGrayOverridesDark", "IgdsPrismSemanticColorsExperimentDark", "IgdsSemanticColorsDark"),
+            blackenStories(styles),
+        )
 
         val items = styles.getElementsByTagName("item").let { list ->
             (0 until list.length).map { list.item(it) as Element }.map { it.getAttribute("name") to it.textContent }
@@ -202,7 +214,7 @@ class PureBlackTest {
                 "igds_color_creation_tools_grey_09" to "@color/igds_prism_gray_09",
                 "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
                 "igds_color_stories_loading_background" to "@color/igds_prism_gray_09",
-                "igds_color_stories_loading_background" to "@color/bds_grey_9",
+                "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
             ),
             items,
         )
@@ -245,6 +257,47 @@ class PureBlackTest {
             items,
         )
         assertEquals("a second pass finds nothing", emptyList<String>(), blackenMenus(styles))
+    }
+
+    /**
+     * The toasts and snackbars go pure black in the dark theme's two palettes (#816), and the light
+     * theme's keep their gray, as does anything else those styles set.
+     */
+    @Test
+    fun theDarkToastsGetPureBlack() {
+        val styles = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            """
+                <resources>
+                    <style name="IgdsPrismSemanticColorsExperimentDark">
+                        <item name="igds_color_tag_or_toast_background">@color/igds_prism_gray_09_alpha_95</item>
+                        <item name="igds_color_banner_background">@color/igds_prism_gray_09_alpha_95</item>
+                    </style>
+                    <style name="IgdsSemanticColorsDark">
+                        <item name="igds_color_tag_or_toast_background">@color/bds_grey_9_95_transparent</item>
+                        <item name="igds_color_toast_95_alpha_background">@color/igds_prism_gray_10_alpha_95</item>
+                        <item name="igds_color_toast_background">@color/igds_prism_gray_10_alpha_50</item>
+                    </style>
+                    <style name="IgdsSemanticColorsLight">
+                        <item name="igds_color_toast_95_alpha_background">@color/igds_prism_gray_10_alpha_95</item>
+                    </style>
+                </resources>
+            """.trimIndent().byteInputStream(),
+        )
+
+        assertEquals(TOAST_BACKGROUNDS, blackenToasts(styles))
+
+        val items = styles.getElementsByTagName("item").let { list ->
+            (0 until list.length).map { (list.item(it) as Element).textContent }
+        }
+        assertEquals(
+            listOf(
+                PURE_BLACK_COLOR, "@color/igds_prism_gray_09_alpha_95",
+                PURE_BLACK_COLOR, PURE_BLACK_COLOR, PURE_BLACK_COLOR,
+                "@color/igds_prism_gray_10_alpha_95",
+            ),
+            items,
+        )
+        assertEquals("a second pass finds nothing", emptyList<String>(), blackenToasts(styles))
     }
 
     /**
@@ -466,11 +519,12 @@ class PureBlackTest {
     }
 
     /**
-     * On every build of Instagram 452, decoded as Manager decodes it: the three dark styles hold
-     * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171) and lose it to
-     * pure black, and every other style that sets a sheet's color, the light theme's among them,
-     * keeps the one it had. The two dark styles that set the story viewer's #ff25292e (#279) lose
-     * it the same way, and the light theme's stories keep it.
+     * On every build of Instagram 452, decoded as Manager decodes it: the four dark styles hold
+     * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171, and on the base
+     * palette an install without Prism reads, #ff262626, #835) and lose it to pure black, and every
+     * other style that sets a sheet's color, the light theme's among them, keeps the one it had. The
+     * three dark styles that set the story viewer's gray (#279) lose it the same way, and the light
+     * theme's stories keep it.
      */
     @Test
     fun eachBuildsDarkSheetsGoPureBlackAndEveryOtherSheetStays() {
@@ -496,19 +550,25 @@ class PureBlackTest {
                         Regex("""<color name="igds_prism_gray_1500">#(ff)?191c1f</color>""", RegexOption.IGNORE_CASE)
                             .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
+                    // 457 folded igds_prism_gray_09 into the camera settings' gray of the same value.
+                    val storyGray = "camera_settings_secondary_background"
                     assertTrue(
                         "$code: the story viewer's gray is #ff25292e",
-                        Regex("""<color name="igds_prism_gray_09">#(ff)?25292e</color>""", RegexOption.IGNORE_CASE)
+                        Regex("""<color name="$storyGray">#(ff)?25292e</color>""", RegexOption.IGNORE_CASE)
                             .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
                     val before = attributeColors(res, SHEET_BACKGROUND)
                     val storiesBefore = attributeColors(res, STORY_BACKGROUND)
                     assertEquals(
                         "$code: the dark stories' gray",
-                        darkStories.associateWith { "@color/igds_prism_gray_09" },
+                        mapOf(
+                            "values/IgdsPrismSemanticColorsExperimentDark" to "@color/$storyGray",
+                            "values/IgdsPrismGrayOverridesDark" to "@color/$storyGray",
+                            "values/IgdsSemanticColorsDark" to "@color/bds_grey_9",
+                        ),
                         storiesBefore.filterKeys { it in darkStories },
                     )
-                    assertEquals("$code: the light stories' gray", "@color/igds_prism_gray_09", storiesBefore[light])
+                    assertEquals("$code: the light stories' gray", "@color/$storyGray", storiesBefore[light])
                     val menusBefore = attributeColors(res, MENU_BACKGROUND)
                     assertEquals(
                         "$code: the dark menus' grays",
@@ -521,14 +581,34 @@ class PureBlackTest {
                         },
                     )
                     assertTrue("$code: the light theme sets a menu's color", lightMenu in menusBefore)
+                    val toastsBefore = TOAST_BACKGROUNDS.associateWith { attributeColors(res, it) }
+                    assertEquals(
+                        "$code: the dark toasts' grays",
+                        mapOf(
+                            "igds_color_toast_95_alpha_background" to mapOf("values/IgdsSemanticColorsDark" to "@color/igds_prism_gray_10_alpha_95"),
+                            "igds_color_toast_background" to mapOf("values/IgdsSemanticColorsDark" to "@color/igds_prism_gray_10_alpha_50"),
+                            "igds_color_tag_or_toast_background" to mapOf(
+                                "values/IgdsSemanticColorsDark" to "@color/bds_grey_9_95_transparent",
+                                "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_09_alpha_95",
+                            ),
+                        ),
+                        toastsBefore.mapValues { (_, styles) -> styles.filterKeys { it.removePrefix("values/") in DARK_TOASTS } },
+                    )
+                    assertTrue("$code: the light theme sets a toast's color", toastsBefore.values.all { lightMenu in it })
                     assertEquals(
                         "$code: the dark sheets' grays",
                         mapOf(
                             "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_10",
                             "values/IgdsPrismGrayOverridesDark" to "@color/igds_prism_gray_1500",
                             "values/IgdsElevatedBackgroundFixDark" to "@color/igds_prism_gray_1500",
+                            "values/IgdsSemanticColorsDark" to "@color/bds_grey_9",
                         ),
                         before.filterKeys { it in dark },
+                    )
+                    assertTrue(
+                        "$code: the base dark palette's sheet gray is #ff262626 (#835)",
+                        Regex("""<color name="bds_grey_9">#(ff)?262626</color>""", RegexOption.IGNORE_CASE)
+                            .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
                     assertTrue("$code: the light theme sets a sheet's color", light in before)
                     val darkLaunch = "values-night-v31/$INSTAGRAM_LAUNCH_THEME"
@@ -584,6 +664,12 @@ class PureBlackTest {
                     )
                     assertEquals("$code: every other menu style", menusBefore - darkMenus, menusAfter - darkMenus)
                     assertNotEquals("$code: the light menu", PURE_BLACK_COLOR, menusAfter[lightMenu])
+                    for ((attribute, stylesBefore) in toastsBefore) {
+                        val stylesAfter = attributeColors(res, attribute)
+                        val darkToasts = stylesBefore.keys.filter { it.removePrefix("values/") in DARK_TOASTS }
+                        assertEquals("$code: the dark $attribute (#816)", darkToasts.associateWith { PURE_BLACK_COLOR }, stylesAfter.filterKeys { it in darkToasts })
+                        assertEquals("$code: every other style's $attribute", stylesBefore - darkToasts, stylesAfter - darkToasts)
+                    }
                     assertEquals(
                         "$code: the comments theme (#538)",
                         mapOf(
@@ -595,10 +681,12 @@ class PureBlackTest {
                         commentAttributes.associateWith { attributeColors(res, it)[comments] },
                     )
                     val primaryAfter = attributeColors(res, "igds_color_primary_background")
+                    // 457 names Prism's black camera_settings_background, a color of the same value.
+                    val blacks = setOf(PRISM_BLACK_COLOR) + prismBlackColors(File(res, "values/colors.xml").readText())
                     assertEquals(
                         "$code: every other style's background but the prism black ones",
-                        (primaryBefore - comments).filterValues { it != PRISM_BLACK_COLOR },
-                        (primaryAfter - comments).filterKeys { primaryBefore[it] != PRISM_BLACK_COLOR },
+                        (primaryBefore - comments).filterValues { it !in blacks },
+                        (primaryAfter - comments).filterKeys { primaryBefore[it] !in blacks },
                     )
                     val row = File(res, "drawable/$ROW_DRAWABLE.xml").readText()
                     assertTrue("$code: the Likes row fills with its own attribute (#639)\n$row", "?attr/$ROW_ATTRIBUTE" in row)

@@ -128,35 +128,32 @@ public class ReelFillTest {
     }
 
     /**
-     * #618: a reel shared to a story had its sides cut on a tall phone. Its frame goes back to 9:16 as
-     * wide as the screen and centered, and a later layout from a holder the binder never saw, like the
-     * newer story viewer's, keeps it so. A story on that holder that shares no reel gets the whole screen.
+     * #618: a reused story frame starts at card size, then the frame hook expands it as soon as it binds.
      */
     @Test
-    public void aReelSharedToAStoryKeepsItsWholeFrame() {
+    public void aReelSharedToAStoryKeepsTheFullScreenFrameDuringTransitions() {
         Settings.FILL_STORY_SCREEN.save(true);
         FrameLayout room = storyRoom();
         View frame = room.getChildAt(0);
         Object holder = new Object();
         assertEquals(1, ReelFill.storyBound(holder, 1));
-        instagramFillsTheScreen(frame);
+        frame.setLayoutParams(new FrameLayout.LayoutParams(MATCH_PARENT, 1920, Gravity.CENTER));
         ReelFill.storyFrame(holder, frame);
         layOut(room);
-        assertEquals(Gravity.CENTER, ((FrameLayout.LayoutParams) frame.getLayoutParams()).gravity);
         assertEquals(PHONE_WIDTH, frame.getWidth());
-        assertEquals(1920, frame.getHeight());
-        assertEquals("a band above and below", 210, frame.getTop());
+        assertEquals(PHONE_HEIGHT, frame.getHeight());
+        assertEquals(0, frame.getTop());
 
         instagramFillsTheScreen(frame);
         ReelFill.storyFrame(new Object(), frame);
         layOut(room);
-        assertEquals("the newer viewer's own layout", 1920, frame.getHeight());
+        assertEquals("the newer viewer's own layout", PHONE_HEIGHT, frame.getHeight());
 
         assertEquals(1, ReelFill.storyBound(holder, 0));
         instagramFillsTheScreen(frame);
         ReelFill.storyFrame(holder, frame);
         layOut(room);
-        assertEquals("the next story shares no reel", PHONE_HEIGHT, frame.getHeight());
+        assertEquals("the next story still fills the room", PHONE_HEIGHT, frame.getHeight());
         ReelFill.storyFrame(new Object(), frame);
         layOut(room);
         assertEquals(PHONE_HEIGHT, frame.getHeight());
@@ -185,7 +182,7 @@ public class ReelFillTest {
         assertEquals(PHONE_WIDTH, frame.getWidth());
     }
 
-    /** #618: on its first bind the viewer isn't laid out yet, and the screen's size stands in for it. */
+    /** #618: a frame bound before layout keeps full-parent dimensions for its first measure. */
     @Test
     @Config(qualifiers = "w360dp-h780dp-xxhdpi")
     public void aFrameBoundBeforeLayoutGoesByTheScreen() {
@@ -201,8 +198,7 @@ public class ReelFillTest {
         ReelFill.storyFrame(holder, frame);
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) frame.getLayoutParams();
         assertEquals(MATCH_PARENT, params.width);
-        assertEquals(1920, params.height);
-        assertEquals(Gravity.CENTER, params.gravity);
+        assertEquals(MATCH_PARENT, params.height);
     }
 
     /** #618: a 9:16 frame takes a tall room's width and a wide room's height. */

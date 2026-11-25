@@ -6,26 +6,34 @@ package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,9 +57,12 @@ import app.hushgram.extension.shared.ui.Dim;
  * it. A video Download would join from its manifest's picture and sound tracks has no one address,
  * so the button copies that single file, and its own size is shown beside the saved one. Under the
  * facts, Copy username copies who posted it and Copy caption the post's own words, exactly as
- * written, each only when the post has one. Copy caption without hashtags follows when the caption
- * has any. All read the post whose menu was opened, and a carousel's caption is the post's, never a
- * page's. Nothing is fetched to show it.
+ * written, each only when the post has one. Copy caption without hashtags and Copy hashtags follow
+ * when the caption has any, and Translate caption hands it to a translator on the phone (#839).
+ * All read the post whose menu was opened, and a carousel's caption is the post's, never a
+ * page's. Nothing is fetched to show it. Open with hands the file Copy media link copies to another
+ * app, and Read text with Lens the photo or a video's cover to Google Lens (#839); only a tap on one
+ * of those fetches it, through {@link OpenWith}.
  *
  * <p>The address is a signed link to the file on Meta's servers, so it goes on the clipboard marked
  * sensitive and never into a log.
@@ -206,8 +217,45 @@ public final class PostInfo {
                 // The rows came after the dialog was painted.
                 ScreenColors.startTextAtTheStart(rows);
             }
+            keepFooterWhole(dialog);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed details", failure);
+        }
+    }
+
+    /**
+     * Keeps Close and Copy media link whole under a long list. Android's alert layout gives the
+     * scrolling facts all the room it can and the footer only its minimum, and once large text
+     * stacks the two buttons that minimum shows the first and a sliver of Close. The button bar
+     * moves into a {@link WholeFooter}, whose minimum is the bar's own height, so the facts scroll
+     * instead. Left as Android built it when the footer isn't the usual scroll holding one bar.
+     */
+    private static void keepFooterWhole(AlertDialog dialog) {
+        View close = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        if (close == null || !(close.getParent() instanceof ViewGroup)) return;
+        ViewGroup bar = (ViewGroup) close.getParent();
+        if (!(bar.getParent() instanceof ScrollView)) return;
+        ScrollView panel = (ScrollView) bar.getParent();
+        if (panel.getChildCount() != 1) return;
+        ViewGroup.LayoutParams size = bar.getLayoutParams();
+        panel.removeView(bar);
+        WholeFooter footer = new WholeFooter(panel.getContext());
+        footer.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        panel.addView(footer, size);
+    }
+
+    /** A frame whose minimum height is its one child's, so a dialog's footer is never cut to a peek. */
+    static final class WholeFooter extends FrameLayout {
+        WholeFooter(Context context) {
+            super(context);
+        }
+
+        @Override
+        public int getMinimumHeight() {
+            View bar = getChildCount() == 1 ? getChildAt(0) : null;
+            if (bar == null || bar.getVisibility() == GONE) return super.getMinimumHeight();
+            return Math.max(super.getMinimumHeight(), bar.getMeasuredHeight() + getPaddingTop() + getPaddingBottom());
         }
     }
 
@@ -243,9 +291,11 @@ public final class PostInfo {
     }
 
     /**
-     * Copy username, Copy caption and Copy caption without hashtags, as rows under the facts, for
-     * what [facts] knows. Each closes [dialog] and copies. Null when the post has neither a username
-     * nor a caption. [themed] is the dialog's own context, so the rows take its colors.
+     * Copy username, Copy caption, Copy caption without hashtags, Copy hashtags, Translate caption,
+     * Open with and Read text with Lens, as rows under the facts, for what [facts] knows. Each closes
+     * [dialog] and copies, or for Translate caption opens a translator, and for the last two hands the
+     * file or picture to another app through {@link OpenWith}. Null when the post has no username,
+     * caption, file or picture. [themed] is the dialog's own context, so the rows take its colors.
      */
     @Nullable
     static View copies(Context themed, Activity activity, Facts facts, AlertDialog dialog) {
@@ -282,8 +332,80 @@ public final class PostInfo {
                             L10n.t(activity, "Caption copied"), L10n.t(activity, "Couldn't copy the caption"));
                 }));
             }
+            String tags = hashtags(caption);
+            if (tags != null) {
+                rows.addView(row(themed, L10n.t(activity, "Copy hashtags"), () -> {
+                    dialog.dismiss();
+                    copy(activity, "copy hashtags", L10n.t(activity, "Hashtags"), tags,
+                            L10n.t(activity, "Hashtags copied"), L10n.t(activity, "Couldn't copy the hashtags"));
+                }));
+            }
+            rows.addView(row(themed, L10n.t(activity, "Translate caption"), () -> {
+                dialog.dismiss();
+                translate(activity, caption);
+            }));
+        }
+        MediaSave.Rendition file = facts.file;
+        if (file != null) {
+            rows.addView(row(themed, L10n.t(activity, "Open with"), () -> {
+                dialog.dismiss();
+                OpenWith.open(activity, file, facts.video);
+            }));
+        }
+        MediaSave.Rendition still = facts.still;
+        if (still != null) {
+            rows.addView(row(themed, L10n.t(activity, "Read text with Lens"), () -> {
+                dialog.dismiss();
+                OpenWith.lens(activity, still);
+            }));
         }
         return rows.getChildCount() == 0 ? null : rows;
+    }
+
+    /**
+     * Just the hashtags of [caption] (#839), for Copy hashtags: each tag once, in the order they
+     * first come, a space between two. A run like #a#b gives both tags, and one tag in another case
+     * than an earlier one is the same tag, as Instagram reads them. Null when there's none.
+     */
+    @Nullable
+    static String hashtags(String caption) {
+        Set<String> seen = new HashSet<>();
+        List<String> tags = new ArrayList<>();
+        Matcher run = HASHTAG.matcher(caption);
+        while (run.find()) {
+            for (String tag : run.group().split("(?=#)")) {
+                if (tag.length() > 1 && seen.add(tag.toLowerCase(Locale.ROOT))) tags.add(tag);
+            }
+        }
+        return tags.isEmpty() ? null : TextUtils.join(" ", tags);
+    }
+
+    /** What a phone's translator answers: Android's translate action, then the text selection menu's. */
+    static final String TRANSLATE = "android.intent.action.TRANSLATE";
+
+    /**
+     * Hands [caption] to a translator on the phone (#839): first through Android's translate action,
+     * which Google Translate takes, then through the action the text selection menu offers, which
+     * other translators take too. Nothing is sent from Instagram. Says so when no app takes either.
+     */
+    static void translate(Activity activity, String caption) {
+        Intent[] tries = {
+                new Intent(TRANSLATE).putExtra(Intent.EXTRA_TEXT, caption),
+                new Intent(Intent.ACTION_PROCESS_TEXT).setType("text/plain")
+                        .putExtra(Intent.EXTRA_PROCESS_TEXT, caption).putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true),
+        };
+        for (Intent intent : tries) {
+            try {
+                activity.startActivity(intent);
+                return;
+            } catch (ActivityNotFoundException noApp) {
+                // The next way, then the toast.
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "translate caption", failure);
+                break;
+            }
+        }
+        Utils.showToastShort(L10n.t(activity, "No app here can translate it"));
     }
 
     /**
@@ -471,9 +593,10 @@ public final class PostInfo {
             List<MediaSave.Rendition> videos = ReelDownload.renditions(shown);
             String manifest = InstagramMedia.dashManifest(shown);
             boolean video = !videos.isEmpty() || manifest != null;
+            // A video's pictures are its cover, which Read text with Lens sends (#839).
             return new Source(posted == null || posted <= 0 ? null : posted, Facts.empty(owner) ? null : owner,
                     Facts.empty(id) ? null : id, page, page == 0 ? 0 : pages, video, videos, manifest,
-                    video ? null : StoryDownload.pictures(shown), caption(post));
+                    StoryDownload.pictures(shown), caption(post));
         }
 
         /** [post]'s caption text, untouched, or null when it has none or only blanks. */
@@ -489,13 +612,14 @@ public final class PostInfo {
          * as {@link MediaSave#plannedVideo} picks it, which reads the manifest.
          */
         Facts facts() {
+            MediaSave.Rendition picture = pictures == null || pictures.isEmpty() ? null : MediaSave.picked(pictures, false);
             if (!video) {
-                MediaSave.Rendition picture = pictures == null ? null : MediaSave.picked(pictures, false);
                 return new Facts(posted, owner, id, page, pages, picture,
-                        picture == null ? 0 : picture.width, picture == null ? 0 : picture.height, caption);
+                        picture == null ? 0 : picture.width, picture == null ? 0 : picture.height, caption, picture, false);
             }
             MediaSave.Planned planned = MediaSave.plannedVideo(videos, manifest);
-            return new Facts(posted, owner, id, page, pages, planned.file, planned.width(), planned.height(), caption);
+            return new Facts(posted, owner, id, page, pages, planned.file, planned.width(), planned.height(), caption,
+                    picture, true);
         }
     }
 
@@ -517,9 +641,14 @@ public final class PostInfo {
         final int height;
         /** The post's caption, for Copy caption, or null. Not shown among the facts. */
         @Nullable final String caption;
+        /** The picture Read text with Lens sends: the photo, or a video's cover, or null (#839). */
+        @Nullable final MediaSave.Rendition still;
+        /** Whether [file] is a video, which Open with fetches and offers as one. */
+        final boolean video;
 
         Facts(@Nullable Long posted, @Nullable String owner, @Nullable String id, int page, int pages,
-              @Nullable MediaSave.Rendition file, int width, int height, @Nullable String caption) {
+              @Nullable MediaSave.Rendition file, int width, int height, @Nullable String caption,
+              @Nullable MediaSave.Rendition still, boolean video) {
             this.posted = posted;
             this.owner = owner;
             this.id = id;
@@ -529,6 +658,8 @@ public final class PostInfo {
             this.width = width;
             this.height = height;
             this.caption = caption;
+            this.still = still;
+            this.video = video;
         }
 
         /** The facts of [shown] and [post], as {@link Source#read} reads them, picked at once. */

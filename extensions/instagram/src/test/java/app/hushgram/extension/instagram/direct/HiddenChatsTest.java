@@ -75,10 +75,10 @@ public class HiddenChatsTest {
 
     @After
     public void restore() {
+        HiddenChats.pagersForgottenForTests();
         MessagesLock.resetForTests();
         Settings.HIDDEN_CHATS.resetToDefault();
         Settings.LOCK_MESSAGES.resetToDefault();
-        Settings.LOCK_AGAIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -736,56 +736,83 @@ public class HiddenChatsTest {
         assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
     }
 
+    /**
+     * After a fresh start the inbox holds only its first page of chats or so, and a double tap showed
+     * just the hidden chats on it (#661). While a hidden chat is missing from Instagram's list, each
+     * inbox's load-more is asked for its next page, once for each list that grew, until every hidden
+     * chat shows or the list stops growing. Nothing is asked while they're left out.
+     */
     @Test
-    public void switchingToAnotherTabHidesTheHiddenChatsAgain() {
+    public void shownHiddenChatsPageInTheOnesInstagramHasntLoaded() {
+        List<Object> asked = new ArrayList<>();
+        HiddenChats.pages = asked::add;
         HiddenChats.add(ALICE, "Alice");
-        int[] selected = {11};
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
-        HiddenChats.tabs = ignored -> selected[0];
+        HiddenChats.add(BOB, "Bob");
+        Object pager = new Object();
+        HiddenChats.pager(pager);
+        Object inbox = new Object();
+        assertEquals(Arrays.asList("7", "8"), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8"))));
+        idle();
+        assertEquals("nothing asked while they're left out", 0, asked.size());
 
         HiddenChats.reveal();
-        HiddenChats.followTab(activity);
-        assertTrue("the tab they were shown on", HiddenChats.revealed());
+        idle();
+        assertEquals("Bob isn't loaded, so the next page", Collections.singletonList(pager), asked);
 
-        selected[0] = 22;
-        HiddenChats.followTab(activity);
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8"))));
+        idle();
+        assertEquals("the same list again asks nothing more", 1, asked.size());
 
-        assertFalse("another tab hides them again", HiddenChats.revealed());
-        assertEquals("every chat but the hidden ones", Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10"))));
+        idle();
+        assertEquals("a longer list still without Bob asks again", 2, asked.size());
+
+        assertEquals(Arrays.asList(ALICE, BOB), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10", BOB))));
+        idle();
+        assertEquals("every hidden chat shows, so no more", 2, asked.size());
+
+        assertTrue(HiddenChats.conceal());
+        HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10", "11"));
+        idle();
+        assertEquals("left out again, nothing asked", 2, asked.size());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(HiddenChats.PAGED + " 2"));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
 
+    /**
+     * A hidden chat that's gone (left, or deleted on another phone) never comes, so a showing stops
+     * asking after {@link HiddenChats#PAGES_ASKED} pages, and the next showing starts counting again.
+     * An inbox with no load-more yet, or one Instagram dropped, is never asked.
+     */
     @Test
-    public void theSameTabOrABarThatSaysNothingLeavesThemShowing() {
+    public void aChatThatNeverComesStopsThePagingAfterSoMany() {
+        List<Object> asked = new ArrayList<>();
+        HiddenChats.pages = asked::add;
         HiddenChats.add(ALICE, "Alice");
-        int[] selected = {11};
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
-        HiddenChats.tabs = ignored -> selected[0];
-
+        HiddenChats.add("gone", "Gone");
+        Object inbox = new Object();
         HiddenChats.reveal();
-        HiddenChats.followTab(activity);
-        HiddenChats.followTab(activity);
-        assertTrue("the same tab again", HiddenChats.revealed());
+        HiddenChats.inbox(inbox, list("7", ALICE));
+        idle();
+        assertEquals("no load-more made yet", 0, asked.size());
 
-        selected[0] = 0;
-        HiddenChats.followTab(activity);
-        assertTrue("the bar isn't there to say", HiddenChats.revealed());
+        HiddenChats.pager(new Object());
+        List<String> growing = new ArrayList<>(Arrays.asList("7", ALICE));
+        for (int i = 0; i < HiddenChats.PAGES_ASKED + 5; i++) {
+            growing.add("x" + i);
+            HiddenChats.inbox(inbox, list(growing.toArray(new String[0])));
+            idle();
+        }
+        assertEquals(HiddenChats.PAGES_ASKED, asked.size());
 
-        selected[0] = 11;
-        HiddenChats.followTab(activity);
-        assertTrue("back on the tab they were shown on", HiddenChats.revealed());
+        assertTrue(HiddenChats.conceal());
+        HiddenChats.reveal();
+        idle();
+        assertEquals("a new showing asks again", HiddenChats.PAGES_ASKED + 1, asked.size());
     }
 
-    @Test
-    public void leavingInstagramHidesThemAgainEvenWhileTheLockWaits() {
-        HiddenChats.add(ALICE, "Alice");
-        MessagesLockForTests.open();
-        Settings.LOCK_AGAIN.save(LockDelay.ONE_MINUTE);
-        HiddenChats.reveal();
-
-        MessagesLockForTests.leave();
-
-        assertFalse("the lock may wait, the hidden chats don't", HiddenChats.revealed());
-        assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    private static void idle() {
+        shadowOf(Looper.getMainLooper()).idle();
     }
 
     /** The list the inbox was asked to draw its rows from the [n]th time. */

@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.ads.adDetailsGetter
+import app.morphe.patches.instagram.feed.headerline.branchesOnto
 import app.morphe.patches.instagram.feed.sound.FEED_CONTROLLER_STRING
 import app.morphe.patches.instagram.feed.sound.writesReaching
 import app.morphe.patches.instagram.media.taptoplay.findPlayInternal
@@ -28,6 +29,7 @@ import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.reels.cleanup.CLIPS_VIEWER_SOURCE
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.findFreeRegister
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -49,10 +51,14 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 
 private const val PATCH = "Tap a feed video to pause it"
 internal const val FEED_TAP_PAUSE = "$EXTENSION_PACKAGE/feed/FeedTapPause;"
-internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
-internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V"
 internal const val FEED_OPENING = "$FEED_TAP_PAUSE->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_SKIPS_HANDOFF = "$FEED_TAP_PAUSE->skipsHandoff()Z"
+
+/** The name the controller's tap asks its module for and hands over with the playing video to Reels. */
+private const val GET_MODULE_NAME = "getModuleName"
 
 /** The extension class holding the stubs the patch fills, apart from the hook Instagram's tap calls. */
 internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReader;"
@@ -60,7 +66,16 @@ internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReade
 /** The reader's stubs the patch fills in, each (name, parameter count). */
 internal val FEED_PLAYER_STUBS = listOf(
     "controllerOf" to 1, "controllerOfLauncher" to 1, "shownOf" to 1, "pageOf" to 2, "adDetailsOf" to 1, "playerOf" to 1,
-    "playing" to 1, "pause" to 2, "start" to 4, "mark" to 2,
+    "playing" to 1, "pause" to 2, "start" to 4, "mark" to 2, "spotOf" to 4,
+)
+
+/** The point's constructor: the tapped view's width and height, the tap's x and y in it, and a flag. */
+private val SPOT_PARAMETERS = listOf("I", "I", "F", "F", "Z")
+
+/** What the point's factory hands its constructor's first four, in order. */
+private val SPOT_SOURCES = listOf(
+    "Landroid/view/View;->getWidth()I", "Landroid/view/View;->getHeight()I",
+    "Landroid/view/MotionEvent;->getX()F", "Landroid/view/MotionEvent;->getY()F",
 )
 
 /** A string only the feed's tap handler loads, for the soft error it logs when a tap has nowhere to go. */
@@ -178,9 +193,16 @@ val tapFeedVideoToPausePatch = bytecodePatch(
  *           reaches in place of [handler], and [release] the class's end of that press
  * @property launcher the feed's Reels launcher, which every way into Reels from a feed post ends in,
  *           and [launcherSupplier] its lazy field handing over the module, read through [launcherValue]
+ * @property tap the controller's own tap, and [handoff] its call handing the playing video over to
+ *           Reels before it asks the launcher, null on a build whose tap has none
+ * @property spot where on the video a tap landed, read from the handler's point, null on a build whose
+ *           point differs
  */
 internal class FeedTap(
     val handler: Method,
+    val tap: Method,
+    val handoff: Handoff?,
+    val spot: TapSpot?,
     val press: Method,
     val release: Method,
     val launcher: Method,
@@ -209,6 +231,56 @@ internal class FeedTap(
     val adDetails: MethodReference,
 )
 
+/** The controller's tap's one [call] handing the playing video over to Reels, and a register [free] right there. */
+internal class Handoff(val call: MethodReference, val free: Int)
+
+/** Instagram's [point] for a tap, and its public fields for the tapped view's [width] and [height] and the tap's [x] and [y] in it. */
+internal class TapSpot(val point: String, val width: FieldReference, val height: FieldReference, val x: FieldReference, val y: FieldReference)
+
+/**
+ * Where on the video a tap landed, for Only the middle pauses it (#706), read from the [point] the tap handler and
+ * the press entry get (0C2g on 456's 386214575). Its one constructor taking (int, int, float, float, boolean) keeps
+ * its first four in public fields of its own, and its one static factory calling that constructor hands it a View's
+ * width and height and a MotionEvent's x and y, in that order. Null on a build that differs, which leaves the stub
+ * unfilled: the pause works as before, and the extension reports the spot missing once that switch is on.
+ */
+private fun BytecodePatchContext.findTapSpot(point: String): TapSpot? {
+    val pointClass = classDefByOrNull(point)?.takeIf { it.isPublic() } ?: return null
+    val maker = pointClass.methods.singleOrNull {
+        it.name == "<init>" && it.implementation != null && it.parameterTypes.map(Any::toString) == SPOT_PARAMETERS
+    } ?: return null
+    val made = maker.code()
+    val self = maker.localRegisterCount()
+    val fields = SPOT_SOURCES.indices.map { k ->
+        val stores = made.filter {
+            it.opcode == Opcode.IPUT && (it as TwoRegisterInstruction).registerA == maker.parameterRegisterNumber(k) &&
+                it.registerB == self
+        }
+        val field = stores.singleOrNull()?.fieldReference() ?: return null
+        if (field.definingClass != point || field.type != SPOT_PARAMETERS[k] || !pointClass.declares(field)) return null
+        field
+    }
+    if (fields.distinctBy { it.name }.size != fields.size) return null
+
+    fun makes(instruction: Instruction) =
+        instruction.opcode == Opcode.INVOKE_DIRECT_RANGE && instruction.methodReference()?.let { maker.matches(it) } == true
+    val factories = pointClass.methods.filter { method ->
+        val code = method.code()
+        AccessFlags.STATIC.isSet(method.accessFlags) && code.any(::makes) &&
+            code.any { it.methodReference()?.toString() == SPOT_SOURCES[0] }
+    }
+    val factory = factories.singleOrNull() ?: return null
+    val code = factory.code()
+    val at = code.indices.filter { makes(code[it]) }.singleOrNull() ?: return null
+    val first = (code[at] as RegisterRangeInstruction).startRegister + 1
+    val handed = SPOT_SOURCES.indices.all { k ->
+        val write = writesReaching(factory, at, first + k).singleOrNull() ?: return@all false
+        code[write].opcode == Opcode.MOVE_RESULT && write > 0 && code[write - 1].methodReference()?.toString() == SPOT_SOURCES[k]
+    }
+    if (!handed) return null
+    return TapSpot(point, fields[0], fields[1], fields[2], fields[3])
+}
+
 /**
  * The handler is the one instance method returning void with the parameters (View, Media, x, holder,
  * state, y, int, boolean), 451 adding one more object before the int, that loads
@@ -230,6 +302,10 @@ internal class FeedTap(
  * controller's one instance (String) method, once, with the name a static method gives an Integer
  * constant. Each of those has to be there once, in that shape, and every class and member the
  * extension's stubs then name has to be public.
+ *
+ * On 456 the controller's tap may also hand the playing video over to Reels before it asks the
+ * launcher: at most one call, which nothing branches onto, on one of the controller's own fields
+ * with the module's name, into a method that tells the controller to stop.
  */
 internal fun BytecodePatchContext.findFeedTap(): FeedTap {
     val handlers = classesLoadingString(FEED_TAP_HANDLER_STRING).flatMap { it.methods }.filter { method ->
@@ -441,6 +517,45 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         refuse("$shown doesn't look its post up the way $tapName looks up the tapped one")
     }
 
+    // The hand-off to Reels a server setting runs before the launcher, 06vI.A01 on 456's 386214574: a call
+    // on one of the controller's own fields with the module's name, whose body pauses the controller and
+    // lets its player go (03hQ.A0D, "fragment_paused"). A launcher that then keeps the tap finds the
+    // video stopped (#706). A build whose tap has none hands nothing over.
+    val fieldTypes = controllerClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.mapTo(mutableSetOf()) { it.type }
+    val handoffs = code.indices.filter { at ->
+        val call = code[at].methodReference() ?: return@filter false
+        if (code[at].opcode != Opcode.INVOKE_VIRTUAL || call.returnType != "V" || call.definingClass !in fieldTypes ||
+            call.parameterTypes.map(Any::toString) != listOf(STRING)
+        ) {
+            return@filter false
+        }
+        val named = writesReaching(tap, at, (code[at] as FiveRegisterInstruction).registerD).singleOrNull() ?: return@filter false
+        val asked = code.getOrNull(named - 1)?.methodReference()
+        if (code[named].opcode != Opcode.MOVE_RESULT_OBJECT || asked == null || asked.name != GET_MODULE_NAME ||
+            asked.parameterTypes.isNotEmpty() || asked.returnType != STRING
+        ) {
+            return@filter false
+        }
+        val body = classDefByOrNull(call.definingClass)?.methods?.singleOrNull { it.matches(call) && it.implementation != null }
+            ?: return@filter false
+        body.code().any { inner ->
+            val stops = inner.methodReference()
+            inner.opcode == Opcode.INVOKE_VIRTUAL && stops != null && stops.definingClass == controller && stops.returnType == "V" &&
+                stops.parameterTypes.isEmpty()
+        }
+    }
+    if (handoffs.size > 1) refuse("expected $tapName to hand the playing video over to Reels at most once, found ${handoffs.size}")
+    val handoff = handoffs.singleOrNull()?.let { at ->
+        val onto = branchesOnto(code, at)
+        if (onto.isNotEmpty()) refuse("$tapName branches onto its hand-off to Reels from $onto")
+        val free = try {
+            tap.findFreeRegister(at)
+        } catch (failure: IllegalArgumentException) {
+            refuse("no free register in $tapName to step over its hand-off to Reels")
+        }
+        Handoff(code[at].methodReference()!!, free)
+    }
+
     val adDetails = adDetailsGetter(PATCH)
 
     // The stubs run in the extension, so every class they cast to and every member they name must be
@@ -489,6 +604,9 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
 
     return FeedTap(
         handler = handler,
+        tap = tap,
+        handoff = handoff,
+        spot = findTapSpot(point),
         press = press,
         release = release,
         launcher = launcher.method,
@@ -597,18 +715,18 @@ private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, 
 private const val MOVES_FOLLOWED = 4
 
 /** The locals each hook borrows first thing in its method, where none holds anything yet. */
-private const val HOOK_LOCALS = 3
-private const val PRESS_LOCALS = 3
+private const val HOOK_LOCALS = 4
+private const val PRESS_LOCALS = 4
 private const val RELEASE_LOCALS = 4
 private const val LAUNCHER_LOCALS = 4
 
 /**
  * Fills the reader's stubs, then asks [FEED_TAPPED] first thing in the handler with the handler, the
- * post and the post's state. A yes returns from the handler, which answers nothing; a no goes on to
- * its first instruction.
+ * post, the post's state and the tap's point. A yes returns from the handler, which answers nothing; a
+ * no goes on to its first instruction.
  *
- * The press entry asks [FEED_PRESSED] first thing the same way, with the handler, the post and the
- * state, and returns on a yes, so a held press the extension takes neither opens Reels nor speeds the
+ * The press entry asks [FEED_PRESSED] first thing the same way, with the handler, the post, the state
+ * and the point, and returns on a yes, so a held press the extension takes neither opens Reels nor speeds the
  * video up. The release tells [FEED_RELEASED] first thing, with the handler, the post, the state and
  * whether the press ended in a lift, and then goes on: the lift of a press the extension took pauses
  * or plays the video, and the release only resets Instagram's hold, which a press entry that
@@ -617,6 +735,10 @@ private const val LAUNCHER_LOCALS = 4
  * The Reels launcher asks [FEED_OPENING] first thing with the launcher, where it was asked from, the
  * post and the state, and returns on a yes, so a tap that came another way pauses or plays the video
  * in place of opening Reels.
+ *
+ * Where the controller's tap hands the playing video over to Reels before it asks the launcher, the
+ * patch asks [FEED_SKIPS_HANDOFF] right before that call and steps over it on a yes, so a tap the
+ * launcher keeps finds the video still playing and still bound to the controller (#706).
  *
  * Each stub works in its own parameters: the build compiles a stub's `return NOT_PATCHED` into its
  * parameter's register, so it has no local to lend. The pause and the play take spare parameters
@@ -744,6 +866,33 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             return-object p0
         """,
     )
+    // Answers an Object: a float[] of the tapped view's width and height and the tap's x and y in it.
+    found.spot?.let { spot ->
+        stub("spotOf").addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, ${spot.point}
+                const/4 p1, 0x4
+                new-array p1, p1, [F
+                iget p2, p0, ${spot.width}
+                int-to-float p2, p2
+                const/4 p3, 0x0
+                aput p2, p1, p3
+                iget p2, p0, ${spot.height}
+                int-to-float p2, p2
+                const/4 p3, 0x1
+                aput p2, p1, p3
+                iget p2, p0, ${spot.x}
+                const/4 p3, 0x2
+                aput p2, p1, p3
+                iget p2, p0, ${spot.y}
+                const/4 p3, 0x3
+                aput p2, p1, p3
+                return-object p1
+            """,
+        )
+    }
+    // The handler is (View, Media, point, holder, state, ...): the post is p2, the point p3 and the state p5.
     mutable(found.handler).apply {
         addInstructionsWithLabels(
             0,
@@ -751,7 +900,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
                 move-object/from16 v0, p0
                 move-object/from16 v1, p2
                 move-object/from16 v2, p5
-                invoke-static { v0, v1, v2 }, $FEED_TAPPED
+                move-object/from16 v3, p3
+                invoke-static { v0, v1, v2, v3 }, $FEED_TAPPED
                 move-result v0
                 if-eqz v0, :stock
                 return-void
@@ -759,8 +909,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             ExternalLabel("stock", getInstruction(0)),
         )
     }
-    // The press entry is (View, Media, point[, holder], state): the post is p2 and the state its last
-    // parameter, p4 or p5.
+    // The press entry is (View, Media, point[, holder], state): the post is p2, the point p3 and the
+    // state its last parameter, p4 or p5.
     mutable(found.press).apply {
         addInstructionsWithLabels(
             0,
@@ -768,7 +918,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
                 move-object/from16 v0, p0
                 move-object/from16 v1, p2
                 move-object/from16 v2, p${found.press.parameterTypes.size}
-                invoke-static { v0, v1, v2 }, $FEED_PRESSED
+                move-object/from16 v3, p3
+                invoke-static { v0, v1, v2, v3 }, $FEED_PRESSED
                 move-result v0
                 if-eqz v0, :stock
                 return-void
@@ -804,6 +955,26 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             """,
             ExternalLabel("stock", getInstruction(0)),
         )
+    }
+    // The controller's tap asks [FEED_SKIPS_HANDOFF] right before its hand-off to Reels and steps over
+    // that one call on a yes, the way it does when the server setting is off.
+    found.handoff?.let { handoff ->
+        mutable(found.tap).apply {
+            val code = implementation!!.instructions.toList()
+            val calls = code.indices.filter {
+                code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].methodReference()?.toString() == handoff.call.toString()
+            }
+            val at = calls.singleOrNull() ?: refuse("expected ${found.controller}->${found.tap.name} to call ${handoff.call} once, found ${calls.size}")
+            addInstructionsWithLabels(
+                at,
+                """
+                    invoke-static { }, $FEED_SKIPS_HANDOFF
+                    move-result v${handoff.free}
+                    if-nez v${handoff.free}, :handedOff
+                """,
+                ExternalLabel("handedOff", getInstruction(at + 1)),
+            )
+        }
     }
 }
 

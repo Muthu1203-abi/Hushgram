@@ -17,8 +17,9 @@ import android.widget.FrameLayout;
  * call site, the controller re-checks the bar on each pre-draw and re-applies its changes
  * whenever Instagram has overwritten them.
  * <p>
- * Like iOS, content runs under the system navigation bar and a blur fades in behind the pill
- * towards the bottom edge. Reels keeps its own layout and stops above the pill.
+ * Content can run under the system navigation bar. The glass blurs only inside the pill; the
+ * surrounding screen stays clear. Reels keeps its own layout and stops above the pill unless asked
+ * to run behind it.
  */
 final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener {
     // The bar's height, margins and tab inset come from NavbarStyle (the Customize page).
@@ -41,8 +42,7 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
     private final android.graphics.RectF snapshotRegion = new android.graphics.RectF();
     private final android.graphics.Rect sampleRect = new android.graphics.Rect();
     private final float density;
-    /** Progressive blur behind the pill. Null if it can't be added. */
-    private EdgeBlurView bottomBlur;
+    /** Coordinates used to account for the navigation inset. */
     private final int[] location = new int[2];
     /** How far the bar's container stops short of the screen bottom for the navigation bar. */
     private int bottomInset;
@@ -59,7 +59,7 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
     private boolean preview;
 
     LiquidGlassController(ViewGroup bar, View shadow, boolean extendContent) {
-        this(bar, shadow, extendContent, NavbarStyle::get);
+        this(bar, shadow, extendContent, () -> NavbarStyle.forTab(selectedTabIndex(bar)));
     }
 
     /** @param styleSource where the bar's look comes from: the settings, or a demo's values */
@@ -105,12 +105,6 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         parent.addView(lens, parent.indexOfChild(bar) + 1, overlayLayoutParams(lens.extraTop));
         // In the southstar21 style the pressed drop swells past the bar's top and bottom.
         if (parent.getClipChildren()) parent.setClipChildren(false);
-        if (parent instanceof FrameLayout) {
-            bottomBlur = new EdgeBlurView(bar.getContext(), density);
-            bottomBlur.setSnapshots(snapshots);
-            parent.addView(bottomBlur, parent.indexOfChild(bar),
-                    new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, android.view.Gravity.BOTTOM));
-        }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             // Soft system shadow cast by the pill outline. The glass is opaque on 12+, so the
@@ -168,11 +162,10 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         try {
             enforce();
             if (bar.getVisibility() == View.VISIBLE && !preview) {
-                // Copy the videos under the bar, its glass and lens (which pokes out above it) and
-                // the edge blur, down to the bottom of the screen.
-                ViewGroup parent = (ViewGroup) bar.getParent();
+                // Copy videos behind the bar and its lens, which can poke out above the bar.
                 float top = bar.getTop() + bar.getTranslationY() - dp(100);
-                snapshotRegion.set(bar.getLeft(), top, bar.getRight(), Math.max(top, parent.getHeight() + bottomInset));
+                float bottom = bar.getBottom() + bar.getTranslationY() + dp(12);
+                snapshotRegion.set(bar.getLeft(), top, bar.getRight(), Math.max(top, bottom));
                 snapshots.update(snapshotRegion);
             }
             if (bar.getVisibility() == View.VISIBLE) {
@@ -206,7 +199,6 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         updateSystemBarInsets();
         enforceGeometry();
         enforceContentMargins();
-        enforceEdgeBlurs();
     }
 
     /**
@@ -238,27 +230,6 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
             g.getLocationInWindow(location);
             if (location[1] + g.getHeight() >= screenBottom) break;
         }
-    }
-
-    private void enforceEdgeBlurs() {
-        if (bottomBlur == null) return;
-        boolean barShown = bar.getVisibility() == View.VISIBLE && bar.getHeight() > 0;
-        boolean dark = isDark();
-        int height = bar.getHeight() + bottomInset + bottomBlur.extraTop;
-        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) bottomBlur.getLayoutParams();
-        if (lp.height != height || lp.bottomMargin != -bottomInset) {
-            lp.height = height;
-            lp.bottomMargin = -bottomInset;
-            bottomBlur.setLayoutParams(lp);
-        }
-        bottomBlur.setDark(dark);
-        setShown(bottomBlur, barShown);
-    }
-
-    private static void setShown(View v, boolean shown) {
-        int visibility = shown ? View.VISIBLE : View.GONE;
-        if (v.getVisibility() != visibility) v.setVisibility(visibility);
-        if (shown) v.invalidate();
     }
 
     /**
@@ -313,6 +284,10 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         int width = bar.getWidth();
         if (width <= 0) return;
         NavbarStyle style = styleSource.get();
+        // The settings preview and Instagram's real tab bar use the same saved position.
+        // Positive values lift the pill clear of Reel controls; negative values lower it.
+        float verticalOffset = -dp(style.verticalPositionDp);
+        if (bar.getTranslationY() != verticalOffset) bar.setTranslationY(verticalOffset);
         if (style.version != appliedStyleVersion) {
             appliedStyleVersion = style.version;
             appliedForWidth = -1;
@@ -394,6 +369,34 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
         return false;
     }
 
+    /** Instagram's five bottom tabs follow the same Home, Reels, Messages, Explore, Profile order as the preview. */
+    private static int selectedTabIndex(ViewGroup bar) {
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            View child = bar.getChildAt(i);
+            if (child.getVisibility() == View.VISIBLE && (child.isSelected() || child.isActivated())) {
+                int byName = tabIndexByName(child);
+                return byName >= 0 ? byName : Math.max(0, Math.min(4, i));
+            }
+        }
+        return 0;
+    }
+
+    /** Prefer Instagram's resource ID; fall back to the five-tab order used by the live preview. */
+    private static int tabIndexByName(View tab) {
+        if (tab.getId() == View.NO_ID) return -1;
+        try {
+            String name = tab.getResources().getResourceEntryName(tab.getId()).toLowerCase(java.util.Locale.ROOT);
+            if (name.contains("clips") || name.contains("reel")) return 1;
+            if (name.contains("direct") || name.contains("message") || name.contains("inbox")) return 2;
+            if (name.contains("search") || name.contains("explore")) return 3;
+            if (name.contains("profile")) return 4;
+            if (name.contains("home") || name.contains("feed")) return 0;
+        } catch (android.content.res.Resources.NotFoundException ignored) {
+            // The preview's generated tabs have no Instagram resource IDs.
+        }
+        return -1;
+    }
+
 
     /**
      * Siblings under the bar (the main container, and the ViewPager2 holding the feed) stop
@@ -404,12 +407,13 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
     private void enforceContentMargins() {
         if (baseHeight <= 0) return;
         // Content behind the bar also runs on under the navigation bar.
-        int target = contentBehindBar() ? -bottomInset : appliedHeight;
+        int target = contentBehindBar() ? -bottomInset
+                : Math.max(0, appliedHeight + dp(styleSource.get().verticalPositionDp));
         ViewGroup parent = (ViewGroup) bar.getParent();
         int barIndex = parent.indexOfChild(bar);
         for (int i = 0; i < barIndex; i++) {
             View child = parent.getChildAt(i);
-            if (child == shadow || child instanceof EdgeBlurView) continue;
+            if (child == shadow) continue;
             if (!(child.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
             ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) child.getLayoutParams();
             // Only take over the tab bar margin, leave other margins Instagram may set alone.

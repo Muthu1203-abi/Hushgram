@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.REELS_PLAYER_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.reels.speed.RESUME_PLAYER_TRACE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -180,7 +181,9 @@ class ReelTapAndVolumeHookTest {
                 val tap = asking.single()
                 val code = tap.code()
                 val ask = code.indexOfFirst { it.referenceText() == MUTE_INSTEAD_OF_PAUSE }
-                assertEquals("$what: right after the load of the pause string", CLIPS_PAUSE, ((code[ask - 1] as ReferenceInstruction).reference as StringReference).string)
+                // 456.1 asks Redex's string pool for it, so the pool call's move-result sits right before the hook.
+                val load = if (code[ask - 1].opcode == Opcode.MOVE_RESULT_OBJECT) ask - 2 else ask - 1
+                assertEquals("$what: right after the load of the pause string", CLIPS_PAUSE, context.stringLoadedAt(code, load))
                 // 453's toggle takes a boolean after the reason, true from every audio button, so the hook loads it too.
                 val withFlag = site.toggle.parameterTypes.size == 2
                 val mute = muteLength + if (withFlag) 1 else 0
@@ -501,9 +504,15 @@ class ReelTapAndVolumeHookTest {
                     "$what: the player's state first, then the session's",
                     listOfNotNull(
                         site.audio.controllerField, player.currentList, player.listCast, player.indexOf, player.holderAt,
-                        site.audio.controllerField, player.factoryField, player.playerFor, player.stateOf, player.flag,
-                        site.audio.controllerField, site.audio.sessionField, site.audio.state, site.audio.isOn, site.direction,
-                    ).map { it.toString() },
+                        site.audio.controllerField, player.factoryField, player.playerFor,
+                    ).map { it.toString() } +
+                        // 457's player has no state call: the hook casts it to its one implementation and reads the state there.
+                        (player.stateOf?.let { listOf(it.toString()) }
+                            ?: ((if (player.statePath.firstOrNull()?.type != null) emptyList() else listOf(player.playerType)) +
+                                player.statePath.map { it.type ?: it.field.toString() })) +
+                        listOfNotNull(
+                            player.flag, site.audio.controllerField, site.audio.sessionField, site.audio.state, site.audio.isOn, site.direction,
+                        ).map { it.toString() },
                     code.subList(start, ask).mapNotNull { it.referenceText() },
                 )
                 assertEquals("$what: the hook's last instruction", Opcode.RETURN_VOID, code[ask + 3].opcode)
@@ -564,6 +573,37 @@ class ReelTapAndVolumeHookTest {
         assertEquals("every step that can be null falls back", 7, read.count { it.opcode == Opcode.IF_EQZ })
         assertEquals("unknown is -1", -1, (read.single { it.opcode == Opcode.CONST_4 } as NarrowLiteralInstruction).narrowLiteral)
         assertEquals("the flag, the state or unknown", 3, read.count { it.opcode == Opcode.RETURN })
+    }
+
+    /**
+     * Instagram 457: maybeResumePlayer is static, taking the controller among its parameters, and the
+     * player is an interface without a state call, the toggle reading the state its implementation
+     * holds. The controller still goes over first thing, and the sound stub reads the state that way.
+     */
+    @Test
+    fun aStaticResumeAndAStateHeldByThePlayersImplementationAreReadThatWay() {
+        val context = PatchContexts.of(volumeClasses(resumes = 1, resumeStatic = true, resumeTakesController = true, heldState = true) + bridges())
+
+        var site: SpeakerSite? = null
+        context.apply { site = findSpeakerSite(tapSite(), findVolumeSite()).also { applySpeaker(it!!) } }
+
+        assertTrue("the player's way is open", site!!.playerOpen)
+        val resume = context.controllerMethod("maybeResumePlayer").code()
+        assertEquals("the controller handed over first", SPEAKER_RESUMING, resume[0].referenceText())
+        // One local, then the int and the controller.
+        assertEquals("as its parameter", listOf(2), resume[0].arguments())
+        val read = context.mutableClassDefBy(REEL_TAP_AND_VOLUME).methods.single { it.name == AUDIO_ON_STUB }.code()
+        assertEquals(
+            "the player's state through its implementation, then the session's",
+            listOf(
+                volumeController, "$volumeController->list()$vList", "$vList->pos()I", "$vList->at(I)$vHolder",
+                "$volumeController->factory:$vFactory", "$vFactory->make($vHolder)$vPlayer", vPlayerImpl, "$vPlayerImpl->audio:$vPState",
+                "$vPState->flag:Z", "$volumeController->session:$userSession", "$audioState->of($userSession)$audioState",
+                "$audioState->isOn()Z",
+            ),
+            read.mapNotNull { it.referenceText() },
+        )
+        assertEquals("every step that can be null falls back", 7, read.count { it.opcode == Opcode.IF_EQZ })
     }
 
     /**
@@ -640,7 +680,12 @@ class ReelTapAndVolumeHookTest {
                 val code = resume.code()
                 assertEquals("$what: the controller handed over first", SPEAKER_RESUMING, code[0].referenceText())
                 val parameters = resume.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
-                assertEquals("$what: as this", listOf(resume.implementation!!.registerCount - parameters - 1), code[0].arguments())
+                // `this`, or on 457, where maybeResumePlayer is static, its controller parameter.
+                val self = if (AccessFlags.STATIC.isSet(resume.accessFlags)) 0 else 1
+                assertEquals(
+                    "$what: the controller", listOf(resume.implementation!!.registerCount - parameters - self + site.controllerParameter.removePrefix("p").toInt()),
+                    code[0].arguments(),
+                )
                 assertEquals("$what: maybeResumePlayer grew by the hook", resumeLength + 1, code.size)
                 val toggle = context.mutableClassDefBy(site.controller).methods.single { it.key() == site.toggle.key() }
                 assertEquals("$what: the icon redraws first thing in the toggle", SPEAKER_REFRESH, toggle.code()[0].referenceText())
@@ -773,6 +818,7 @@ class ReelTapAndVolumeHookTest {
     private val vFactory = "Lfixture/VFactory;"
     private val vPlayer = "Lfixture/VPlayer;"
     private val vPState = "Lfixture/VPState;"
+    private val vPlayerImpl = "Lfixture/VPlayerImpl;"
 
     /**
      * The runnable: it traces its own marker, adjusts the stream volume with an int it reads from its own field, and
@@ -795,6 +841,10 @@ class ReelTapAndVolumeHookTest {
         resumes: Int = 0,
         resumeOwner: String = volumeController,
         resumeStatic: Boolean = false,
+        /** maybeResumePlayer takes the controller after its int, as 457's static one does. */
+        resumeTakesController: Boolean = false,
+        /** The player is an interface without a state call, and the toggle reads its implementation's state (457). */
+        heldState: Boolean = false,
         resumeJumpedTo: Boolean = false,
         controllerPublic: Boolean = true,
     ): List<ClassDef> {
@@ -844,8 +894,7 @@ class ReelTapAndVolumeHookTest {
                 iget-object v0, p0, $volumeController->factory:$vFactory
                 invoke-virtual { v0, v5 }, $vFactory->make($vHolder)$vPlayer
                 move-result-object v6
-                invoke-virtual { v6 }, $vPlayer->state()$vPState
-                move-result-object v7
+                ${if (heldState) "check-cast v6, $vPlayerImpl\niget-object v7, v6, $vPlayerImpl->audio:$vPState" else "invoke-virtual { v6 }, $vPlayer->state()$vPState\nmove-result-object v7"}
                 iget-boolean v3, v7, $vPState->flag:Z
                 xor-int/lit8 v4, v3, 0x1
                 iput-boolean v4, v7, $vPState->flag:Z
@@ -862,7 +911,7 @@ class ReelTapAndVolumeHookTest {
             """)
         }
         val resume = { name: String ->
-            method(resumeOwner, name, listOf("I"), "V", 1, body = """
+            method(resumeOwner, name, if (resumeTakesController) listOf("I", volumeController) else listOf("I"), "V", 1, body = """
                 ${if (resumeJumpedTo) ":top" else ""}
                 const-string v0, "$RESUME_PLAYER_TRACE"
                 invoke-static { v0 }, $trace
@@ -899,9 +948,9 @@ class ReelTapAndVolumeHookTest {
             classDef(vHolder, emptyList()),
             classDef(vListIntf, emptyList(), isInterface = true),
             classDef(vFactory, listOf(pub("make", vFactory, vPlayer, listOf(vHolder)))),
-            classDef(vPlayer, listOf(pub("state", vPlayer, vPState, emptyList()))),
+            if (heldState) classDef(vPlayer, emptyList(), isInterface = true) else classDef(vPlayer, listOf(pub("state", vPlayer, vPState, emptyList()))),
             classDef(vPState, emptyList(), fields = listOf("flag" to "Z")),
-        ) + if (resumeOwner == volumeController || resumes == 0) emptyList() else listOf(classDef(resumeOwner, resumeMethods))
+        ) + (if (heldState) listOf(classDef(vPlayerImpl, emptyList(), fields = listOf("audio" to vPState))) else emptyList()) + if (resumeOwner == volumeController || resumes == 0) emptyList() else listOf(classDef(resumeOwner, resumeMethods))
     }
 
     private fun method(

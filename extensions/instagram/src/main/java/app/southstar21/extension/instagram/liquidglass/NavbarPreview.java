@@ -61,6 +61,7 @@ final class NavbarPreview extends FrameLayout {
     private final LinearLayout bar;
     private final Feed feed;
     private final LiquidGlassController controller;
+    private final SeekIndicator seekIndicator;
     private final Demo demo;
     private TouchRouter router;
     private boolean comparing;
@@ -177,8 +178,14 @@ final class NavbarPreview extends FrameLayout {
         // Instagram's bar is 48dp; the controller grows it to the chosen height.
         addView(bar, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48), Gravity.BOTTOM));
 
+        seekIndicator = new SeekIndicator(activity);
+        LayoutParams seekLp = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10), Gravity.BOTTOM);
+        seekLp.leftMargin = dp(24);
+        seekLp.rightMargin = dp(24);
+        addView(seekIndicator, seekLp);
+
         NavbarStyle.Source source = demo != null ? demo::style
-                : () -> comparing ? NavbarStyle.defaults() : NavbarStyle.get();
+                : () -> comparing ? NavbarStyle.defaultForTab(selectedIndex()) : NavbarStyle.forTab(selectedIndex());
         controller = new LiquidGlassController(bar, null, true, source);
         if (demo != null) addView(demo.caption, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START));
@@ -199,6 +206,20 @@ final class NavbarPreview extends FrameLayout {
         lastUserTouch = System.nanoTime();
         // Like on Instagram: taps go to the tabs, a drag along the bar glides the selection.
         return router != null ? router.dispatchTouchEvent(event) : super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        if (seekIndicator != null) {
+            boolean reels = selectedIndex() == 1;
+            seekIndicator.setVisibility(reels ? View.VISIBLE : View.GONE);
+            if (reels && bar.getHeight() > 0 && seekIndicator.getHeight() > 0) {
+                float target = bar.getTop() + bar.getTranslationY() - dp(14) - seekIndicator.getTop()
+                        - dp(LiquidGlassNavBarPatch.reelSeekBarOffsetDp());
+                if (seekIndicator.getTranslationY() != target) seekIndicator.setTranslationY(target);
+            }
+        }
+        super.dispatchDraw(canvas);
     }
 
     private boolean themeDark() {
@@ -229,6 +250,28 @@ final class NavbarPreview extends FrameLayout {
 
     private int dp(float value) {
         return Math.round(value * density);
+    }
+
+    /** A small Reel progress strip in the settings preview, moved by the real seek-bar setting. */
+    private final class SeekIndicator extends View {
+        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+        SeekIndicator(Activity activity) {
+            super(activity);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+            setContentDescription("Reels seek bar preview");
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float centerY = getHeight() / 2f;
+            float radius = dp(2);
+            paint.setColor(0x88FFFFFF);
+            canvas.drawRoundRect(0, centerY - radius, getWidth(), centerY + radius, radius, radius, paint);
+            paint.setColor(0xFFFFFFFF);
+            canvas.drawRoundRect(0, centerY - radius, getWidth() * 0.38f, centerY + radius, radius, radius, paint);
+        }
     }
 
     // region Demo

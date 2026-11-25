@@ -11,17 +11,24 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.ResolveInfo;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +52,7 @@ import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -291,7 +299,11 @@ public class PostInfoTest {
         ShadowLooper.idleMainLooper();
         AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
         TextView facts = dialog.findViewById(android.R.id.message);
-        for (TextView text : new TextView[]{facts, labelled(dialog, "Copy username"), labelled(dialog, "Copy caption")}) {
+        // The rows read in the dialog's language, Arabic here since #817.
+        TextView username = labelled(dialog, L10n.t(activity, "Copy username"));
+        TextView caption = labelled(dialog, L10n.t(activity, "Copy caption"));
+        assertFalse("the rows are in Arabic", "Copy username".equals(username.getText().toString()));
+        for (TextView text : new TextView[]{facts, username, caption}) {
             String what = text.getText().toString();
             assertEquals(what, View.LAYOUT_DIRECTION_RTL, text.getLayoutDirection());
             assertEquals(what, View.TEXT_ALIGNMENT_VIEW_START, text.getTextAlignment());
@@ -381,6 +393,7 @@ public class PostInfoTest {
 
         bare.owner = null;
         bare.caption = null;
+        bare.pictures = null;
         PostInfo.Facts facts = PostInfo.Facts.of(bare, bare);
         assertNull(PostInfo.copies(activity, activity, facts, new AlertDialog.Builder(activity).create()));
     }
@@ -435,6 +448,266 @@ public class PostInfoTest {
         assertTrue(clip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
         assertEquals("Caption copied", ShadowToast.getTextOfLatestToast());
         assertFalse("Details closes", dialog.isShowing());
+    }
+
+    /**
+     * Copy hashtags (#839) takes each tag once, in the order they first come, a run like #a#b as two
+     * tags and a tag in another case as the one before it. Numbers, C#, a link's #part and a tag in
+     * the middle of a word aren't hashtags.
+     */
+    @Test
+    public void captionsGiveUpJustTheirHashtags() {
+        assertEquals("#sunset #beach #goldenhour", PostInfo.hashtags("Golden hour\n.\n.\n#sunset #beach #goldenhour"));
+        assertEquals("#summer #blessed", PostInfo.hashtags("Loving #summer days, #1 fan of this #blessed #Summer"));
+        assertEquals("#a #b", PostInfo.hashtags("#a#b is fun"));
+        assertEquals("#tbt #a #b", PostInfo.hashtags("#tbt to last summer #a#b #A"));
+        assertNull("no hashtags", PostInfo.hashtags("C# and example.com/#top, see #1 and mid#word"));
+        assertNull("a number's tag", PostInfo.hashtags("Room #1 and Tom&#39;s"));
+    }
+
+    /** The row shows only for a caption with hashtags, and copies them like Copy caption copies the words. */
+    @Test
+    public void theDetailsCopyJustTheHashtags() {
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "No tags on this one";
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertFalse("nothing to copy", labels(dialog).contains("Copy hashtags"));
+        dialog.dismiss();
+
+        post.caption = "Sunset at the pier\n.\n#golden #hour";
+        PostInfo.show(post, null, activity);
+        dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Copy hashtags").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("#golden #hour", clip().getItemAt(0).getText().toString());
+        assertTrue(clip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
+        assertEquals("Hashtags copied", ShadowToast.getTextOfLatestToast());
+        assertFalse("Details closes", dialog.isShowing());
+    }
+
+    /**
+     * Translate caption (#839) hands the caption to Android's translate action, then to the text
+     * selection menu's action when nothing takes that, and says so when nothing takes either.
+     */
+    @Test
+    public void translateCaptionHandsTheCaptionToATranslator() {
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "Buenos dias #playa";
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Translate caption").performClick();
+        ShadowLooper.idleMainLooper();
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PostInfo.TRANSLATE, started.getAction());
+        assertEquals(post.caption, started.getStringExtra(Intent.EXTRA_TEXT));
+        assertFalse("Details closes", dialog.isShowing());
+
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        try {
+            Intent selection = new Intent(Intent.ACTION_PROCESS_TEXT).setType("text/plain");
+            ResolveInfo translator = new ResolveInfo();
+            translator.activityInfo = new ActivityInfo();
+            translator.activityInfo.packageName = "com.example.translator";
+            translator.activityInfo.name = "com.example.translator.Translate";
+            Shadows.shadowOf(activity.getPackageManager()).addResolveInfoForIntent(selection, translator);
+            PostInfo.translate(activity, post.caption);
+            started = Shadows.shadowOf(activity).getNextStartedActivity();
+            assertEquals(Intent.ACTION_PROCESS_TEXT, started.getAction());
+            assertEquals(post.caption, started.getStringExtra(Intent.EXTRA_PROCESS_TEXT));
+            assertTrue(started.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false));
+
+            Shadows.shadowOf(activity.getPackageManager()).removeResolveInfosForIntent(selection, "com.example.translator");
+            PostInfo.translate(activity, post.caption);
+            assertNull("nothing takes it", Shadows.shadowOf(activity).getNextStartedActivity());
+            assertEquals("No app here can translate it", ShadowToast.getTextOfLatestToast());
+        } finally {
+            Shadows.shadowOf(RuntimeEnvironment.getApplication()).checkActivities(false);
+        }
+    }
+
+    /** What the fetch stand-in was asked for, and the type it answers, null for a fetch that fails. */
+    private final List<String> fetched = new ArrayList<>();
+    private String fetchType = "image/jpeg";
+    private final List<Intent> started = new ArrayList<>();
+    private static final String PROVIDER = "com.instagram.android.fileprovider";
+
+    /** The fetch, the provider and the start stood in for, as a phone with Instagram's FileProvider has them. */
+    private void standIns() {
+        OpenWith.fetcher = (application, url, kind, into) -> {
+            fetched.add(kind + " " + url);
+            if (fetchType == null) return null;
+            try (FileOutputStream out = new FileOutputStream(into)) {
+                out.write(new byte[]{1, 2, 3});
+            } catch (IOException failure) {
+                throw new AssertionError(failure);
+            }
+            return fetchType;
+        };
+        TextGrab.authority = context -> PROVIDER;
+        TextGrab.starter = (context, intent) -> started.add(intent);
+    }
+
+    @After
+    public void putTheStandInsBack() {
+        OpenWith.fetcher = OpenWith::fetchFile;
+        TextGrab.authority = TextGrab::fileProvider;
+        TextGrab.starter = Context::startActivity;
+    }
+
+    /** The tap on [label] in the Details of [post], with the fetch run and its answer shown. */
+    private void tap(Post post, String label) throws Exception {
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, label).performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse("Details closes", dialog.isShowing());
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+    }
+
+    private List<String> filesIn(String folder) {
+        String[] names = new File(activity.getCacheDir(), folder).list();
+        List<String> found = names == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(names));
+        Collections.sort(found);
+        return found;
+    }
+
+    /**
+     * #839: a photo and a video get Open with and Read text with Lens under the facts. A photo with no
+     * picture and a carousel page that isn't known get neither, since there's nothing to hand over.
+     */
+    @Test
+    public void detailsOfferOpenWithAndReadTextWithLens() {
+        Settings.POST_DETAILS.save(true);
+        for (Post post : new Post[]{photo(), video()}) {
+            PostInfo.show(post, null, activity);
+            AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+            assertTrue(labels(dialog).toString(), labels(dialog).containsAll(Arrays.asList("Open with", "Read text with Lens")));
+            dialog.dismiss();
+        }
+        Post bare = photo();
+        bare.pictures = null;
+        PostInfo.show(bare, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertFalse("no picture", labels(dialog).contains("Open with"));
+        assertFalse("no picture", labels(dialog).contains("Read text with Lens"));
+        dialog.dismiss();
+
+        Post carousel = new Post("3712345678901234569_51234567", "someone", POSTED);
+        carousel.pages = Arrays.asList(photo(), video());
+        PostInfo.Facts unknown = PostInfo.Facts.of(VideoDownload.shown(carousel, 5), carousel);
+        assertNull(unknown.file);
+        assertNull(unknown.still);
+    }
+
+    /**
+     * #839: Open with fetches the photo Copy media link copies into Instagram's cache and offers it
+     * through the chooser as a view of a content address from Instagram's FileProvider, readable by the
+     * app picked. A video goes as a video, and only the last file is kept.
+     */
+    @Test
+    public void openWithHandsThePhotoOrVideoToTheChooser() throws Exception {
+        standIns();
+        Settings.POST_DETAILS.save(true);
+        tap(photo(), "Open with");
+        assertEquals(Collections.singletonList("IMAGE " + META + "1080.jpg"), fetched);
+        assertEquals("Getting the file ready", ShadowToast.getTextOfLatestToast());
+        List<String> files = filesIn(OpenWith.FOLDER);
+        assertEquals(files.toString(), 1, files.size());
+        assertTrue(files.get(0), files.get(0).endsWith(".jpg"));
+        Intent chooser = started.get(0);
+        assertEquals(Intent.ACTION_CHOOSER, chooser.getAction());
+        assertEquals("Open with", String.valueOf(chooser.getCharSequenceExtra(Intent.EXTRA_TITLE)));
+        assertTrue((chooser.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+        Intent view = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals(Intent.ACTION_VIEW, view.getAction());
+        assertEquals("content://" + PROVIDER + "/cache/" + OpenWith.FOLDER + "/" + files.get(0), String.valueOf(view.getData()));
+        assertEquals("image/jpeg", view.getType());
+        assertTrue((view.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+
+        fetched.clear();
+        started.clear();
+        fetchType = "video/mp4";
+        tap(video(), "Open with");
+        assertEquals(Collections.singletonList("VIDEO " + META + "1080.mp4"), fetched);
+        files = filesIn(OpenWith.FOLDER);
+        assertEquals("only the last one is kept: " + files, 1, files.size());
+        assertTrue(files.get(0), files.get(0).endsWith(".mp4"));
+        view = started.get(0).getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals("video/mp4", view.getType());
+        assertEquals("content://" + PROVIDER + "/cache/" + OpenWith.FOLDER + "/" + files.get(0), String.valueOf(view.getData()));
+    }
+
+    /**
+     * #839: with nothing taking a view the file goes to the share sheet instead, and with nothing taking
+     * either, or a fetch that fails, it says so and nothing opens.
+     */
+    @Test
+    public void openWithSaysWhenNothingCanTakeIt() throws Exception {
+        standIns();
+        Settings.POST_DETAILS.save(true);
+        TextGrab.starter = (context, intent) -> {
+            Intent target = intent.getParcelableExtra(Intent.EXTRA_INTENT);
+            if (Intent.ACTION_VIEW.equals(target.getAction())) throw new ActivityNotFoundException();
+            started.add(intent);
+        };
+        tap(photo(), "Open with");
+        Intent send = started.get(0).getParcelableExtra(Intent.EXTRA_INTENT);
+        assertEquals(Intent.ACTION_SEND, send.getAction());
+        assertEquals("image/jpeg", send.getType());
+        assertTrue(String.valueOf(send.getParcelableExtra(Intent.EXTRA_STREAM)).startsWith("content://" + PROVIDER + "/cache/" + OpenWith.FOLDER + "/"));
+
+        started.clear();
+        TextGrab.starter = (context, intent) -> {
+            throw new ActivityNotFoundException();
+        };
+        tap(photo(), "Open with");
+        assertEquals("No app here can open it", ShadowToast.getTextOfLatestToast());
+
+        standIns();
+        fetchType = null;
+        tap(photo(), "Open with");
+        assertTrue("nothing opens", started.isEmpty());
+        assertEquals("Couldn't get the file", ShadowToast.getTextOfLatestToast());
+        assertTrue("nothing kept", filesIn(OpenWith.FOLDER).isEmpty());
+    }
+
+    /**
+     * #839: Read text with Lens fetches a video's cover, or the photo, into Copy text's folder and sends
+     * it to Google Lens's own share target. A screen closed before the file is ready gets nothing, and
+     * the file goes.
+     */
+    @Test
+    public void readTextWithLensSendsTheCoverToLens() throws Exception {
+        standIns();
+        Settings.POST_DETAILS.save(true);
+        tap(video(), "Read text with Lens");
+        assertEquals(Collections.singletonList("IMAGE " + META + "cover.jpg"), fetched);
+        List<String> files = filesIn(TextGrab.FOLDER);
+        assertEquals(files.toString(), 1, files.size());
+        Intent lens = started.get(0);
+        assertEquals(TextGrab.LENS_PACKAGE, lens.getComponent().getPackageName());
+        assertEquals(TextGrab.LENS_ENTRY, lens.getComponent().getClassName());
+        assertEquals(Intent.ACTION_SEND, lens.getAction());
+        assertEquals("image/jpeg", lens.getType());
+        assertEquals("content://" + PROVIDER + "/cache/" + TextGrab.FOLDER + "/" + files.get(0),
+                String.valueOf(lens.getParcelableExtra(Intent.EXTRA_STREAM)));
+        assertTrue((lens.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+
+        started.clear();
+        fetched.clear();
+        PostInfo.show(photo(), null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Read text with Lens").performClick();
+        controller.pause().stop().destroy();
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        assertEquals(Collections.singletonList("IMAGE " + META + "1080.jpg"), fetched);
+        assertTrue("the screen closed", started.isEmpty());
+        assertTrue("the file goes", filesIn(TextGrab.FOLDER).isEmpty());
     }
 
     private ClipData clip() {

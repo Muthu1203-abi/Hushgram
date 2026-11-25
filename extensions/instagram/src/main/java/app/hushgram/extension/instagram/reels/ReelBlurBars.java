@@ -494,8 +494,8 @@ public final class ReelBlurBars {
             CONTROLLERS.clear();
         }
         source = TEXTURE;
-        wearsGlass = GlassTabBar::wearsGlass;
-        floatingGlass = GlassTabBar::wearsFloatingGlass;
+        wearsGlass = LiquidGlassNavBarPatch::wearsGlass;
+        floatingGlass = LiquidGlassNavBarPatch::wearsFloatingGlass;
         rounds = 0;
         logged = false;
         dropBands();

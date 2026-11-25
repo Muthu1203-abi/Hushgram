@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.feed.emptiedPageHeaderPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -30,7 +31,7 @@ val hideAdsPatch = bytecodePatch(
     category("Ads")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, emptiedPageHeaderPatch)
 
     execute {
         hideAds()
@@ -41,16 +42,18 @@ val hideAdsPatch = bytecodePatch(
 /**
  * Guards Instagram's own ad insert and takes the sponsored posts and ad pivots a feed's pages carry
  * out of them. Both are found before either changes, so a build where one moved stops the patch with
- * nothing written. The comments sheet's ad (#415) is found the same way, but a build where it moved
- * only warns, so feeds stay free of ads.
+ * nothing written. The comments sheet's ad (#415) and the shop or ad card above its comments (#857)
+ * are found the same way, but a build where either moved only warns, so feeds stay free of ads.
  */
 internal fun BytecodePatchContext.hideAds() {
     val injector = findAdInjector()
     val sponsored = findSponsoredPosts()
     val commentAds = findCommentAdsOrWarn()
+    val commentCards = findCommentCardsOrWarn()
     guardAdInjector(injector)
     sponsored.write(this)
     commentAds?.let { hideCommentAds(it) }
+    commentCards?.let { hideCommentCards(it) }
 }
 
 /**

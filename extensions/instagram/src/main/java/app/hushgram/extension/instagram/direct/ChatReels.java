@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.direct;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
@@ -24,6 +25,7 @@ import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -67,6 +69,9 @@ public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
     private static final String CHAT_SOURCE = "DIRECT";
 
+    /** The product type name Instagram gives a reel's media. */
+    private static final String REEL_PRODUCT = "clips";
+
     /** How long a repeat tap on a message waits at most for the first tap's viewer, in ms. */
     static final long OPENING_MS = 10_000;
 
@@ -91,6 +96,10 @@ public final class ChatReels {
     static final int REPLIES_KEPT = 500;
     /** How many of one reel's messages are kept at most. */
     static final int MESSAGES_KEPT = 50;
+    /** What a reply built from the message a swiped reel came with is counted as in the diagnostic report. */
+    static final String CARRIED = "reply bar given the message a swiped reel came with";
+    /** Whether that's been logged in this process. */
+    private static volatile boolean carriedLogged;
     /** The taps on media in a chat that went on to open, counted. */
     private static volatile int taps;
     /** The chats whose messages' reply infos are remembered, the one collected from last at the end. */
@@ -490,11 +499,49 @@ public final class ChatReels {
         return instagramChains || (Settings.SWIPE_CHAT_REELS.get() && !onACommentsViewer());
     }
 
-    /** The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's. */
+    /**
+     * The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's:
+     * the one remembered as the chat loaded (see {@link #reply(String, String)}), or else the one built
+     * from the message the reel itself carries ({@link #carried(String, Object, Function)}). A reel paged
+     * in past the chat's loaded messages has none remembered, and Instagram's own lookup misses it too,
+     * so its quick reactions did nothing (#804).
+     */
     @Nullable
     private static Object ownReply(@Nullable Object instagram, @Nullable Object item) {
         if (item == null) return null;
-        return reply(mediaId(item), instagram == null ? null : messageOf(instagram));
+        String quoted = instagram == null ? null : messageOf(instagram);
+        String media = mediaId(item);
+        Object remembered = reply(media, quoted);
+        if (remembered != null || remembers(media, quoted)) return remembered;
+        return carried(quoted, ownMessage(item), ChatReels::messageOf);
+    }
+
+    /**
+     * [built], the reply info for the message a reel carries, in place of Instagram's quoting [quoted],
+     * or null to keep Instagram's: when nothing was built, it names no message, or it names the one
+     * Instagram already quotes. [messages] reads an info's message.
+     */
+    @Nullable
+    static Object carried(@Nullable String quoted, @Nullable Object built, Function<Object, String> messages) {
+        if (built == null) return null;
+        String own = messages.apply(built);
+        if (own == null || own.isEmpty() || own.equals(quoted)) return null;
+        HookStatus.counted(FamilyNames.CHAT_REELS, CARRIED);
+        if (!carriedLogged) {
+            carriedLogged = true;
+            Logger.printDebug(() -> "Chat reels: a swiped reel's reply bar answers the message the reel came with");
+        }
+        return built;
+    }
+
+    /** Whether the viewer's chat remembers [quoted], Instagram's message, as one of the reel [media]'s own. */
+    static boolean remembers(@Nullable String media, @Nullable String quoted) {
+        if (media == null || quoted == null) return false;
+        synchronized (CHATS) {
+            ChatReplies chat = viewersChat(quoted);
+            Map<String, Object> messages = chat == null ? null : chat.reels.get(media);
+            return messages != null && messages.containsKey(quoted);
+        }
     }
 
     /**
@@ -583,6 +630,16 @@ public final class ChatReels {
         taps++;
     }
 
+    /**
+     * Stub: the patch writes this, answering the reply info for the message [item], a reel the viewer
+     * holds, came with in the chat, built from the message id, sender and time the reel carries as
+     * Instagram's Reels data source builds it, or null when it carries none (#804).
+     */
+    @Nullable
+    public static Object ownMessage(Object item) {
+        return null;
+    }
+
     /** Stub: the patch writes this, answering the message [info], a reply info, quotes. */
     @Nullable
     public static String messageOf(Object info) {
@@ -620,6 +677,27 @@ public final class ChatReels {
      */
     public static boolean stopCached(Object source) {
         return fromChat(source) && stop();
+    }
+
+    /**
+     * Whether a reel opened from a chat that has a Blend goes through the chat's other shared reels
+     * before the Blend's (#804). Instagram's viewer otherwise pages only the Blend's reels for such a
+     * chat. Yes while the switch is on, for a viewer whose ClipsViewerSource [source] is a chat's and
+     * whose chat has an id, [thread]. No while HushGram is paused, the settings aren't ready, or a
+     * shared comment's tap opened the viewer, which keeps Instagram's own answer. Never throws.
+     */
+    public static boolean blendAfterChat(@Nullable Object source, @Nullable String thread) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (thread == null || thread.isEmpty() || !fromChat(source)) return false;
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            if (!Settings.SWIPE_CHAT_REELS.get() || onACommentsViewer()) return false;
+            HookStatus.counted(FamilyNames.CHAT_REELS, "chat's reels before its Blend");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels before a Blend", failure);
+            return false;
+        }
     }
 
     /** Whether [source], a viewer's ClipsViewerSource, is a chat's. */
@@ -672,6 +750,62 @@ public final class ChatReels {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat media tap", failure);
             return true;
         }
+    }
+
+    /**
+     * Whether a tap on media shared in a chat goes on to open it, handed [wrapper], the tapped message's
+     * wrapper, once Instagram has looked it up (#810). No for a reel while "Don't open reels from chats"
+     * is on, as {@link #isReel(String, String)} reads it from {@link #sharedProduct(Object)} and
+     * {@link #shareLink(Object)}, with a short note that reels from chats are off. Yes for anything else,
+     * with the switch off, while HushGram is paused, before the settings are ready, for a missing wrapper
+     * and on any failure. Never throws.
+     */
+    public static boolean mayOpen(@Nullable Object wrapper) {
+        return mayOpen(wrapper, ChatReels::sharedProduct, ChatReels::shareLink);
+    }
+
+    /** {@link #mayOpen(Object)}, reading the share's product type name with [products] and its link with [links]. */
+    static boolean mayOpen(@Nullable Object wrapper, Function<Object, String> products, Function<Object, String> links) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (wrapper == null || !Utils.settingsReady() || HushgramPause.isPaused() || !Settings.BLOCK_CHAT_REELS.get()) {
+                return true;
+            }
+            if (!isReel(products.apply(wrapper), links.apply(wrapper))) return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reel open", failure);
+            return true;
+        }
+        covered();
+        HookStatus.counted(FamilyNames.CHAT_REELS, "reel from a chat kept closed");
+        Utils.showToastShort(L10n.t("Reels from chats are off"));
+        return false;
+    }
+
+    /**
+     * Whether a share in a chat is a reel, the way Instagram's own opener tells: [product], the shared
+     * media's product type name, is a reel's, or with no media, [link], the address of the share's first
+     * card, starts its path with reel or reels.
+     */
+    static boolean isReel(@Nullable String product, @Nullable String link) {
+        if (product != null) return REEL_PRODUCT.equals(product);
+        if (link == null || link.isEmpty()) return false;
+        List<String> path = Uri.parse(link).getPathSegments();
+        if (path == null || path.isEmpty()) return false;
+        String first = path.get(0);
+        return "reel".equals(first) || "reels".equals(first);
+    }
+
+    /** Stub: the patch writes this, answering the product type name of the media shared in [wrapper], a message's wrapper, or null. */
+    @Nullable
+    public static String sharedProduct(Object wrapper) {
+        return null;
+    }
+
+    /** Stub: the patch writes this, answering the link of the first share card in [wrapper]'s message, or null. */
+    @Nullable
+    public static String shareLink(Object wrapper) {
+        return null;
     }
 
     /** The viewer covers the chat, or the chat is gone, so the next tap opens again. */

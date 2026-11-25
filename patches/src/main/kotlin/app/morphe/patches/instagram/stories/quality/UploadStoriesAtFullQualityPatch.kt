@@ -133,7 +133,7 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
         "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
     default = true,
 ) {
-    category("Stories")
+    category("Downloads")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
@@ -500,20 +500,27 @@ internal class PhotoSetup(val method: MethodReference, val field: FieldReference
 /**
  * The int field of [owner] this instance `()Z` method hands Bitmap.compress as its quality, or null.
  * Each compress call must take the quality from a read of that one field, with nothing written to
- * the register or jumping in between.
+ * the register or jumping in between. 456.1's Redex moves the compress into a static
+ * `(CompressFormat, Bitmap, OutputStream, int)Z` helper, which counts as the call, its int last.
  */
 private fun Method.qualityField(owner: String): FieldReference? {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "Z" || parameterTypes.isNotEmpty()) return null
     val code = implementation?.instructions?.toList() ?: return null
     val targets = jumpTargets()
-    val calls = code.indices.filter { at ->
-        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_VIRTUAL && call?.definingClass == BITMAP && call.name == "compress" &&
-            call.parameterTypes.map(CharSequence::toString) == listOf(COMPRESS_FORMAT, "I", "Ljava/io/OutputStream;")
+    val qualities = code.indices.mapNotNull { at ->
+        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return@mapNotNull null
+        val parameters = call.parameterTypes.map(CharSequence::toString)
+        val registers = code[at] as? FiveRegisterInstruction ?: return@mapNotNull null
+        when {
+            code[at].opcode == Opcode.INVOKE_VIRTUAL && call.definingClass == BITMAP && call.name == "compress" &&
+                parameters == listOf(COMPRESS_FORMAT, "I", "Ljava/io/OutputStream;") -> at to registers.registerE
+            code[at].opcode == Opcode.INVOKE_STATIC && call.returnType == "Z" &&
+                parameters == listOf(COMPRESS_FORMAT, BITMAP, "Ljava/io/OutputStream;", "I") -> at to registers.registerF
+            else -> null
+        }
     }
-    if (calls.isEmpty()) return null
-    val fields = calls.map { at ->
-        val quality = (code[at] as FiveRegisterInstruction).registerE
+    if (qualities.isEmpty()) return null
+    val fields = qualities.map { (at, quality) ->
         val read = (at - 1 downTo 0).firstOrNull { before ->
             val written = (code[before] as? OneRegisterInstruction)?.registerA
             code[before].opcode.setsRegister() && written != null &&
@@ -666,8 +673,9 @@ internal class UploadSettings(
 )
 
 /**
- * The one instance method loading [TRANSCODE_DIMENSION] and reading the server's reply with
- * JSONObject.optInt, its one call to a transcode builder ([isTranscodeBuilderShape]) handed a size read
+ * The one instance method loading [TRANSCODE_DIMENSION], reading the server's reply with
+ * JSONObject.optInt and calling a transcode builder (457 adds a second reader that only keeps the
+ * settings, `JarvisVideoQualityProvider.H7v`, which calls none), that one call ([isTranscodeBuilderShape]) handed a size read
  * from that reply, and the route from the upload that call is handed to its share type: the upload's
  * one field of a class declaring a share type field, and that field. Builds differ in how the method
  * reaches the upload (a field of `this` on most, a field of `this` cast to a merged class on some) and
@@ -678,7 +686,7 @@ internal fun BytecodePatchContext.findUploadSettings(): UploadSettings {
     val readers = classesLoadingString(TRANSCODE_DIMENSION).flatMap { classDef ->
         classDef.methods.filter { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && loadsString(method, TRANSCODE_DIMENSION) &&
-                method.calls { it.definingClass == JSON_OBJECT && it.name == "optInt" }
+                method.calls { it.definingClass == JSON_OBJECT && it.name == "optInt" } && method.calls { it.isTranscodeBuilderShape() }
         }
     }
     val method = readers.singleOrNull()

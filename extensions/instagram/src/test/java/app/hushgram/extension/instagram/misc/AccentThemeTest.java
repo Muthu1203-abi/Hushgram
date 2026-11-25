@@ -7,10 +7,12 @@ package app.hushgram.extension.instagram.misc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -18,9 +20,15 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RectShape;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -56,6 +64,9 @@ public class AccentThemeTest {
         Settings.ACCENT_HUE.resetToDefault();
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
+        Settings.ACCENT_TEXT.resetToDefault();
+        Settings.ACCENT_REELS.resetToDefault();
+        Settings.ACCENT_PILLS.resetToDefault();
         Settings.ACCENT_RINGS.resetToDefault();
         Settings.ACCENT_RINGS_SOLID.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
@@ -244,6 +255,61 @@ public class AccentThemeTest {
         AccentTheme.apply(bare, "igds_color_link");
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.ICONS_MISSING + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Text in the accent color sits under Icons in the accent color (#187): its style goes on right after
+     * the icon style, in the same shade for the theme, and only with both switches on. A build with icon
+     * styles but no text styles says so.
+     */
+    @Test
+    public void theTextStyleGoesOnAfterTheIconStyleInTheSameShade() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("HushGramAccentText_TEAL_light", AccentTheme.textStyle(AccentHue.TEAL, false));
+        assertEquals("HushGramAccentText_TEAL_dark", AccentTheme.textStyle(AccentHue.TEAL, true));
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && (name.startsWith("HushGramAccentIcons_") || name.startsWith("HushGramAccentText_"))) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return type.equals("attr") ? 0x7f990005 : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".text.light", ids), android.R.style.Theme_Material_Light);
+        Settings.ACCENT_TEXT.save(true);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("icons off, so no text either", List.of(), asked);
+
+        Settings.ACCENT_ICONS.save(true);
+        Settings.ACCENT_TEXT.save(false);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("text off", List.of(AccentTheme.iconStyle(AccentHue.TEAL, false)), asked);
+
+        Settings.ACCENT_TEXT.save(true);
+        HookStatus.clear();
+        AccentTheme.apply(light, "igds_color_link");
+        // Each style's number is looked up once, so the icon style isn't asked for again.
+        assertEquals(List.of(AccentTheme.iconStyle(AccentHue.TEAL, false), AccentTheme.textStyle(AccentHue.TEAL, false)), asked);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT + " 1"), HookStatus.report());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".text.dark", ids), android.R.style.Theme_Material);
+        AccentTheme.apply(dark, "igds_color_link");
+        assertEquals(List.of(AccentTheme.iconStyle(AccentHue.TEAL, false), AccentTheme.textStyle(AccentHue.TEAL, false),
+                AccentTheme.iconStyle(AccentHue.TEAL, true), AccentTheme.textStyle(AccentHue.TEAL, true)), asked);
+
+        HookStatus.clear();
+        Context older = new ContextThemeWrapper(themed(THEMED + ".text.older", (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_")) return android.R.style.TextAppearance_Small;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        }), android.R.style.Theme_Material_Light);
+        AccentTheme.apply(older, "igds_color_link");
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT_MISSING + " 1"), HookStatus.report());
     }
 
     /** The ring style goes on with its switch, and a build without one says so (#187). */
@@ -491,6 +557,65 @@ public class AccentThemeTest {
     }
 
     /**
+     * Instagram builds its Compose palettes on a thread of its own as it starts, before the first
+     * screen's theme is styled, so with Classic colors on the grays come straight from the classic
+     * style for the kind of screen Instagram's Dark mode choice will show, and the other kind's stay
+     * (#528).
+     */
+    @Test
+    public void composeReadsTheClassicStyleBeforeAnyScreenIsStyled() {
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        String pkg = THEMED + ".classic.early";
+        SharedPreferences prefs = RuntimeEnvironment.getApplication().getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
+        try {
+            Context app = themed(pkg, (name, type) -> {
+                if (type.equals("style") && name.equals("HushGramClassicBackgrounds_dark")) return android.R.style.Theme_Material;
+                if (type.equals("style") && name.equals("HushGramClassicBackgrounds_light")) return android.R.style.Theme_Material_Light;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            });
+            long black = (long) 0xff000000 << 32;
+            long white = (long) 0xffffffff << 32;
+            long darkPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material)) << 32;
+            long lightPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material_Light)) << 32;
+            assertTrue("page colors unlike Compose's own", darkPage != black && lightPage != white);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals("Dark mode on", darkPage, AccentTheme.composeSurface(black, app));
+            assertEquals("a light screen's white with Dark mode on", white, AccentTheme.composeSurface(white, app));
+            AccentTheme.darkSurfacesForTests(null);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_OFF).commit();
+            assertEquals("a light screen's black text with Dark mode off", black, AccentTheme.composeSurface(black, app));
+            assertEquals("Dark mode off", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.lightSurfacesForTests(null);
+
+            prefs.edit().clear().commit();
+            assertEquals("the system's light mode", black, AccentTheme.composeSurface(black, app));
+            assertEquals("the system's light mode", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.lightSurfacesForTests(null);
+
+            Settings.CLASSIC_COLORS.save(false);
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals("Classic colors off", black, AccentTheme.composeSurface(black, app));
+        } finally {
+            prefs.edit().clear().commit();
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /** The RGB of the window background [style] gives a theme of [context]'s resources. */
+    private static int page(Context context, int style) {
+        Resources.Theme theme = context.getResources().newTheme();
+        theme.applyStyle(style, true);
+        TypedValue value = new TypedValue();
+        assertTrue(theme.resolveAttribute(android.R.attr.colorBackground, value, true));
+        return value.data & 0xffffff;
+    }
+
+    /**
      * Meta's own menus, the account switcher among them: its blues take the picked fill on either
      * screen, its dark grays the dark theme's shades with the accent backgrounds on, its white page and
      * wash the light theme's with Classic colors on, and its text grays stay (#187).
@@ -533,6 +658,124 @@ public class AccentThemeTest {
             AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
         }
+    }
+
+    /**
+     * An opened chat's default background, a bottom layer of Instagram's page black (or white on a light
+     * screen) and a strip of the header's black behind the status bar, takes the painted page shade, the
+     * strip as a copy of its shape, and a chat theme of its own keeps its look (#528).
+     */
+    @Test
+    public void aChatsPageBlackBackgroundTakesThePageShade() {
+        int[] dark = {0xff101b2d, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            LayerDrawable off = chat(0xff000000);
+            AccentTheme.chatBackground(off);
+            assertEquals("the switches off", List.of(0xff000000, 0xff000000), colors(off));
+
+            Settings.CLASSIC_COLORS.save(true);
+            LayerDrawable black = chat(0xff000000);
+            ShapeDrawable strip = (ShapeDrawable) black.getDrawable(1);
+            Drawable above = black.getDrawable(2);
+            AccentTheme.chatBackground(black);
+            assertEquals(List.of(dark[0], dark[0]), colors(black));
+            assertEquals("the strip kept for the next chat", 0xff000000, strip.getPaint().getColor());
+            // Android 9 clones the shape with the copy and later versions share it.
+            assertEquals("the strip's shape", strip.getShape().getClass(), ((ShapeDrawable) black.getDrawable(1)).getShape().getClass());
+            assertEquals("the chat's own layer above them", above, black.getDrawable(2));
+            LayerDrawable instagramsBlack = chat(0xff0c1014);
+            AccentTheme.chatBackground(instagramsBlack);
+            assertEquals(List.of(dark[0], dark[0]), colors(instagramsBlack));
+            LayerDrawable white = chat(0xffffffff);
+            AccentTheme.chatBackground(white);
+            assertEquals(List.of(light[0], light[0]), colors(white));
+            for (int own : new int[] {0xff3a1f5d, 0x80000000, 0xff191c1f}) {
+                LayerDrawable themed = chat(own);
+                AccentTheme.chatBackground(themed);
+                assertEquals("a chat theme's own color", List.of(own, own), colors(themed));
+            }
+            Drawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xff000000, 0xff3a1f5d});
+            LayerDrawable pictured = new LayerDrawable(new Drawable[] {gradient});
+            AccentTheme.chatBackground(pictured);
+            assertEquals("a gradient", gradient, pictured.getDrawable(0));
+            AccentTheme.chatBackground(new ColorDrawable(0xff000000));
+            AccentTheme.chatBackground(new LayerDrawable(new Drawable[0]));
+            AccentTheme.chatBackground(null);
+
+            Settings.CLASSIC_COLORS.save(false);
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.PINK);
+            Settings.ACCENT_BACKGROUNDS.save(true);
+            LayerDrawable accent = chat(0xff000000);
+            AccentTheme.chatBackground(accent);
+            assertEquals("the accent's backgrounds", List.of(dark[0], dark[0]), colors(accent));
+            LayerDrawable lightAccent = chat(0xffffffff);
+            AccentTheme.chatBackground(lightAccent);
+            assertEquals("a light page without Classic colors", List.of(0xffffffff, 0xffffffff), colors(lightAccent));
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            LayerDrawable paused = chat(0xff000000);
+            AccentTheme.chatBackground(paused);
+            assertEquals("paused", List.of(0xff000000, 0xff000000), colors(paused));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /**
+     * An opened chat's header row, given the default theme's plain black or white, takes the page shade
+     * after Instagram sets it, and a theme's own header color stays (#528).
+     */
+    @Test
+    public void aChatsPageBlackHeaderTakesThePageShade() {
+        int[] dark = {0xff101b2d, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            View header = new View(RuntimeEnvironment.getApplication());
+            header.setBackgroundColor(0xff000000);
+            AccentTheme.chatHeader(header);
+            assertEquals("the switches off", 0xff000000, ((ColorDrawable) header.getBackground()).getColor());
+
+            Settings.CLASSIC_COLORS.save(true);
+            AccentTheme.chatHeader(header);
+            assertEquals(dark[0], ((ColorDrawable) header.getBackground()).getColor());
+            header.setBackgroundColor(0xffffffff);
+            AccentTheme.chatHeader(header);
+            assertEquals(light[0], ((ColorDrawable) header.getBackground()).getColor());
+            header.setBackgroundColor(0xff3a1f5d);
+            AccentTheme.chatHeader(header);
+            assertEquals("a chat theme's own header", 0xff3a1f5d, ((ColorDrawable) header.getBackground()).getColor());
+            Drawable gradient = new GradientDrawable();
+            header.setBackground(gradient);
+            AccentTheme.chatHeader(header);
+            assertEquals("a gradient", gradient, header.getBackground());
+            AccentTheme.chatHeader(null);
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /**
+     * A chat's background the way Instagram builds it: the theme's color, a strip of the header's color
+     * behind the status bar, and a layer of the chat's own.
+     */
+    private static LayerDrawable chat(int color) {
+        ShapeDrawable strip = new ShapeDrawable(new RectShape());
+        strip.getPaint().setColor(color);
+        return new LayerDrawable(new Drawable[] {new ColorDrawable(color), strip, new GradientDrawable()});
+    }
+
+    /** The colors of a chat's page and of its strip. */
+    private static List<Integer> colors(LayerDrawable layers) {
+        return List.of(((ColorDrawable) layers.getDrawable(0)).getColor(), ((ShapeDrawable) layers.getDrawable(1)).getPaint().getColor());
     }
 
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */
@@ -637,6 +880,34 @@ public class AccentThemeTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.LITHO_ICONS + " 2"));
         assertTrue(report, report.contains(AccentTheme.ICONS_MISSING + " 1"));
+    }
+
+    /** A Litho theme that takes the icon style takes the text style in the same shade with Text in the accent color on (#187). */
+    @Test
+    public void lithosThemeTakesTheTextStyleWithTheIconStyle() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_TEAL_")) return android.R.style.Theme_Material;
+            if (type.equals("style") && name.startsWith("HushGramAccentText_TEAL_")) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && (name.equals(AccentTheme.ICON_ATTRIBUTE) || name.equals(AccentTheme.GLYPH_ATTRIBUTE))) {
+                return android.R.attr.colorForeground;
+            }
+            return type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.colorBackground : 0;
+        };
+        AccentTheme.lithoIcons(new ContextThemeWrapper(themed(THEMED + ".litho.text", ids), android.R.style.Theme_Material_Light));
+        assertEquals("text off", List.of(), asked);
+        Settings.ACCENT_TEXT.save(true);
+        AccentTheme.lithoIcons(new ContextThemeWrapper(themed(THEMED + ".litho.text", ids), android.R.style.Theme_Material_Light));
+        assertEquals(List.of(AccentTheme.textStyle(AccentHue.TEAL, false)), asked);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.LITHO_ICONS + " 2"));
+        assertTrue(report, report.contains(AccentTheme.TEXT + " 1"));
     }
 
     /**
@@ -790,6 +1061,274 @@ public class AccentThemeTest {
         PauseForTests.resume();
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.TAB_ICONS + " 4"));
+    }
+
+    /**
+     * A reel's button column reads Instagram's white for its counts over the video, and with Reel
+     * buttons in the accent color on that white becomes the picked color's shade for a dark screen, the
+     * dark text color of its look under the video the shade for a light one, alpha kept (#187). The
+     * switch off, Accent color off or paused leaves the color as read, and the icons switch alone
+     * doesn't reach the column.
+     */
+    @Test
+    public void reelButtonsTakeThePickedShadeForTheColorTheColumnReads() {
+        int white = 0xffffffff;
+        int dark = 0xff0c1014;
+        int faded = 0x99ffffff;
+        Settings.ACCENT_REELS.save(true);
+        assertEquals("accent off", white, AccentTheme.reelButtons(white));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_REELS.save(false);
+        Settings.ACCENT_ICONS.save(true);
+        assertEquals("reel buttons off", white, AccentTheme.reelButtons(white));
+        Settings.ACCENT_REELS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        assertEquals("white over the video", onDark, AccentTheme.reelButtons(white));
+        assertEquals("the text color under the video", onLight, AccentTheme.reelButtons(dark));
+        assertEquals("alpha kept", (faded & 0xff000000) | (onDark & 0xffffff), AccentTheme.reelButtons(faded));
+        assertEquals("already the shade, not counted", onDark, AccentTheme.reelButtons(onDark));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", white, AccentTheme.reelButtons(white));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.REEL_BUTTONS + " 3"));
+    }
+
+    /**
+     * Over the video the column builds no filter for its icons, so they draw the white they're made in.
+     * With Reel buttons in the accent color on it gets one that multiplies by the picked color's shade
+     * for a dark screen: white turns into that shade, black stays black and a see-through pixel stays
+     * see-through, and every icon shares it until the color changes (#187). A filter Instagram built is
+     * kept, and the switch off or paused leaves none.
+     */
+    @Test
+    public void reelIconsTakeAFilterOfThePickedShadeOverTheVideo() {
+        ColorFilter own = new PorterDuffColorFilter(0xff123456, PorterDuff.Mode.SRC_IN);
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertNull("reel buttons off", AccentTheme.reelButtons((ColorFilter) null));
+        Settings.ACCENT_REELS.save(true);
+        assertTrue("Instagram's own kept", own == AccentTheme.reelButtons(own));
+
+        ColorFilter teal = AccentTheme.reelButtons((ColorFilter) null);
+        int shade = AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        assertTrue("a multiplying filter", teal instanceof android.graphics.LightingColorFilter);
+        assertEquals("by the shade", shade & 0xffffff, ((android.graphics.LightingColorFilter) teal).getColorMultiply());
+        assertEquals("adding nothing", 0, ((android.graphics.LightingColorFilter) teal).getColorAdd());
+        assertTrue("shared", teal == AccentTheme.reelButtons((ColorFilter) null));
+        Settings.ACCENT_HUE.save(AccentHue.ORANGE);
+        ColorFilter orange = AccentTheme.reelButtons((ColorFilter) null);
+        assertEquals("a new one for a new color", AccentColor.swap(0xff85a1ff, AccentHue.ORANGE) & 0xffffff,
+                ((android.graphics.LightingColorFilter) orange).getColorMultiply());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull("paused", AccentTheme.reelButtons((ColorFilter) null));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.REEL_BUTTONS + " 3"));
+    }
+
+    /**
+     * A screen's top bar and a profile's tabs are told Instagram's text and icon color, or a gray for a
+     * tab you aren't on, and with Icons in the accent color on that becomes the picked color's shade for
+     * a dark screen when it reads light and for a light one when it reads dark (#187). The gray keeps
+     * 60% of its alpha, so the tab you're on stands out. A color of its own and a see-through one stay,
+     * and the switch off, Accent color off or paused leaves every color as told.
+     */
+    @Test
+    public void topBarIconsAndProfileTabsTakeThePickedShade() {
+        int white = 0xfff5f5f5;
+        int dark = 0xff0c1014;
+        int grayOnDark = 0xffa8a8a8;
+        int grayOnLight = 0xff737373;
+        int red = 0xffff3040;
+        assertEquals("off", white, AccentTheme.barIcons(white));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("icons off", white, AccentTheme.barIcons(white));
+        Settings.ACCENT_ICONS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        assertEquals("white on a dark screen", onDark, AccentTheme.barIcons(white));
+        assertEquals("near black on a light screen", onLight, AccentTheme.barIcons(dark));
+        assertEquals("a tab you aren't on, dark", 0x99000000 | (onDark & 0xffffff), AccentTheme.barIcons(grayOnDark));
+        assertEquals("a tab you aren't on, light", 0x99000000 | (onLight & 0xffffff), AccentTheme.barIcons(grayOnLight));
+        assertEquals("the bookmark's own alpha kept", 0xb3000000 | (onDark & 0xffffff), AccentTheme.barIcons(0xb3ffffff));
+        assertEquals("a red of its own stays", red, AccentTheme.barIcons(red));
+        assertEquals("see-through stays", 0, AccentTheme.barIcons(0));
+        assertEquals("already the shade, not counted", onDark, AccentTheme.barIcons(onDark));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", white, AccentTheme.barIcons(white));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 5"));
+    }
+
+    /**
+     * The top bar's filter maker and its back arrow's setColorFilter(int) go through the extension,
+     * which gives them Instagram's own SRC_ATOP filter of the color with Icons in the accent color off,
+     * and of the picked shade with it on, one filter kept per color (#187).
+     */
+    @Test
+    public void theTopBarsFiltersAndBackArrowTakeThePickedShade() {
+        int white = 0xfff5f5f5;
+        ColorFilter own = AccentTheme.barIconFilter(white);
+        assertTrue("Instagram's filter with the switch off", atop(white, own));
+        assertTrue("kept per color", own == AccentTheme.barIconFilter(white));
+        android.widget.ImageView back = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        AccentTheme.setBarIconColor(back, white);
+        assertTrue("the back arrow as Instagram tints it", atop(white, back.getColorFilter()));
+
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        ColorFilter teal = AccentTheme.barIconFilter(white);
+        assertTrue("the picked shade's filter", atop(onDark, teal));
+        assertTrue("shared", teal == AccentTheme.barIconFilter(white));
+        AccentTheme.setBarIconColor(back, white);
+        assertTrue("the back arrow in the picked shade", atop(onDark, back.getColorFilter()));
+    }
+
+    /** Whether [filter] is a SRC_ATOP PorterDuffColorFilter of [color], as the top bar's maker makes. */
+    private static boolean atop(int color, ColorFilter filter) {
+        return filters(color, PorterDuff.Mode.SRC_ATOP, filter);
+    }
+
+    /** Whether [filter] is a PorterDuffColorFilter of [color] in [mode], read through its hidden getters. */
+    private static boolean filters(int color, PorterDuff.Mode mode, ColorFilter filter) {
+        if (!(filter instanceof PorterDuffColorFilter)) return false;
+        try {
+            Object held = PorterDuffColorFilter.class.getMethod("getColor").invoke(filter);
+            Object kind = PorterDuffColorFilter.class.getMethod("getMode").invoke(filter);
+            return Integer.valueOf(color).equals(held) && mode == kind;
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError(failure);
+        }
+    }
+
+    /**
+     * The Search tab's Saved bookmark takes the icon color its theme holds with Icons in the accent color
+     * on, laid over the color its drawable carries (#187). Off, or a theme with no icon color, leaves it.
+     */
+    @Test
+    public void theSearchTabsSavedBookmarkTakesTheThemesIconColor() {
+        Context light = new ContextThemeWrapper(themed(THEMED + ".search", (name, type) ->
+                type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0),
+                android.R.style.Theme_Material_Light);
+        TypedValue held = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, held, true));
+        android.widget.ImageView bookmark = new android.widget.ImageView(light);
+        AccentTheme.searchSaved(bookmark);
+        assertNull("off", bookmark.getColorFilter());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        AccentTheme.searchSaved(bookmark);
+        assertTrue("the theme's icon color", filters(held.data, PorterDuff.Mode.SRC_IN, bookmark.getColorFilter()));
+        android.widget.ImageView bare = new android.widget.ImageView(
+                new ContextThemeWrapper(themed(THEMED + ".search.bare", (name, type) -> 0), android.R.style.Theme_Material_Light));
+        AccentTheme.searchSaved(bare);
+        assertNull("no icon attribute", bare.getColorFilter());
+        AccentTheme.searchSaved(null);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 1"));
+    }
+
+    /**
+     * Saved's filters (#187): with Filters in the accent color on, their background comes back as two
+     * pills in the picked color, the others bordered in its link shade for the screen and the one you're
+     * on filled, and the title follows the tab: the link shade, or a color that reads on the fill once
+     * it's the one you're on. Another background, the switch off or paused answer Instagram's own and
+     * leave the title as it was.
+     */
+    @Test
+    public void savedsFiltersTakeThePickedColorWithTheirSwitch() {
+        int tabs = 0x7f081a36;
+        Ids ids = (name, type) -> {
+            if (type.equals("drawable") && name.equals(AccentTheme.SAVED_TAB)) return tabs;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".filters", ids), android.R.style.Theme_Material_Light);
+        int gray = 0xff737373;
+        Drawable stock = new ColorDrawable(0xff222222);
+        android.widget.TextView tab = filter(light, gray);
+        assertSame("off", stock, AccentTheme.savedFilter(stock, tab, tabs));
+        assertEquals("off", gray, tab.getCurrentTextColor());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertSame("the filters' switch off", stock, AccentTheme.savedFilter(stock, tab, tabs));
+        assertEquals("the filters' switch off", gray, tab.getCurrentTextColor());
+        Settings.ACCENT_PILLS.save(true);
+
+        float density = light.getResources().getDisplayMetrics().density;
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        int fill = 0xff000000 | AccentColor.swap(0xff4a5df9, AccentHue.TEAL);
+        int onFill = AccentTheme.readsLight(fill) ? 0xff000000 : 0xffffffff;
+        Drawable pills = AccentTheme.savedFilter(stock, tab, tabs);
+        assertTrue("a pill for each state", pills instanceof android.graphics.drawable.StateListDrawable);
+        GradientDrawable others = pill(pills, new int[0]);
+        assertEquals("the others' border", onLight, shadow(others).getStrokeColor());
+        assertEquals("Instagram's border width", Math.max(1, Math.round(AccentTheme.PILL_STROKE_DP * density)), shadow(others).getStrokeWidth());
+        assertEquals("round at their height", AccentTheme.CHIP_RADIUS_DP * density, others.getCornerRadius(), 0.01f);
+        GradientDrawable picked = pill(pills, new int[] {android.R.attr.state_selected});
+        assertEquals("the selected fill", fill, shadow(picked).getLastSetColor());
+        assertEquals("round too", AccentTheme.CHIP_RADIUS_DP * density, picked.getCornerRadius(), 0.01f);
+        assertEquals("the others' title", onLight, tab.getCurrentTextColor());
+        tab.setSelected(true);
+        assertEquals("the selected title reads on the fill", onFill, tab.getCurrentTextColor());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".filters", ids), android.R.style.Theme_Material);
+        android.widget.TextView night = filter(dark, gray);
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        assertEquals("the dark screen's border", onDark, shadow(pill(AccentTheme.savedFilter(stock, night, tabs), new int[0])).getStrokeColor());
+        assertEquals("the dark screen's title", onDark, night.getCurrentTextColor());
+
+        android.widget.TextView other = filter(light, gray);
+        assertSame("another background", stock, AccentTheme.savedFilter(stock, other, 0x7f080001));
+        assertEquals("another background", gray, other.getCurrentTextColor());
+        assertSame("no tab", stock, AccentTheme.savedFilter(stock, null, tabs));
+        assertNull("nothing to give", AccentTheme.savedFilter(null, filter(light, gray), tabs));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        android.widget.TextView paused = filter(light, gray);
+        assertSame("paused", stock, AccentTheme.savedFilter(stock, paused, tabs));
+        assertEquals("paused", gray, paused.getCurrentTextColor());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.PILLS + " 2"));
+    }
+
+    /** A filter as Instagram builds one: a title in [color]. */
+    private static android.widget.TextView filter(Context context, int color) {
+        android.widget.TextView tab = new android.widget.TextView(context);
+        tab.setTextColor(color);
+        return tab;
+    }
+
+    /** The shape [pills] draws in [state]. */
+    private static GradientDrawable pill(Drawable pills, int[] state) {
+        pills.setState(state);
+        return (GradientDrawable) pills.getCurrent();
+    }
+
+    /** What [shape] was last given, read through Robolectric's record of it. */
+    private static org.robolectric.shadows.ShadowGradientDrawable shadow(GradientDrawable shape) {
+        return (org.robolectric.shadows.ShadowGradientDrawable) org.robolectric.shadow.api.Shadow.extract(shape);
     }
 
     /**

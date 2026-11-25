@@ -20,7 +20,10 @@ import java.util.function.ToIntFunction;
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
+import app.hushgram.extension.instagram.reels.CaptionWordStats;
 import app.hushgram.extension.instagram.reels.FeedReels;
+import app.hushgram.extension.instagram.reels.HiddenSounds;
+import app.hushgram.extension.instagram.reels.LowViewReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -139,6 +142,15 @@ public final class FeedSuggestions {
 
     /** The report's count of posts taken out of Home for a caption in another language. */
     static final String OTHER_LANGUAGE_REMOVED = "other language posts removed";
+
+    /** The report's count of posts Also on Home of Hide reels with few views took out of Home (#780). */
+    static final String NUMBERS_REMOVED = "posts removed for their numbers";
+
+    /** The kind counted for a post Also on Home of Hide reels by sound took out of Home (#822). */
+    static final String HIDDEN_SOUND = "hidden sound";
+
+    /** The report's count of posts taken out of Home for a sound on the Hidden sounds list. */
+    static final String HIDDEN_SOUND_REMOVED = "hidden sound posts removed";
 
     /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
     static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
@@ -333,7 +345,7 @@ public final class FeedSuggestions {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
                 || Settings.HIDE_FEED_PROFESSIONAL.get() || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
-                || CaptionLanguage.homeRuleWhenOn() != null;
+                || CaptionLanguage.homeRuleWhenOn() != null || LowViewReels.homeOn() || !HiddenSounds.homeWhenOn().isEmpty();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -648,6 +660,18 @@ public final class FeedSuggestions {
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf, Function<Object, String> captionOf,
             ToIntFunction<Object> professionalOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, captionOf, professionalOf, FeedSuggestions::numbersReason);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf,
+            ToIntFunction<Object> professionalOf, Function<Object, String> numbersOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, captionOf, professionalOf, numbersOf, FeedSuggestions::soundOf);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf,
+            ToIntFunction<Object> professionalOf, Function<Object, String> numbersOf, Function<Object, String> soundOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -669,7 +693,9 @@ public final class FeedSuggestions {
         Object kept = byType(item, typeOf) == null ? null
                 : byLiked(item, likedOf) == null ? null
                 : byAuthor(item, authorOf) == null ? null
-                : byProfessional(item, professionalOf) == null ? null : byCaption(item, captionOf);
+                : byProfessional(item, professionalOf) == null ? null
+                : byCaption(item, captionOf, authorOf) == null ? null
+                : byNumbers(item, numbersOf) == null ? null : bySound(item, soundOf);
         if (kept == null && page != null) page[1]++;
         if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
@@ -683,16 +709,19 @@ public final class FeedSuggestions {
 
     /**
      * [item], or null while Also on Home is on and its post's caption holds one of Hide reels by
-     * caption words' words (#192). The caption isn't read while there are no words. A post with no
-     * caption, or one that can't be read, stays.
+     * caption words' words (#192), or the list names its author as {@code @name} (#807). The caption
+     * isn't read while there are no words, nor the author while no word names an account. A post
+     * with no caption, or one that can't be read, stays unless its author is named.
      */
-    private static Object byCaption(Object item, Function<Object, String> captionOf) {
+    private static Object byCaption(Object item, Function<Object, String> captionOf, Function<Object, String> authorOf) {
         try {
             List<String> words = CaptionWordReels.homeWordsWhenOn();
             CaptionLanguage.Rule language = CaptionLanguage.homeRuleWhenOn();
             if (words.isEmpty() && language == null) return item;
             String caption = captionOf.apply(item);
-            if (CaptionWordReels.holdsAny(caption, words)) {
+            if (CaptionWordReels.holdsAny(caption, words)
+                    || CaptionWordReels.namesAccounts(words) && CaptionWordReels.postedByAny(authorOf.apply(item), words)) {
+                CaptionWordStats.hidden(CaptionWordReels.namesAccounts(words) ? authorOf.apply(item) : null, caption);
                 FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
                 typesTookOut = true;
@@ -709,6 +738,61 @@ public final class FeedSuggestions {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD, failure);
             return item;
         }
+    }
+
+    /**
+     * [item], or null while Also on Home of Hide reels with few views is on and its post is outside
+     * one of that switch's numbers (#780). A post from an account you follow, one that doesn't
+     * carry what a number looks at, or an item with no post, stays.
+     */
+    private static Object byNumbers(Object item, Function<Object, String> numbersOf) {
+        try {
+            String why = numbersOf.apply(item);
+            if (why == null) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, why);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, NUMBERS_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post out of Home, " + why);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post numbers", failure);
+            return item;
+        }
+    }
+
+    /**
+     * [item], or null while Also on Home of Hide reels by sound is on and its post uses a sound on
+     * the Hidden sounds list (#822). The sound isn't read while nothing is hidden there. A post with
+     * no sound, or one whose sound can't be read, stays.
+     */
+    private static Object bySound(Object item, Function<Object, String> soundOf) {
+        try {
+            Set<String> hidden = HiddenSounds.homeWhenOn();
+            if (hidden.isEmpty()) return item;
+            String id = soundOf.apply(item);
+            if (id == null || !hidden.contains(id)) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, HIDDEN_SOUND);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HIDDEN_SOUND_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post with a hidden sound out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, HIDDEN_SOUND, failure);
+            return item;
+        }
+    }
+
+    /** The id of the sound the post in [item] uses, a track's or its own, or null when it has none. */
+    @Nullable
+    static String soundOf(Object item) {
+        HiddenSounds.Sound sound = HiddenSounds.soundOf(homePost(item), null);
+        return sound == null ? null : sound.id;
+    }
+
+    /** Which number of Hide reels with few views the post in [item] is outside, or null. */
+    static String numbersReason(Object item) {
+        if (!LowViewReels.homeOn()) return null;
+        return LowViewReels.homeReason(homePost(item));
     }
 
     /**

@@ -32,6 +32,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -95,7 +96,9 @@ val friendshipStatusPatch = bytecodePatch(
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
         "add a chip and mark accounts on your Following list that don't follow you back, in words or as a red " +
         "cross on the profile picture with a green check for those that do, and Recent unfollowers " +
-        "shows who left your Followers list, with a Follower history of who left, came back or is new. The chip is blue for " +
+        "shows who left your Followers list, with a Follower history of who left, came back or is new. Holding a follow " +
+        "list's tabs can show only its public or private accounts, and your own lists can show since when each follow " +
+        "started, counted from when you turn that on. The chip is blue for " +
         "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
         "the profile picture. Tap the chip to see the rest of what Instagram says about you two, like Close " +
         "Friends, Favorites, mutes, restrictions and pending follow requests. On by default. Turn it " +
@@ -183,12 +186,15 @@ internal fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $de
 internal fun BytecodePatchContext.findProfileUser(refuse: (String) -> Nothing): ProfileUser {
     val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
     viewModelClass.instanceFields(USER).singleOrNull()?.let { return ProfileUser(it, null, null, null, null) }
+    // Up to 456 the setter takes the view model and the user and wraps the user itself; 457's takes the
+    // wrapped user first and the view model second (UserDetailViewModel.A02(0Bca, UserDetailViewModel)).
     val setters = viewModelClass.methods.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) && it.implementation != null
+        val takes = it.parameterTypes.map(CharSequence::toString)
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
+            (takes == listOf(VIEW_MODEL, USER) || takes.size == 2 && takes[1] == VIEW_MODEL && takes[0].startsWith("L") && takes[0] != VIEW_MODEL)
     }
     val setter = setters.singleOrNull()
-        ?: refuse("expected one static ($VIEW_MODEL, $USER) setter, found ${setters.size}")
+        ?: refuse("expected one static ($VIEW_MODEL, $USER) or (user holder, $VIEW_MODEL) setter, found ${setters.size}")
     val setterCode = setter.implementation!!.instructions.toList()
     val live = setterCode.indices.mapNotNull { at ->
         val read = setterCode[at]
@@ -242,9 +248,11 @@ internal class ProfileName(
     /** The call that shows the slot once the pronouns are in it, and the slot's register there. */
     val shown: Int,
     val shownSlot: Int,
-    /** The call that hides the slot for an account with no pronouns, and the slot's register there. */
-    val hidden: Int,
-    val hiddenSlot: Int,
+    /**
+     * Each call that hides the slot for an account with no pronouns, with the slot's register there:
+     * the one for a profile with no name, and on 456 the one for a profile with a name (#727).
+     */
+    val hides: List<Pair<Int, Int>>,
     /** The binder's parameter holding the header, its type and the header's field of the view model. */
     val header: Int,
     val headerType: String,
@@ -296,7 +304,10 @@ internal class ProfileUser(
  * Finds the one method outside the extension that loads [BIND_FULL_NAME], and in the trace section
  * that string names, the pronouns slot: a field read into a register that's asked for its view,
  * which is cast to a TextView, given its text and shown, and read once more into a register that's
- * hidden straight away. The binder's one parameter whose class has a [VIEW_MODEL] field is the
+ * hidden straight away. Where the slot is read before the check that there are pronouns (456), that
+ * check's branch lands on the hide for a profile with a name, or on up to two moves of the
+ * visibility into place right before it (456.1's 32-bit builds), which must be there too (#727). The
+ * binder's one parameter whose class has a [VIEW_MODEL] field is the
  * header and the view model's one [USER] field the profile's user. Whether the account follows you
  * comes from the user model's one getter answering a [RELATIONSHIP] and loading
  * [FRIENDSHIP_STATUS_KEY], and that status's getter the status's dump asks right after loading
@@ -343,8 +354,10 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val section = begin + 1 until end
 
     val shownSites = section.mapNotNull { at -> shownSlotAt(code, at) }
-    val (shown, field) = shownSites.singleOrNull()
+    val shownSite = shownSites.singleOrNull()
         ?: refuse("expected one slot in $where's $BIND_FULL_NAME section given its text and shown, found ${shownSites.size}")
+    val shown = shownSite.call
+    val field = shownSite.field
     val slot = field.type
     // 450 moves the visibility into place between the read and the call.
     val moves = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
@@ -357,6 +370,24 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     }
     val hidden = hiddenSites.singleOrNull()
         ?: refuse("expected one place in $where's $BIND_FULL_NAME section hiding the slot, found ${hiddenSites.size}")
+    val hides = mutableListOf(hidden to code[hidden].namedRegisters().first())
+    // A profile with a name and no pronouns takes the check's branch, and only that hide runs for it (#727).
+    // 456.1's armeabi-v7a and x86 builds land on a move of the visibility into place, right before the hide.
+    shownSite.guard?.let { guard ->
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val target = addresses.indexOf(addresses[guard] + (code[guard] as OffsetInstruction).codeOffset)
+        val hide = if (target in code.indices) {
+            (target until minOf(target + 3, code.size)).firstOrNull { at ->
+                code[at].opcode !in moves || (code[at] as OneRegisterInstruction).registerA == shownSite.slot
+            }
+        } else {
+            null
+        }
+        if (hide == null || !code[hide].isSetVisibility(slot, shownSite.slot)) {
+            refuse("expected the pronouns check in $where's $BIND_FULL_NAME section to branch to the slot being hidden")
+        }
+        hides += hide to shownSite.slot
+    }
 
     val headers = binder.parameterTypes.withIndex().mapNotNull { (index, parameter) ->
         val held = classDefByOrNull(parameter.toString())?.instanceFields(VIEW_MODEL).orEmpty()
@@ -418,7 +449,7 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
 
     return ProfileName(
         type, binder.name, binder.parameterTypes.map(CharSequence::toString), slot,
-        shown, code[shown].namedRegisters().first(), hidden, code[hidden].namedRegisters().first(),
+        shown, code[shown].namedRegisters().first(), hides,
         header, headerType, viewModel, user, friendship.name, relationshipFollowedBy, relationshipFollowing, followedBy.name, userId,
         session, relationshipFlags,
     )
@@ -441,19 +472,22 @@ private fun Method.relationshipGetters(): List<Pair<String, String>> {
     }
 }
 
+/** The call showing the pronouns slot, the slot's field and register, and the check before it, if any. */
+private class ShownSlot(val call: Int, val field: FieldReference, val slot: Int, val guard: Int?)
+
 /**
  * When [at] reads a field into a register and the next instructions ask that register for its view,
- * cast it to a TextView, give it its text and show the slot, the index of that last call and the
- * field.
+ * cast it to a TextView, give it its text and show the slot, that last call and what it was reached by.
  */
-private fun shownSlotAt(code: List<Instruction>, at: Int): Pair<Int, FieldReference>? {
+private fun shownSlotAt(code: List<Instruction>, at: Int): ShownSlot? {
     val read = code[at]
     if (read.opcode != Opcode.IGET_OBJECT) return null
     val field = read.fieldReference() ?: return null
     val slot = (read as OneRegisterInstruction).registerA
     // 456 reads the slot before it checks there's a text to give it, so one branch on another register can come between.
     val check = code.getOrNull(at + 1)
-    val ask = if (check != null && check.opcode in setOf(Opcode.IF_EQZ, Opcode.IF_NEZ) && (check as OneRegisterInstruction).registerA != slot) at + 2 else at + 1
+    val guarded = check != null && check.opcode in setOf(Opcode.IF_EQZ, Opcode.IF_NEZ) && (check as OneRegisterInstruction).registerA != slot
+    val ask = if (guarded) at + 2 else at + 1
     val asked = code.getOrNull(ask)?.methodReference() ?: return null
     if (code[ask].opcode != Opcode.INVOKE_INTERFACE || asked.definingClass != field.type || asked.name != "getView" ||
         asked.parameterTypes.isNotEmpty() || asked.returnType != VIEW || code[ask].namedRegisters() != listOf(slot)
@@ -474,7 +508,8 @@ private fun shownSlotAt(code: List<Instruction>, at: Int): Pair<Int, FieldRefere
     ) {
         return null
     }
-    return if (code.getOrNull(ask + 4)?.isSetVisibility(field.type, slot) == true) (ask + 4) to field else null
+    if (code.getOrNull(ask + 4)?.isSetVisibility(field.type, slot) != true) return null
+    return ShownSlot(ask + 4, field, slot, if (guarded) at + 1 else null)
 }
 
 private fun Instruction.isSetVisibility(slot: String, register: Int): Boolean {
@@ -500,20 +535,20 @@ internal fun Instruction.fieldReference(): FieldReference? = (this as? Reference
 
 /**
  * Right after the binder shows the pronouns slot, hands the slot and the header to [BESIDE_PRONOUNS],
- * and right after it hides the slot, to [IN_PLACE_OF_PRONOUNS]. Both are range calls on two locals
- * side by side that nothing reads afterwards, so the slot and the header may be in any register.
+ * and right after each place it hides the slot, to [IN_PLACE_OF_PRONOUNS]. All are range calls on two
+ * locals side by side that nothing reads afterwards, so the slot and the header may be in any register.
  */
 internal fun BytecodePatchContext.labelProfileName(found: ProfileName) {
     val method = mutableClassDefBy(found.type).methods.single {
         it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
     }
-    method.requireParameterIntact(PATCH, found.header, listOf(found.shown + 1, found.hidden + 1))
+    method.requireParameterIntact(PATCH, found.header, listOf(found.shown + 1) + found.hides.map { (at, _) -> at + 1 })
     val header = method.parameterRegisterNumber(found.header)
     // Worked out before anything goes in, and put in from the bottom up so the indices above stay.
-    val hooks = listOf(
-        Triple(found.shown, found.shownSlot, BESIDE_PRONOUNS),
-        Triple(found.hidden, found.hiddenSlot, IN_PLACE_OF_PRONOUNS),
-    ).map { (at, slot, hook) -> HookSite(at, slot, hook, method.freePairAt(at + 1)) }
+    val hooks = (
+        listOf(Triple(found.shown, found.shownSlot, BESIDE_PRONOUNS)) +
+            found.hides.map { (at, slot) -> Triple(at, slot, IN_PLACE_OF_PRONOUNS) }
+        ).map { (at, slot, hook) -> HookSite(at, slot, hook, method.freePairAt(at + 1)) }
     for (site in hooks.sortedByDescending { it.at }) {
         method.addInstructions(
             site.at + 1,

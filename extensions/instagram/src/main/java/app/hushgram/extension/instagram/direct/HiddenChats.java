@@ -4,10 +4,6 @@
  */
 package app.hushgram.extension.instagram.direct;
 
-import android.app.Activity;
-import android.view.View;
-import android.view.ViewGroup;
-
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -52,9 +48,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * chats hidden now, and draws them again.
  *
  * <p>Double-tap Messages shows the hidden chats in the inbox by themselves, after the phone's lock
- * or the PIN ({@link #reveal}), until the next double tap, a switch to one of Instagram's other
- * tabs ({@link #followTab}), or until you leave Instagram ({@link #conceal}) (#661). Search, the
- * folder counts, the unread badge and pushes leave them out all along.
+ * or the PIN ({@link #reveal}), until the next double tap or until you leave Instagram ({@link
+ * #conceal}) (#661), asking the inbox for more pages while one hasn't loaded yet ({@link #pageIn}).
+ * Search, the folder counts, the unread badge and pushes leave them out all along.
  *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
@@ -68,6 +64,7 @@ public final class HiddenChats {
     static final String LEFT_OUT_RECENTS = "hidden chats left out of recent searches";
     static final String SILENCED = "hidden chat notifications dropped";
     static final String REDRAWN = "inbox redrawn after hidden chats changed";
+    static final String PAGED = "inbox pages asked for to show hidden chats";
 
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
@@ -77,7 +74,7 @@ public final class HiddenChats {
     static final String BADGE_FILTER = "unread badge filter";
     static final String SEARCH = "inbox search filter";
     static final String RECENTS = "recent searches filter";
-    static final String TAB = "inbox tab";
+    static final String PAGE = "inbox next page";
 
     /** Instagram's own names for a chat as the inbox search lists it, and for a chat whose messages matched. */
     private static final String SHARE_TARGET = "com.instagram.model.direct.DirectShareTarget";
@@ -101,22 +98,8 @@ public final class HiddenChats {
 
     static volatile Redrawer redrawer = HiddenChats::redraw;
 
-    /** Which of Instagram's tabs its bar shows selected. Tests put a fake in. */
-    interface Tabs {
-        /** The id of the selected tab, or 0 when the bar isn't there to say. */
-        int selected(Activity activity);
-    }
-
-    static volatile Tabs tabs = HiddenChats::selectedTab;
-
-    /** The tab the hidden chats were shown on, since they were shown; 0 until the bar says. */
-    private static int shownOn;
-
     /** The inbox shows the hidden chats, and only them, until {@link #conceal}. */
     private static volatile boolean revealed;
-
-    /** A hidden chat has an unread message that hasn't been seen yet (#661). */
-    private static volatile boolean hiddenUnread;
 
     private HiddenChats() {
     }
@@ -130,10 +113,12 @@ public final class HiddenChats {
 
     /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
     static void reveal() {
+        synchronized (pagers) {
+            asked = 0;
+            askedAt = -1;
+        }
         revealed = true;
-        shownOn = 0;
-        hiddenUnread = false;
-        Settings.HIDDEN_CHATS_UNREAD.save(false);
+        ChatGroups.left();
         changedSoon();
     }
 
@@ -145,148 +130,95 @@ public final class HiddenChats {
         return true;
     }
 
-    /** Whether a hidden chat has an unread message that hasn't been seen yet. */
-    public static boolean hiddenUnread() {
-        return Settings.HIDDEN_CHATS_UNREAD.get() && !ids().isEmpty();
+    // ---------------------------------------------------------------- paging the hidden chats in
+
+    /** The most pages one showing of the hidden chats asks an inbox for, a page being about 20 chats. */
+    static final int PAGES_ASKED = 30;
+
+    /** Asks an inbox's load-more for its next page. Tests put a fake in. */
+    interface Pages {
+        void next(Object pager);
     }
 
-    /** Records that a hidden chat has an unread message (a push for it was dropped). */
-    public static void markHiddenUnread() {
-        try {
-            if (ids().isEmpty()) return;
-            Settings.HIDDEN_CHATS_UNREAD.save(true);
-            hiddenUnread = true;
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread", t);
-        }
-    }
+    static volatile Pages pages = HiddenChats::nextPage;
 
-    /** Clears the hidden unread marker (the hidden chats were shown). */
-    public static void clearHiddenUnread() {
+    /** The load-mores the inboxes made, held weakly. Guards {@link #asked} and {@link #askedAt} too. */
+    private static final ArrayList<WeakReference<Object>> pagers = new ArrayList<>();
+    /** Pages asked for since the hidden chats were last shown. */
+    private static int asked;
+    /** How many chats Instagram's list held at the last ask, or -1 before one. */
+    private static int askedAt = -1;
+
+    /**
+     * Asked with an inbox's load-more as the inbox makes it: the one its list's scroll asks for the
+     * next page of chats near the end. Kept weakly, for {@link #pageIn}.
+     */
+    public static void pager(Object pager) {
         try {
-            Settings.HIDDEN_CHATS_UNREAD.save(false);
-            hiddenUnread = false;
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (pager == null) return;
+            synchronized (pagers) {
+                for (Iterator<WeakReference<Object>> it = pagers.iterator(); it.hasNext(); ) {
+                    Object kept = it.next().get();
+                    if (kept == null || kept == pager) it.remove();
+                }
+                pagers.add(new WeakReference<>(pager));
+            }
         } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread", t);
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PAGE, t);
         }
     }
 
     /**
-     * Called with the activity in front before each of its frames. The hidden chats are shown on one
-     * of Instagram's tabs, so a tap on another tab or a slide to it hides them again (#661). While
-     * Instagram's bar isn't on screen, or doesn't say which tab is selected, nothing changes.
+     * Asks [pager], an inbox's load-more, for its next page of chats, as a scroll near the end of the
+     * list does. The patch writes the body at patch time, and a build without it does nothing.
      */
-    static void followTab(Activity activity) {
-        try {
-            if (!revealed) {
-                shownOn = 0;
-                return;
-            }
-            int now = tabs.selected(activity);
-            if (now == 0) return;
-            if (shownOn == 0) {
-                shownOn = now;
-                return;
-            }
-            if (now != shownOn) conceal();
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, TAB, t);
-        }
-    }
-
-    /** The id of the tab Instagram's bar shows selected, or 0 when it isn't there to say. */
-    private static int selectedTab(Activity activity) {
-        int id = activity.getResources().getIdentifier("tab_bar", "id", Utils.resourcePackage(activity));
-        if (id == 0) return 0;
-        View found = activity.findViewById(id);
-        if (!(found instanceof ViewGroup) || !found.isShown()) return 0;
-        ViewGroup bar = (ViewGroup) found;
-        for (int i = 0; i < bar.getChildCount(); i++) {
-            View tab = bar.getChildAt(i);
-            if (tab.getVisibility() == View.VISIBLE && tab.isSelected()) return tab.getId();
-        }
-        return 0;
-    }
-
-    /** For tests: the tab reads again as Instagram's own bar, with nothing remembered. */
-    static void forgetTabForTests() {
-        tabs = HiddenChats::selectedTab;
-        shownOn = 0;
+    public static void nextPage(Object pager) {
     }
 
     /**
-     * Repaints the hidden unread dot on the Messages tab button now, on the main thread. The dot is
-     * there while a hidden chat has an unread message that hasn't been seen, and gone once the
-     * hidden chats are shown. Never throws into Instagram.
+     * While the hidden chats show by themselves, one Instagram hasn't loaded yet has no row: after a
+     * fresh start the inbox holds about its first page of chats, and with every other chat left out
+     * there's no list to scroll for more (#661). So while a hidden chat is missing from [summaries],
+     * Instagram's own list, each inbox's load-more is asked for its next page on the main thread, once
+     * for each list that grew, up to {@link #PAGES_ASKED} pages a showing. A page comes back through
+     * {@link #inbox}, which asks again until every hidden chat shows or Instagram has no more.
      */
-    public static void renderBadge(Activity activity) {
-        try {
-            if (activity == null) return;
-            int id = activity.getResources().getIdentifier("direct_tab", "id", Utils.resourcePackage(activity));
-            View tab = id == 0 ? null : activity.findViewById(id);
-            if (tab == null) return;
-            boolean wanted = hiddenUnread() && !revealed;
-            synchronized (badges) {
-                Dot dot = badges.get(tab);
-                if (!wanted) {
-                    if (dot != null) {
-                        tab.getOverlay().remove(dot);
-                        badges.remove(tab);
-                    }
-                    return;
-                }
-                if (dot == null) {
-                    dot = new Dot(tab.getResources().getDisplayMetrics().density);
-                    tab.getOverlay().add(dot);
-                    badges.put(tab, dot);
-                }
-                dot.invalidateSelf();
+    private static void pageIn(@Nullable List<Object> summaries, View view) {
+        if (!view.shown || summaries == null) return;
+        if (only(summaries, view.hidden, Collections.emptySet()).size() >= view.hidden.size()) return;
+        List<Object> asking = new ArrayList<>();
+        synchronized (pagers) {
+            if (asked >= PAGES_ASKED || summaries.size() <= askedAt) return;
+            for (Iterator<WeakReference<Object>> it = pagers.iterator(); it.hasNext(); ) {
+                Object kept = it.next().get();
+                if (kept == null) it.remove();
+                else asking.add(kept);
             }
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden unread badge", t);
+            if (asking.isEmpty()) return;
+            asked++;
+            askedAt = summaries.size();
         }
+        HookStatus.counted(FamilyNames.MESSAGES_LOCK, PAGED);
+        Utils.runOnMainThread(() -> {
+            for (Object pager : asking) {
+                try {
+                    pages.next(pager);
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.MESSAGES_LOCK, PAGE, t);
+                }
+            }
+        });
     }
 
-    /** The dots currently on Messages tab buttons, so they can be taken off. */
-    private static final java.util.WeakHashMap<View, Dot> badges = new java.util.WeakHashMap<>();
-
-    /** A red dot for the Messages tab button. */
-    static final class Dot extends android.graphics.drawable.Drawable {
-        private final float unit;
-        private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-
-        Dot(float density) {
-            unit = density;
-            paint.setColor(0xFFFF3B30);
-            paint.setStyle(android.graphics.Paint.Style.FILL);
+    /** Forgets every load-more and what was asked of them, and asks through the patch's bridge again. */
+    static void pagersForgottenForTests() {
+        synchronized (pagers) {
+            pagers.clear();
+            asked = 0;
+            askedAt = -1;
         }
-
-        @Override
-        public void draw(@androidx.annotation.NonNull android.graphics.Canvas canvas) {
-            android.graphics.Rect b = getBounds();
-            if (b.isEmpty()) return;
-            float radius = 4 * unit;
-            float cx = b.right - radius - 2 * unit;
-            float cy = b.top + radius + 2 * unit;
-            canvas.drawCircle(cx, cy, radius, paint);
-        }
-
-        @Override
-        public void setAlpha(int alpha) {
-            paint.setAlpha(alpha);
-            invalidateSelf();
-        }
-
-        @Override
-        public void setColorFilter(@androidx.annotation.Nullable android.graphics.ColorFilter filter) {
-            paint.setColorFilter(filter);
-            invalidateSelf();
-        }
-
-        @Override
-        public int getOpacity() {
-            return android.graphics.PixelFormat.TRANSLUCENT;
-        }
+        pages = HiddenChats::nextPage;
     }
 
     /**
@@ -312,31 +244,89 @@ public final class HiddenChats {
     public static List<Object> inbox(Object holder, List<Object> summaries) {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
-            Set<String> hidden = ids();
-            List<String> pins = PinnedChats.ids();
-            boolean shown = revealed && !hidden.isEmpty();
-            remember(holder, summaries, hidden, pins, shown);
+            View view = view();
+            remember(holder, summaries, view);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, LEFT_OUT), pins);
+            List<Object> rows = drawnRows(summaries, view, true);
+            pageIn(summaries, view);
+            return rows;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
         }
     }
 
-    /** A new list of the summaries whose chats are [hidden], in their order. */
-    private static List<Object> only(List<Object> summaries, Set<String> hidden) {
-        ArrayList<Object> kept = new ArrayList<>();
-        for (Object summary : summaries) {
-            String id = idOf(summary);
-            if (id != null && hidden.contains(id)) kept.add(summary);
+    /**
+     * What the inbox shows of Instagram's list: the chats it leaves out, or the ones it shows by
+     * themselves, and the ones it puts first.
+     */
+    static final class View {
+        final Set<String> hidden;
+        final List<String> pins;
+        /** It shows the hidden chats by themselves. */
+        final boolean shown;
+        /** Chats in a chat group, left out while no group shows ({@link ChatGroups}). */
+        final Set<String> grouped;
+        /** The chats of the group it shows by itself, or null while it shows all chats. */
+        @Nullable final Set<String> group;
+
+        View(Set<String> hidden, List<String> pins, boolean shown, Set<String> grouped, @Nullable Set<String> group) {
+            this.hidden = hidden;
+            this.pins = pins;
+            this.shown = shown;
+            this.grouped = grouped;
+            this.group = group;
         }
-        return kept;
+
+        @Override public boolean equals(Object other) {
+            if (!(other instanceof View)) return false;
+            View that = (View) other;
+            return shown == that.shown && hidden.equals(that.hidden) && pins.equals(that.pins)
+                    && grouped.equals(that.grouped) && Objects.equals(group, that.group);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(hidden, pins, shown, grouped, group);
+        }
     }
 
-    /** What an inbox draws from [summaries]: the hidden chats alone while [shown], else every other chat, pins first. */
-    private static List<Object> drawnRows(List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
-        return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, null), pins);
+    /** What the inbox shows now, for the account in front. */
+    private static View view() {
+        Set<String> hidden = ids();
+        boolean shown = revealed && !hidden.isEmpty();
+        String account = ChatAccounts.active();
+        String group = shown ? null : ChatGroups.showing(account);
+        return new View(hidden, PinnedChats.ids(), shown, ChatGroups.grouped(account),
+                group == null ? null : ChatGroups.in(account, group));
+    }
+
+    /** A new list of the summaries whose chats are [kept] and not [except], in their order. */
+    private static List<Object> only(List<Object> summaries, Set<String> kept, Set<String> except) {
+        ArrayList<Object> rows = new ArrayList<>();
+        for (Object summary : summaries) {
+            String id = idOf(summary);
+            if (id != null && kept.contains(id) && !except.contains(id)) rows.add(summary);
+        }
+        return rows;
+    }
+
+    /**
+     * What an inbox draws from [summaries]: the hidden chats alone while they're shown, a chat
+     * group's chats alone while it's shown, and else every chat neither hidden nor in a group, pins
+     * first. With [counted], what's left out is counted for the diagnostic report.
+     */
+    private static List<Object> drawnRows(List<Object> summaries, View view, boolean counted) {
+        List<Object> rows;
+        if (view.shown) {
+            rows = only(summaries, view.hidden, Collections.emptySet());
+        } else if (view.group != null) {
+            rows = only(summaries, view.group, view.hidden);
+            if (counted) HookStatus.counted(FamilyNames.MESSAGES_LOCK, ChatGroups.SHOWN);
+        } else {
+            rows = without(without(summaries, view.hidden, counted ? LEFT_OUT : null),
+                    view.grouped, counted ? ChatGroups.LEFT_OUT : null);
+        }
+        return PinnedChats.first(rows, view.pins);
     }
 
     /**
@@ -434,21 +424,16 @@ public final class HiddenChats {
     public static void redraw(Object holder, List<Object> summaries) {
     }
 
-    /** An inbox holder Instagram handed a list, that list, and the chats that were hidden from it. */
+    /** An inbox holder Instagram handed a list, that list, and what it drew of it. */
     private static final class Drawn {
         final WeakReference<Object> holder;
         final List<Object> summaries;
-        Set<String> hidden;
-        List<String> pins;
-        /** It drew the hidden chats by themselves. */
-        boolean shown;
+        View view;
 
-        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+        Drawn(Object holder, List<Object> summaries, View view) {
             this.holder = new WeakReference<>(holder);
             this.summaries = summaries;
-            this.hidden = hidden;
-            this.pins = pins;
-            this.shown = shown;
+            this.view = view;
         }
     }
 
@@ -456,18 +441,18 @@ public final class HiddenChats {
     private static final ArrayList<Drawn> drawn = new ArrayList<>();
 
     /**
-     * Keeps [holder] with Instagram's own list [summaries] and the chats [hidden] from it, in place of
-     * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
+     * Keeps [holder] with Instagram's own list [summaries] and what it draws of it, in place of what
+     * it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
      * settings aren't ready, so nothing is drawn again then either.
      */
-    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+    private static void remember(Object holder, List<Object> summaries, View view) {
         if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
         synchronized (drawn) {
             for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                 Object kept = it.next().holder.get();
                 if (kept == null || kept == holder) it.remove();
             }
-            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins, shown));
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, view));
         }
     }
 
@@ -484,11 +469,11 @@ public final class HiddenChats {
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return;
             List<Object> holders = new ArrayList<>();
             List<List<Object>> lists = new ArrayList<>();
+            View now;
+            List<Object> longest = null;
             synchronized (drawn) {
                 if (drawn.isEmpty()) return;
-                Set<String> now = ids();
-                List<String> nowPins = PinnedChats.ids();
-                boolean nowShown = revealed && !now.isEmpty();
+                now = view();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -496,12 +481,11 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
-                    if (one.hidden.equals(now) && one.pins.equals(nowPins) && one.shown == nowShown) continue;
-                    List<Object> before = drawnRows(one.summaries, one.hidden, one.pins, one.shown);
-                    List<Object> after = drawnRows(one.summaries, now, nowPins, nowShown);
-                    one.hidden = now;
-                    one.pins = nowPins;
-                    one.shown = nowShown;
+                    if (longest == null || one.summaries.size() > longest.size()) longest = one.summaries;
+                    if (one.view.equals(now)) continue;
+                    List<Object> before = drawnRows(one.summaries, one.view, false);
+                    List<Object> after = drawnRows(one.summaries, now, false);
+                    one.view = now;
                     if (sameRows(before, after)) continue;
                     holders.add(holder);
                     lists.add(after);
@@ -515,6 +499,7 @@ public final class HiddenChats {
                     HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
                 }
             }
+            pageIn(longest, now);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
         }
@@ -902,15 +887,9 @@ public final class HiddenChats {
         redrawer = HiddenChats::redraw;
         parsed = null;
         revealed = false;
-        hiddenUnread = false;
+        ChatGroups.resetForTests();
         synchronized (drawn) {
             drawn.clear();
-        }
-        synchronized (badges) {
-            for (View v : new java.util.ArrayList<>(badges.keySet())) {
-                v.getOverlay().remove(badges.get(v));
-            }
-            badges.clear();
         }
     }
 }

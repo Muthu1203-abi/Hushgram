@@ -53,6 +53,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean withoutPlayServices() {
+        return false;
+    }
+
     public static boolean removeAdId() {
         return false;
     }
@@ -232,11 +236,12 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean instants() {
+    /** Rewritten by the Hide New message button and suggestions patch. */
+    public static boolean newMessage() {
         return false;
     }
 
-    public static boolean instantUpload() {
+    public static boolean instants() {
         return false;
     }
 
@@ -331,16 +336,6 @@ public final class SettingsStatus {
         return false;
     }
 
-    /** Rewritten by Open developer options so its controls appear only when that patch is installed. */
-    public static boolean developerOptions() {
-        return false;
-    }
-
-    /** Rewritten by Media quality indicator so its switch appears only when that patch is installed. */
-    public static boolean mediaQualityIndicator() {
-        return false;
-    }
-
     /** Rewritten by the Keep playing in the background patch. */
     public static boolean backgroundPlay() {
         return false;
@@ -369,6 +364,10 @@ public final class SettingsStatus {
     }
 
     public static boolean profileHighlights() {
+        return false;
+    }
+
+    public static boolean profileFollowCounts() {
         return false;
     }
 
@@ -460,6 +459,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean seenReels() {
+        return false;
+    }
+
+    public static boolean savedStoryRings() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }
@@ -507,6 +514,16 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide comments when the heart and like count on a comment row were found too. */
+    public static boolean commentLikes() {
+        return false;
+    }
+
+    /** Rewritten by Hide comments when the AI label on a comment's name line was found too. */
+    public static boolean commentAiLabel() {
+        return false;
+    }
+
     public static boolean commentEmojiRow() {
         return false;
     }
@@ -532,6 +549,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedHeaderLine() {
+        return false;
+    }
+
+    public static boolean homeReelsBelowName() {
+        return false;
+    }
+
     public static boolean feedSave() {
         return false;
     }
@@ -553,11 +578,19 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean expandCaptions() {
+        return false;
+    }
+
     public static boolean feedAudioIcon() {
         return false;
     }
 
     public static boolean feedAutoScroll() {
+        return false;
+    }
+
+    public static boolean blockedPosts() {
         return false;
     }
 
@@ -624,15 +657,27 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean liquidGlassNavBar() {
-        return false;
-    }
-
     public static boolean fullScreenBars() {
         return false;
     }
 
     public static boolean savedOnProfile() {
+        return false;
+    }
+
+    public static boolean savedOnAll() {
+        return false;
+    }
+
+    public static boolean savedNewCollection() {
+        return false;
+    }
+
+    public static boolean savedReelsTab() {
+        return false;
+    }
+
+    public static boolean exploreSaved() {
         return false;
     }
 
@@ -656,6 +701,11 @@ public final class SettingsStatus {
 
     /** Rewritten by the Open reel links on that reel patch. */
     public static boolean reelLinks() {
+        return false;
+    }
+
+    /** Rewritten by the Let the screen sleep when a reel stops patch. */
+    public static boolean reelScreenSleep() {
         return false;
     }
 
@@ -711,6 +761,10 @@ public final class SettingsStatus {
     }
 
     public static boolean reelProfileTabBar() {
+        return false;
+    }
+
+    public static boolean reelLinkTabBar() {
         return false;
     }
 
@@ -794,6 +848,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Center names in chats patch. */
+    public static boolean centerChatName() {
+        return false;
+    }
+
     public static boolean askBeforeLike() {
         return false;
     }
@@ -808,6 +867,16 @@ public final class SettingsStatus {
 
     /** Rewritten by the Sent follow requests patch. */
     public static boolean sentRequests() {
+        return false;
+    }
+
+    /** Rewritten by the Chat bubbles patch. */
+    public static boolean chatBubbles() {
+        return false;
+    }
+
+    /** Rewritten by the Record calls patch. */
+    public static boolean callRecorder() {
         return false;
     }
 
@@ -898,6 +967,11 @@ public final class SettingsStatus {
 
     /** Rewritten by the Chat history tools patch. */
     public static boolean chatHistory() {
+        return false;
+    }
+
+    /** Rewritten by the Copy links from chat buttons patch. */
+    public static boolean chatButtonLinks() {
         return false;
     }
 

@@ -93,7 +93,13 @@ public final class LiquidGlassNavBarPatch {
                             NavbarStyle.EDGE_CLARITY, NavbarStyle.RIM, NavbarStyle.GLARE,
                             NavbarStyle.SHADOW, NavbarStyle.TINT),
                     new SettingsGroup("Shape", NavbarStyle.HEIGHT, NavbarStyle.SIDE_MARGIN,
-                            NavbarStyle.BOTTOM_GAP, NavbarStyle.ROUNDNESS, NavbarStyle.TAB_INSET),
+                            NavbarStyle.BOTTOM_GAP, NavbarStyle.VERTICAL_POSITION,
+                            NavbarStyle.ROUNDNESS, NavbarStyle.TAB_INSET),
+                    new SettingsGroup("Bottom gap by page", "Tap a tab in the preview to see its page-specific gap.",
+                            NavbarStyle.FEED_BOTTOM_GAP, NavbarStyle.REELS_BOTTOM_GAP,
+                            NavbarStyle.MESSAGES_BOTTOM_GAP, NavbarStyle.EXPLORE_BOTTOM_GAP,
+                            NavbarStyle.PROFILE_BOTTOM_GAP),
+                    new SettingsGroup("Reels", NavbarStyle.REEL_SEEK_BAR_POSITION),
                     new SettingsGroup("Selection", "Edge colors need Android 13+.",
                             NavbarStyle.SELECTION_SHADE, NavbarStyle.SELECTION_WIDTH,
                             NavbarStyle.SELECTION_INSET, GLASSY_PILL, GLASS_WHILE_DRAGGING, EDGE_COLORS,
@@ -129,6 +135,16 @@ public final class LiquidGlassNavBarPatch {
             return isActive() && app.hushgram.extension.instagram.settings.Settings.GLASS_TAB_BAR_REELS_BEHIND.get();
         } catch (Throwable t) {
             return false;
+        }
+    }
+
+    /** Extra vertical adjustment for the Reels seek bar; positive values lift it. */
+    public static int reelSeekBarOffsetDp() {
+        try {
+            return NavbarStyle.REEL_SEEK_BAR_POSITION.get();
+        } catch (Throwable t) {
+            Log.e(TAG, "Reel seek bar position unavailable", t);
+            return 0;
         }
     }
 

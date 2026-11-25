@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PatchLogCapture
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -29,6 +30,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -54,6 +56,8 @@ class TapToPlayHookTest {
     private val holder = "Lfixture/ClipsViewHolder;"
     private val reelPlayer = "Lfixture/ClipsVideoPlayer;"
     private val state = "Lfixture/PlayerState;"
+    private val reelPlayerImpl = "Lfixture/ClipsVideoPlayerImpl;"
+    private val reelEngine = "Lfixture/ClipsVideoEngine;"
     private val function0 = "Lkotlin/jvm/functions/Function0;"
     private val binder = "Lfixture/VideoPlayButtonBinder;"
     private val buttonState = "Lfixture/PlayButtonState;"
@@ -364,8 +368,16 @@ class TapToPlayHookTest {
         context.method(reader, name).code().takeWhile { it.opcode != Opcode.RETURN_OBJECT }.mapNotNull { it.referenceText() }
 
     /** The decision goes past the extension, with the navigator, just before the branch to the pause path. */
-    private fun assertReelTapHooked(code: List<Instruction>, decision: Int, navigatorRegister: Int, what: String = "the Reels tap") {
-        val pausePath = code.indexOfFirst { it.referenceText() == CLIPS_PAUSE }
+    private fun assertReelTapHooked(
+        code: List<Instruction>,
+        decision: Int,
+        navigatorRegister: Int,
+        what: String = "the Reels tap",
+        context: BytecodePatchContext? = null,
+    ) {
+        // A build asking a string pool for "clips_pause" (456.1) branches to the number it hands the pool.
+        val pausePath = code.indexOfFirst { it.referenceText() == CLIPS_PAUSE }.takeIf { it >= 0 }
+            ?: (code.indices.first { context?.stringLoadedAt(code, it) == CLIPS_PAUSE } - 1)
         val branch = code.indices.single { code[it].opcode == Opcode.IF_EQZ && code.target(it) == pausePath }
         assertEquals("$what: the hook", RESUME_ON_TAP, code[branch - 2].referenceText())
         assertEquals(
@@ -393,6 +405,8 @@ class TapToPlayHookTest {
             Reel(secondHolderAccessor = true) to "one holder accessor on $controller",
             Reel(playerIsInterface = false) to "$reelPlayer isn't an interface",
             Reel(stateNames = listOf("IDLE", "PLAYING")) to "one state accessor on $reelPlayer",
+            Reel(heldState = true, stateNames = listOf("IDLE", "PLAYING")) to "one state accessor on $reelPlayer, found 0",
+            Reel(heldState = true, privateEngine = true) to "can't reach $reelEngine->A0Q",
         )
         for ((reel, expected) in cases) {
             val context = PatchContexts.of(classes(reel = reel))
@@ -400,6 +414,26 @@ class TapToPlayHookTest {
             assertTrue("$reel: ${failure.message}", failure.message!!.contains(expected))
             assertUntouched(context)
         }
+    }
+
+    /**
+     * Instagram 457's player interface has no state accessor: its controller casts the player to its
+     * one implementation and asks the engine that holds. The state stub walks the same way, and a
+     * player without an engine answers no state.
+     */
+    @Test
+    fun aStateHeldByThePlayerIsAskedTheControllersWay() {
+        val context = PatchContexts.of(classes(reel = Reel(heldState = true)))
+
+        context.holdStartsWithoutATap()
+
+        assertEquals(listOf(reelPlayerImpl, "$reelPlayerImpl->A0B:$reelEngine", "$reelEngine->A0Q()$state"), filled(context, "stateOf"))
+        val stub = context.method(REEL_STATE_READER, "stateOf").code()
+        assertEquals(
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+            stub.take(6).map { it.opcode },
+        )
+        assertEquals("a null engine skips the call", 5, stub.target(2))
     }
 
     /** A playInternal that reads its IgGrootPlayer from anything but its player can't be gated first thing. */
@@ -466,10 +500,14 @@ class TapToPlayHookTest {
         // The Reels tap's navigator and controller, then the classes the controller's pause
         // names, then the classes their methods return, which reaches the player interface
         // and its state enum.
-        val reel = FixtureDex.classesHolding(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
+        val reel = FixtureDex.classesLoading(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
         val pauses = reel.flatMap { it.methods }.filter { pauseCurrentPlayerLog in it.strings() }
         val near = FixtureDex.classes(bundle, pauses.flatMap { it.namedTypes() }.toSet()).values.toList()
         val returned = FixtureDex.classes(bundle, near.flatMap { it.methods }.map { it.returnType }.toSet()).values.toList()
+        // 457's controller asks the player's state of what the player's implementation holds: the
+        // classes it casts to, the fields it reads and what its no-argument calls answer.
+        val held = FixtureDex.classes(bundle, reel.filter { classDef -> classDef.methods.any { it in pauses } }.flatMap { it.methods }.flatMap { it.heldTypes() }.toSet())
+            .values.toList()
         // The story viewer, and every class implementing its video player's interface.
         val viewer = FixtureDex.classes(bundle, setOf(REEL_VIEWER_FRAGMENT)).values.toList()
         val storyInterface = viewer.single().fields.single { it.name == VIDEO_PLAYER_FIELD }.type
@@ -486,7 +524,7 @@ class TapToPlayHookTest {
             FixtureDex.classesHolding(bundle, PLAY_INTERNAL) + FixtureDex.classesHolding(bundle, GROOT_PREPARE) +
                 FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
                 listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
-                reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
+                reel + near + returned + held + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
                 // Some builds ask Redex's string pool for the story viewer's resume strings.
                 FixtureDex.withStringPools(bundle, viewer) +
                 ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
@@ -551,7 +589,7 @@ class TapToPlayHookTest {
         returns.forEach { assertEquals("$label: the check's return at $it", AUTOPLAY_ALLOWED, check[it - 2].referenceText()) }
         assertEquals("$label: touch", TOUCH, after(hooks.touch)[0].referenceText())
         // `this` is the first register past the locals: the count less the three declared parameters and itself.
-        assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "$label: the Reels tap")
+        assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "$label: the Reels tap", context)
         assertEquals("$label: the state stub", reelTap.state.toString(), filled(context, "stateOf").last())
         assertEquals("$label: the controller stub", "$function0->invoke()$objectType", filled(context, "controllerOf").last())
         // `this` is the first register past the locals: the count less the two declared parameters and itself.
@@ -619,6 +657,16 @@ class TapToPlayHookTest {
             }
         }
         ).filter { it.startsWith("L") }.toSet()
+
+    /** The classes [this] casts to, the fields it reads with their owners, and what its no-argument calls answer. */
+    private fun Method.heldTypes(): Set<String> = code().flatMap { instruction ->
+        when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+            is TypeReference -> if (instruction.opcode == Opcode.CHECK_CAST) listOf(reference.type) else emptyList()
+            is FieldReference -> if (instruction.opcode == Opcode.IGET_OBJECT) listOf(reference.definingClass, reference.type) else emptyList()
+            is MethodReference -> if (reference.parameterTypes.isEmpty()) listOf(reference.returnType) else emptyList()
+            else -> emptyList()
+        }
+    }.filter { it.startsWith("L") }.toSet()
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
@@ -895,6 +943,9 @@ class TapToPlayHookTest {
         val secondHolderAccessor: Boolean = false,
         val playerIsInterface: Boolean = true,
         val stateNames: List<String> = PLAYER_STATES,
+        /** The player interface has no state accessor, and the controller asks its implementation's engine (457). */
+        val heldState: Boolean = false,
+        val privateEngine: Boolean = false,
     )
 
     /**
@@ -965,10 +1016,25 @@ class TapToPlayHookTest {
                     const/4 v0, 0x0
                     return-object v0
                 """),
-            ) + if (reel.secondHolderAccessor) listOf(method(controller, "A0g", emptyList(), holder, 2, static = false, body = """
+            ) + (if (reel.secondHolderAccessor) listOf(method(controller, "A0g", emptyList(), holder, 2, static = false, body = """
                     const/4 v0, 0x0
                     return-object v0
-                """)) else emptyList(),
+                """)) else emptyList()) + (if (reel.heldState) listOf(method(controller, "A1t", listOf("I"), "Z", 4, static = false, body = """
+                    invoke-virtual { p0 }, $controller->A0f()$holder
+                    move-result-object v0
+                    iget-object v1, p0, $controller->A0R:$lookup
+                    invoke-virtual { v1, v0 }, $lookup->A01($holder)$reelPlayer
+                    move-result-object v0
+                    if-eqz v0, :none
+                    check-cast v0, $reelPlayerImpl
+                    iget-object v0, v0, $reelPlayerImpl->A0B:$reelEngine
+                    if-eqz v0, :none
+                    invoke-virtual { v0 }, $reelEngine->A0Q()$state
+                    move-result-object v1
+                    :none
+                    const/4 v0, 0x0
+                    return v0
+                """)) else emptyList()),
             listOf(ImmutableField(controller, "A0R", lookup, AccessFlags.PUBLIC.value, null, null, null)),
         )
         val players = classDef(
@@ -987,7 +1053,18 @@ class TapToPlayHookTest {
             reelPlayer, AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value or (if (reel.playerIsInterface) AccessFlags.INTERFACE.value else 0),
             objectType, null, null, null,
             emptyList(),
-            listOf(abstractMethod(reelPlayer, "GS8", listOf(string), "I"), abstractMethod(reelPlayer, "Cyy", emptyList(), state)),
+            listOfNotNull(abstractMethod(reelPlayer, "GS8", listOf(string), "I"), if (reel.heldState) null else abstractMethod(reelPlayer, "Cyy", emptyList(), state)),
+        )
+        val implClass = ImmutableClassDef(
+            reelPlayerImpl, AccessFlags.PUBLIC.value, objectType, listOf(reelPlayer), null, null,
+            listOf(ImmutableField(reelPlayerImpl, "A0B", reelEngine, AccessFlags.PUBLIC.value, null, null, null)), emptyList(),
+        )
+        val engineClass = ImmutableClassDef(
+            reelEngine, if (reel.privateEngine) 0 else AccessFlags.PUBLIC.value, objectType, null, null, null, emptyList(),
+            listOf(method(reelEngine, "A0Q", emptyList(), state, 2, static = false, body = """
+                const/4 v0, 0x0
+                return-object v0
+            """)),
         )
         val stateEnum = ImmutableClassDef(
             state, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value, "Ljava/lang/Enum;", null, null, null,
@@ -996,7 +1073,8 @@ class TapToPlayHookTest {
                 method(state, "<clinit>", emptyList(), "V", 1, static = true, body = reel.stateNames.joinToString("\n") { "const-string v0, \"$it\"" } + "\nreturn-void"),
             ),
         )
-        return listOf(tap, clipsController, players, holderClass, playerInterface, stateEnum)
+        return listOf(tap, clipsController, players, holderClass, playerInterface, stateEnum) +
+            if (reel.heldState) listOf(implClass, engineClass) else emptyList()
     }
 
     /** How a test's story player stand-ins differ from 449's. */

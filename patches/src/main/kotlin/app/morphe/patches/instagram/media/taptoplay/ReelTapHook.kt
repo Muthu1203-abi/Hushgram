@@ -8,11 +8,16 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.media.PlayerStep
+import app.morphe.patches.instagram.media.receiverPath
+import app.morphe.patches.instagram.media.unreachableAlong
+import app.morphe.patches.instagram.media.walk
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -75,6 +80,18 @@ internal fun BytecodePatchContext.reelsTap(pause: Method, refuse: (String) -> No
         ?: refuse("expected one method loading \"$CLIPS_PAUSE\" and pausing through ${pause.definingClass}->${pause.name}, found ${taps.size}")
 }
 
+/**
+ * Where [code] loads [CLIPS_PAUSE], when it loads it once: the first and the last index of the load.
+ * A const-string is both. 456.1's Redex asks a static string pool for it instead, so the load is the
+ * pool's number, the call and its move-result, and a branch to the pause path lands on the number.
+ */
+internal fun BytecodePatchContext.clipsPauseLoad(code: List<Instruction>): IntRange? {
+    val at = code.indices.filter { stringLoadedAt(code, it) == CLIPS_PAUSE }.singleOrNull() ?: return null
+    if (code[at].opcode == Opcode.CONST_STRING || code[at].opcode == Opcode.CONST_STRING_JUMBO) return at..at
+    if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) return null
+    return (at - 1)..(at + 1)
+}
+
 /** The constant names of IgVideoPlayerImpl's state enum, which Instagram's build keeps. */
 internal val PLAYER_STATES = listOf("IDLE", "PREPARING", "PREPARED", "PLAYING", "PAUSED", "STOPPING")
 
@@ -87,7 +104,8 @@ internal val PLAYER_STATES = listOf("IDLE", "PREPARING", "PREPARED", "PLAYING", 
  * @property currentHolder the controller's view holder of the reel on screen
  * @property players the controller's field holding its players, and [playerFor] the player it has
  *           for a holder
- * @property state the player's state
+ * @property state the player's state, asked of the [player] itself or, from 457, of what the
+ *           player holds: [statePath] is the casts and fields from the player to what's asked
  */
 internal class ReelTap(
     val tap: Method,
@@ -99,7 +117,10 @@ internal class ReelTap(
     val players: FieldReference,
     val playerFor: MethodReference,
     val playerForIsInterface: Boolean,
+    val player: String,
     val state: MethodReference,
+    val statePath: List<PlayerStep>,
+    val stateIsInterface: Boolean,
 )
 
 /**
@@ -155,12 +176,14 @@ internal fun BytecodePatchContext.hookReelTap(found: ReelTap) {
             return-object p0
         """,
     )
+    val stateCast = if (found.statePath.firstOrNull()?.type != null) "" else "check-cast p0, ${found.player}\n"
+    val stateInvoke = if (found.stateIsInterface) "invoke-interface" else "invoke-virtual"
     stub("stateOf").addInstructionsWithLabels(
         0,
         """
-            check-cast p0, ${found.state.definingClass}
-            invoke-interface { p0 }, ${found.state}
+            $stateCast${found.statePath.walk("p0", ":none")}$stateInvoke { p0 }, ${found.state}
             move-result-object p0
+            :none
             return-object p0
         """,
     )
@@ -179,7 +202,8 @@ internal fun BytecodePatchContext.hookReelTap(found: ReelTap) {
  * register that holds only a boolean before it, since the extension reads that register as the
  * tap's yes or no, and reach the controller through one Function0 field of its own; the
  * controller's pause must get its player from one field, for the holder its no-argument accessor
- * also returns; and that player must be an interface with one method returning the state enum.
+ * also returns; and that player must be an interface with one method returning the state enum,
+ * or, from 457, the controller must ask that state of what the player holds one way.
  */
 internal fun BytecodePatchContext.findReelTap(): ReelTap {
     fun refuse(detail: String): Nothing = throw PatchException("$PATCH: the Reels tap: $detail")
@@ -192,7 +216,7 @@ internal fun BytecodePatchContext.findReelTap(): ReelTap {
     }
 
     val code = tap.code()
-    val pausePath = code.indices.filter { code[it].stringLoaded() == CLIPS_PAUSE }.singleOrNull()
+    val pausePath = clipsPauseLoad(code)?.first
         ?: refuse("${tap.definingClass}->${tap.name} doesn't load \"$CLIPS_PAUSE\" once")
     val branches = code.indices.filter { code[it].opcode == Opcode.IF_EQZ && code.target(it) == pausePath }
     val branch = branches.singleOrNull() ?: refuse("expected one branch to the pause path, found ${branches.size}")
@@ -251,10 +275,13 @@ internal fun BytecodePatchContext.findReelTap(): ReelTap {
 
     val playerClass = classDefByOrNull(player) ?: refuse("this build has no $player")
     if (!AccessFlags.INTERFACE.isSet(playerClass.accessFlags)) refuse("$player isn't an interface")
-    val states = playerClass.methods.filter { method ->
+    val ownStates = playerClass.methods.filter { method ->
         method.parameterTypes.isEmpty() && classDefByOrNull(method.returnType)?.namesConstants(PLAYER_STATES) == true
-    }
-    val state = states.singleOrNull() ?: refuse("expected one state accessor on $player, found ${states.size}")
+    }.map { it.reference() to emptyList<PlayerStep>() }
+    // 457 slimmed the player interface: the state is asked of what its one implementation holds.
+    val states = ownStates.ifEmpty { heldStates(controllerClass, player) }
+    val (state, statePath) = states.singleOrNull() ?: refuse("expected one state accessor on $player, found ${states.size}")
+    val stateClass = classDefByOrNull(state.definingClass) ?: refuse("this build has no ${state.definingClass}")
     val lookupClass = classDefByOrNull(players.type) ?: refuse("this build has no ${players.type}")
 
     // The stubs run in the extension, so every class they cast to and every member they name must be
@@ -273,8 +300,10 @@ internal fun BytecodePatchContext.findReelTap(): ReelTap {
         "$playerFor".takeUnless {
             lookupClass.methods.any { it.name == playerFor.name && it.parameterTypes.map(Any::toString) == listOf(holder) && it.isPublicMember() }
         },
-        "$player->${state.name}".takeUnless { state.isPublicMember() },
-    )
+        "${state.definingClass}->${state.name}".takeUnless {
+            stateClass.isPublic() && stateClass.methods.any { it.name == state.name && it.parameterTypes.isEmpty() && it.isPublicMember() }
+        },
+    ) + unreachableAlong(statePath)
     if (unreachable.isNotEmpty()) refuse("the extension can't reach ${unreachable.joinToString()}")
 
     val extension = classDefByOrNull(REEL_STATE_READER) ?: refuse("the extension has no $REEL_STATE_READER")
@@ -292,9 +321,30 @@ internal fun BytecodePatchContext.findReelTap(): ReelTap {
         players = players,
         playerFor = playerFor,
         playerForIsInterface = AccessFlags.INTERFACE.isSet(lookupClass.accessFlags),
-        state = state.reference(),
+        player = player,
+        state = state,
+        statePath = statePath,
+        stateIsInterface = AccessFlags.INTERFACE.isSet(stateClass.accessFlags),
     )
 }
+
+/**
+ * The [controller]'s reads of a [player]'s state through what the player holds: each no-argument
+ * call answering the state enum whose receiver the controller reaches from the player through casts
+ * and fields, once for each call and path. 457's controller casts the player to its one
+ * implementation and asks the implementation's engine (0ASt.A1t).
+ */
+private fun BytecodePatchContext.heldStates(controller: ClassDef, player: String): List<Pair<MethodReference, List<PlayerStep>>> =
+    controller.methods.flatMap { method ->
+        val code = method.code()
+        code.indices.mapNotNull { at ->
+            if (code[at].opcode != Opcode.INVOKE_VIRTUAL && code[at].opcode != Opcode.INVOKE_INTERFACE) return@mapNotNull null
+            val call = code[at].methodReference() ?: return@mapNotNull null
+            if (call.parameterTypes.isNotEmpty() || classDefByOrNull(call.returnType)?.namesConstants(PLAYER_STATES) != true) return@mapNotNull null
+            val (from, path) = receiverPath(code, at) ?: return@mapNotNull null
+            if (from == player && path.isNotEmpty()) call to path else null
+        }
+    }.distinctBy { (call, path) -> "$call ${path.joinToString()}" }
 
 /** Whether [this] is an enum whose constants' kept names include every one of [names]. */
 private fun ClassDef.namesConstants(names: List<String>): Boolean {

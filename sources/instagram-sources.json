@@ -148,7 +148,9 @@
             "453.0.0.55.79",
             "453.0.0.57.79",
             "454.0.0.54.77",
-            "456.0.0.53.78"
+            "456.0.0.53.78",
+            "456.1.0.56.78",
+            "457.0.0.55.73"
           ]
         }
       },
@@ -247,7 +249,9 @@
             "453.0.0.55.79",
             "453.0.0.57.79",
             "454.0.0.54.77",
-            "456.0.0.53.78"
+            "456.0.0.53.78",
+            "456.1.0.56.78",
+            "457.0.0.55.73"
           ]
         }
       },
@@ -2194,7 +2198,7 @@
       ],
       "branches": [
         {
-          "name": "claude/instagram-reels-patch-plan-eyz76g",
+          "name": "\u0063laude/instagram-reels-patch-plan-eyz76g",
           "commit": "b9bc02e6f089a64cb5ee7d8630cb68a74f6dd303"
         }
       ],
@@ -4395,8 +4399,8 @@
         "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
       },
       "contaminatedBy": null,
-      "disposition": "used",
-      "reason": "GPL-3.0 source integrated and adapted: Liquid Glass navigation bar and its live customization UI. Reels can run behind the glass using HushGram’s existing setting.",
+      "disposition": "candidate",
+      "reason": "GPL-3.0. One Instagram patch, Liquid Glass navigation bar, on 453.0.0.57.79 and 439.0.0.37.89 (v1.2.6, 2026-10-31), which now also lets Reels run full screen under the glass and opens a settings menu for its patches from a button in the profile page's action bar. HushGram's Glass tab bar covers the same bar, so it's read for how it draws the glass.",
       "archived": false,
       "forks": [],
       "contentHashes": [],
@@ -5759,13 +5763,8 @@
     },
     {
       "repository": "https://github.com/ReSo7200/InstaEclipse",
-      "reason": "A GPL-3.0 Xposed module (Apache-2.0 before 2026-10-18) with Instagram features, including the gallery-to-QuickSnap flow adapted by HushGram through the InstaHacks fork. Its repository answered 404 on 2026-11-18.",
-      "lastChecked": "2026-11-20"
-    },
-    {
-      "repository": "https://github.com/xdreizein666/InstaHacks",
-      "reason": "A GPL-3.0 fork of InstaEclipse carrying the Upload Instant from gallery behavior HushGram adapts for its bytecode-patch runtime.",
-      "lastChecked": "2026-11-20"
+      "reason": "A GPL-3.0 Xposed module (Apache-2.0 before 2026-10-18) with 14 Instagram features, tested on 451.0.0.20.80, whose downloader was adapted from HushGram's. The repository answered 404 on 2026-11-18, and HushGram never took anything from it. It had 118 forks when it was last read on 2026-10-31.",
+      "lastChecked": "2026-11-18"
     },
     {
       "repository": "https://github.com/ReSo7200/IGExperimentsHooksUpdates",

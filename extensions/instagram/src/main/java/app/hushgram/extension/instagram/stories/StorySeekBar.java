@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.feed.FeedSeekBar;
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.feed.SeekPreview;
 import app.hushgram.extension.instagram.feed.SeekShapes;
@@ -39,7 +41,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * on screen and goes. While it's resumed, a seek bar sits over the bottom of the viewer, just above
  * the row along the story's bottom ({@link #FOOTER}) when that's showing, under any sheet opened over
  * the story, and every {@link #TICK_MS} it shows
- * where the story's video is, following a playing one every frame in between. A photo has no length,
+ * where the story's video is, following a playing one every frame in between. The viewer's callback
+ * for a story's video starting tells {@link #playing} too, so a new video's bar and time show as it
+ * starts rather than at the next tick (#618). A photo has no length,
  * so the bar hides for it. Dragging pauses the
  * story the way a press and hold does; letting go moves the video to that point and plays on, and
  * Instagram's own segment along the top follows the video. A live story's player refuses a seek, so
@@ -90,6 +94,12 @@ public final class StorySeekBar {
      */
     static final long GLIDE_MS = 150;
 
+    /**
+     * How long, in ms, a story's video that started before its player knew its length gets a look
+     * every frame (#618), so the bar shows the frame the length comes in.
+     */
+    static final long START_WATCH_MS = 500;
+
     /** The fastest the bar takes a story's video to play, in ms of video a ms, past any speed there is. */
     static final float FASTEST = 4f;
 
@@ -108,6 +118,17 @@ public final class StorySeekBar {
 
     static final String HOOK = "story seek bar";
     static final String COUNT_SEEKS = "story seeks";
+    static final String COUNT_TIME_FLIPS = "story seek time flips";
+
+    /**
+     * The time (#784) sits at the start of the bar, this far in at least, in dp, and this far above
+     * the bar's box, or above the story's bottom row when the bar is placed under it.
+     */
+    static final int TIME_START_DP = 8;
+    static final int TIME_GAP_DP = 2;
+
+    /** The time's text size, as the reel's time label has it. */
+    static final float TIME_SP = 12f;
 
     /** The viewer's player, through the patch's stubs; tests stand in. */
     interface Player {
@@ -145,6 +166,11 @@ public final class StorySeekBar {
         return Utils.settingsReady() && Settings.STORY_SEEK_BAR.get();
     }
 
+    /** Whether the time shows at the start of a showing bar (#784): its switch on as well. */
+    static boolean timeWanted() {
+        return wanted() && Settings.STORY_SEEK_TIME.get();
+    }
+
     /** Called by the story viewer's onResume, on the main thread, with the viewer. */
     public static void resumed(Object viewer) {
         try {
@@ -167,6 +193,30 @@ public final class StorySeekBar {
             if (old == null || old.viewer.get() != viewer) return;
             current = null;
             old.remove();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+        }
+    }
+
+    /**
+     * Called by the story viewer's callback for a story's video starting (#618), with the viewer. The
+     * bar takes the new video's length and place right then, rather than at its next tick, which could
+     * come a quarter of a second after the video was already playing. A video whose player doesn't
+     * know its length yet gets a look every frame for {@link #START_WATCH_MS}.
+     */
+    public static void playing(Object viewer) {
+        try {
+            Utils.runOnMainThreadNowOrLater(() -> started(viewer));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+        }
+    }
+
+    private static void started(Object viewer) {
+        try {
+            Overlay overlay = current;
+            if (overlay == null || overlay.viewer.get() != viewer) return;
+            overlay.started();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
         }
@@ -210,6 +260,13 @@ public final class StorySeekBar {
     }
 
     @VisibleForTesting
+    @Nullable
+    static TextView timeForTests() {
+        Overlay overlay = current;
+        return overlay == null ? null : overlay.time;
+    }
+
+    @VisibleForTesting
     static void resetForTests() {
         Overlay overlay = current;
         if (overlay != null) overlay.remove();
@@ -238,11 +295,30 @@ public final class StorySeekBar {
         boolean framing;
         final Runnable frame = this::frame;
         /**
+         * Until when a video that started before its length was known gets a look every frame (#618),
+         * and whether one is coming.
+         */
+        long watchUntil;
+        boolean watching;
+        final Runnable watch = this::watch;
+        /**
          * The rows this bar lifted to make room under them (#636), each with the translation it had
          * before, and how far up they went. Weak, since Instagram drops a story's views as it pages.
          */
         final Map<View, Float> lifted = new WeakHashMap<>();
         int liftedBy;
+        /**
+         * The time at the start of the bar (#784), while its switch is on, and how far up it sits: right
+         * over the bar's box, or over the story's bottom row when the bar sits under it with less room
+         * than the time needs between the two ({@link #timeOverRows}, {@link #roomOverBar}). Only what the
+         * rows draw over the time's own width counts ({@link #timeRows}), so a row with just its heart and
+         * share buttons at the end leaves the time right over the bar.
+         */
+        @Nullable TextView time;
+        int timeBottom;
+        int timeOverRows = -1;
+        int roomOverBar = Integer.MAX_VALUE;
+        final ArrayList<WeakReference<View>> timeRows = new ArrayList<>();
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -272,18 +348,53 @@ public final class StorySeekBar {
             if (!removed) Utils.runOnMainThreadDelayed(this, TICK_MS);
         }
 
-        private void update(Object owner) {
+        /**
+         * A story's video started (#618): the bar shows its length and place now. When the player
+         * doesn't know the length yet, it looks again every frame for {@link #START_WATCH_MS}, so it
+         * shows the frame the length comes in; a photo's stays unknown and the looks run out.
+         */
+        void started() {
+            Object owner = viewer.get();
+            if (removed || owner == null) return;
+            forget();
+            if (update(owner) || !wanted()) return;
+            watchUntil = SystemClock.uptimeMillis() + START_WATCH_MS;
+            if (!watching) look(owner);
+        }
+
+        private void look(Object owner) {
+            View view = player.view(owner);
+            if (view == null) return;
+            watching = true;
+            view.postOnAnimation(watch);
+        }
+
+        /** One frame's look at a video that started before its length was known. */
+        private void watch() {
+            watching = false;
+            Object owner = viewer.get();
+            if (removed || owner == null) return;
+            try {
+                if (update(owner) || !wanted() || SystemClock.uptimeMillis() >= watchUntil) return;
+                look(owner);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        /** Shows the bar where the video is, or hides it; true when it shows. */
+        private boolean update(Object owner) {
             if (!wanted()) {
                 hide(owner);
-                return;
+                return false;
             }
             int duration = player.duration(owner);
             if (duration <= 0) {
                 hide(owner);
-                return;
+                return false;
             }
             GlassSeekBar seek = bar != null ? bar : make(owner);
-            if (seek == null) return;
+            if (seek == null) return false;
             seek.look(Settings.STORY_SEEK_BAR_LOOK.get());
             seek.shape(SeekShapes.wanted(), false);
             if (!dragging) {
@@ -292,6 +403,8 @@ public final class StorySeekBar {
             }
             place(owner, seek);
             if (seek.getVisibility() != View.VISIBLE) seek.setVisibility(View.VISIBLE);
+            showTime(seek);
+            return true;
         }
 
         /**
@@ -351,6 +464,7 @@ public final class StorySeekBar {
             forget();
             lift(new ArrayList<>(), 0);
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
+            if (time != null && time.getVisibility() != View.GONE) time.setVisibility(View.GONE);
             if (dragging) {
                 dragging = false;
                 resume(owner);
@@ -403,13 +517,15 @@ public final class StorySeekBar {
             int height = dp(seek, HEIGHT_DP);
             int bottom = dp(seek, BOTTOM_DP);
             ArrayList<View> rows = new ArrayList<>();
+            ArrayList<View> boxed = new ArrayList<>();
             int lift = 0;
+            int highest = 0;
+            int under = -1;
+            boolean underRows = false;
             if (parent.getHeight() > 0) {
                 findAnchors(owner, parent);
                 int[] frame = new int[2];
                 parent.getLocationInWindow(frame);
-                int highest = 0;
-                int under = -1;
                 for (int i = 0; i < ANCHORS.length; i++) {
                     View box = anchors[i] == null ? null : anchors[i].get();
                     if (box == null) continue;
@@ -424,6 +540,7 @@ public final class StorySeekBar {
                         int free = Math.max(box.getPaddingBottom(), emptyBelow(box));
                         int below = Math.max(0, above - box.getHeight() + free);
                         under = under < 0 ? below : Math.min(under, below);
+                        boxed.add(box);
                     }
                     highest = Math.max(highest, above);
                     rows.add(box);
@@ -440,14 +557,26 @@ public final class StorySeekBar {
                     if (room >= least) {
                         height = Math.min(height, room);
                         bottom = covered + (room - height) / 2;
+                        underRows = true;
                     } else if (under >= hidden) {
                         lift = least - room;
                         height = least;
                         bottom = covered;
+                        underRows = true;
                     }
                 }
             }
             lift(outermost(rows), lift);
+            // The time sits right over the bar. Under the rows it needs room between the bar and the rows'
+            // bottom, where they'll be after the lift; with too little it goes over the rows instead (#784).
+            int gap = dp(seek, TIME_GAP_DP);
+            timeBottom = bottom + height + gap;
+            timeOverRows = underRows ? highest + lift + gap : -1;
+            roomOverBar = underRows ? under + lift - (bottom + height) : Integer.MAX_VALUE;
+            timeRows.clear();
+            if (underRows) {
+                for (View box : boxed) timeRows.add(new WeakReference<>(box));
+            }
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom || params.height != height) {
                 params.bottomMargin = bottom;
@@ -542,9 +671,119 @@ public final class StorySeekBar {
             }
         }
 
+        /**
+         * Puts the time at the start of [seek] (#784), {@link #timeBottom} up, the text's start where the
+         * bar's line starts, or takes it away with its switch off.
+         */
+        private void showTime(SeekBar seek) {
+            if (!timeWanted()) {
+                removeTime();
+                return;
+            }
+            ViewGroup parent = (ViewGroup) seek.getParent();
+            if (parent == null) return;
+            TextView shown = time;
+            if (shown == null) {
+                shown = FeedSeekBar.timeLabel(seek.getContext(), TIME_SP);
+                shown.setOnClickListener(clicked -> flipTime());
+                time = shown;
+            }
+            if (shown.getParent() != parent) {
+                if (shown.getParent() != null) ((ViewGroup) shown.getParent()).removeView(shown);
+                parent.addView(shown, parent.indexOfChild(seek) + 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM | Gravity.START));
+            }
+            int start = Math.max(dp(seek, TIME_START_DP), seek.getPaddingStart() - shown.getPaddingStart());
+            int over = timeBottomFor(shown, start);
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
+            if (params.bottomMargin != over || params.getMarginStart() != start) {
+                params.bottomMargin = over;
+                params.setMarginStart(start);
+                shown.setLayoutParams(params);
+            }
+            if (shown.getVisibility() != View.VISIBLE) shown.setVisibility(View.VISIBLE);
+            showTimeAt(seek.getProgress());
+        }
+
+        /**
+         * How far up the time [shown], [start] pixels in from the start edge, sits: right over the bar
+         * while it fits under what the rows draw over its width, which a bar placed below them leaves
+         * it, else over the rows.
+         */
+        private int timeBottomFor(TextView shown, int start) {
+            if (timeOverRows < 0) return timeBottom;
+            int tall = shown.getHeight();
+            int wide = shown.getWidth();
+            if (tall <= 0 || wide <= 0) {
+                shown.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+                tall = shown.getMeasuredHeight();
+                wide = shown.getMeasuredWidth();
+            }
+            int gap = dp(shown, TIME_GAP_DP);
+            return roomAcross(shown, start, wide, gap) >= tall + gap ? timeBottom : timeOverRows;
+        }
+
+        /**
+         * The room between the bar's box and the lowest thing {@link #timeRows} draw over the time's
+         * width, [wide] pixels from [start] in from the start edge of the time's frame (#784). A row that
+         * draws nothing there leaves room up to its top. {@link #roomOverBar} when no row is known.
+         */
+        private int roomAcross(TextView shown, int start, int wide, int gap) {
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent == null || timeRows.isEmpty()) return roomOverBar;
+            int[] frame = new int[2];
+            parent.getLocationInWindow(frame);
+            int frameBottom = frame[1] + parent.getHeight();
+            int left = parent.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? parent.getWidth() - start - wide : start;
+            int lowest = -1;
+            for (WeakReference<View> held : timeRows) {
+                View box = held.get();
+                if (box == null) continue;
+                int[] at = new int[2];
+                box.getLocationInWindow(at);
+                int drawn = drawnBottomAcross(box, 0, left - (at[0] - frame[0]), wide, 0);
+                int below = frameBottom - at[1] - Math.max(0, drawn);
+                lowest = lowest < 0 ? below : Math.min(lowest, below);
+            }
+            return lowest < 0 ? roomOverBar : lowest - (timeBottom - gap);
+        }
+
+        /** Writes the time at [at] into the label, when there is one. */
+        private void showTimeAt(int at) {
+            TextView shown = time;
+            SeekBar seek = bar;
+            if (shown == null || seek == null) return;
+            String text = FeedSeekBar.timeText(at, seek.getMax(), Settings.STORY_SEEK_TIME_LEFT.get());
+            if (!text.contentEquals(shown.getText())) shown.setText(text);
+        }
+
+        /** A tap on the time flips it between the time played and the time left, through its own switch. */
+        private void flipTime() {
+            try {
+                if (removed || !timeWanted()) return;
+                Settings.STORY_SEEK_TIME_LEFT.save(!Settings.STORY_SEEK_TIME_LEFT.get());
+                HookStatus.counted(FamilyNames.STORY_SEEK_BAR, COUNT_TIME_FLIPS);
+                SeekBar seek = bar;
+                if (seek != null) showTimeAt(seek.getProgress());
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        private void removeTime() {
+            TextView shown = time;
+            time = null;
+            if (shown == null) return;
+            shown.setOnClickListener(null);
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent != null) parent.removeView(shown);
+        }
+
         void remove() {
             removed = true;
             lift(new ArrayList<>(), 0);
+            removeTime();
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
@@ -574,6 +813,7 @@ public final class StorySeekBar {
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
             if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, StorySpeed.current(), FamilyNames.STORY_SEEK_BAR);
+            showTimeAt(progress);
         }
 
         @Override
@@ -651,6 +891,27 @@ public final class StorySeekBar {
             View child = group.getChildAt(i);
             int at = top + child.getTop() + Math.round(child.getTranslationY());
             lowest = Math.max(lowest, drawnBottom(child, at, depth + 1));
+        }
+        return lowest;
+    }
+
+    /**
+     * The lowest edge of what [view] draws across a span [wide] pixels from [from] pixels in from its
+     * left, [top] pixels down from the row's top, or -1 for nothing there (#784). A group with a
+     * background draws all of itself, as {@link #drawnBottom} reads it.
+     */
+    static int drawnBottomAcross(View view, int top, int from, int wide, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return -1;
+        if (from >= view.getWidth() || from + wide <= 0) return -1;
+        int bottom = top + view.getHeight();
+        if (!(view instanceof ViewGroup) || view.getBackground() != null || depth >= 16) return bottom;
+        ViewGroup group = (ViewGroup) view;
+        int lowest = -1;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            int at = top + child.getTop() + Math.round(child.getTranslationY());
+            int into = from - child.getLeft() - Math.round(child.getTranslationX());
+            lowest = Math.max(lowest, drawnBottomAcross(child, at, into, wide, depth + 1));
         }
         return lowest;
     }

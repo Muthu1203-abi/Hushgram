@@ -101,6 +101,11 @@ final class StoriesCategory {
                     L10n.t("Takes the story and live rings off profile pictures on posts, comments, reels and "
                             + "profiles. The pictures stay, and so do the rings in the stories row.")));
         }
+        if (build.contains(PatchFamily.SAVED_STORY_RINGS)) {
+            stories.add(toggle(context, Settings.SAVED_STORY_RINGS, L10n.t("Story rings on saved posts"),
+                    L10n.t("Posts you saved show the story ring around the author's picture, like Home does, and a tap "
+                            + "on it opens their story. It only uses stories Instagram has already loaded.")));
+        }
         if (build.contains(PatchFamily.SMOOTH_STORY_OPEN)) {
             stories.add(toggle(context, Settings.SMOOTH_STORY_OPEN, L10n.t("Smooth story opening"),
                     L10n.t("A story you tap in the stories row opens with a slower zoom that doesn't bounce, "
@@ -131,6 +136,12 @@ final class StoriesCategory {
                             + "video. Photos don't get one.")));
             stories.add(storySeekBarLookRow(context));
             stories.add(storySeekBarPositionRow(context));
+            stories.add(toggle(context, Settings.STORY_SEEK_TIME, L10n.t("Time on the seek bar"),
+                    L10n.t("Shows the time played and the story's length at the start of its seek bar, like "
+                            + "0:03 / 0:15. Tap the time to see the time left instead.")));
+            stories.add(toggle(context, Settings.STORY_SEEK_TIME_LEFT, L10n.t("Show the time left"),
+                    L10n.t("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. "
+                            + "A tap on the time switches back.")));
         }
         if (build.contains(PatchFamily.STORY_SPEED)) {
             stories.add(toggle(context, Settings.STORY_SPEED_BUTTON, L10n.t("Speed button on stories"),
@@ -149,6 +160,13 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.FILL_STORY_SCREEN, L10n.t("Stories fill the screen"),
                     L10n.t("On a tall screen a story covers the whole screen, with the reply bar on top of it like "
                             + "on shorter phones, instead of a rounded card above the bar.")));
+            // The menu row rides on Download any story's menu hooks (#845).
+            if (build.contains(PatchFamily.STORY_DOWNLOAD)) {
+                stories.add(toggle(context, Settings.WHOLE_STORY_IN_STORY_MENU, L10n.t("Whole story in the story menu"),
+                        L10n.t("Adds Show the whole story to the menu a story's three dots open while Stories fill the "
+                                + "screen is on. A tap fits that story inside the screen until the next one. Fill the "
+                                + "screen there fills it again.")));
+            }
         }
         if (build.contains(PatchFamily.AMBIENT_LIGHT)) {
             stories.add(onFlip(toggle(context, Settings.AMBIENT_LIGHT_STORIES, L10n.t("Ambient light in stories"),
@@ -243,10 +261,15 @@ final class StoriesCategory {
                             + "Off or paused, Instagram's own menu returns.")));
             stories.add(toggle(context, Settings.DOWNLOAD_BUTTON_ON_STORIES, L10n.t("Download button on stories"),
                     L10n.t("Puts a Download button at the top of a story, beside the three dots. One tap saves the "
-                            + "photo or video in front, the same as Download in the menu.")));
+                            + "photo or video in front, the same as Download in the menu. Press and hold for "
+                            + "Save all, to save every story in the set you're watching.")));
             stories.add(toggle(context, Settings.TEXT_BUTTON_ON_STORIES, L10n.t("Copy text button on stories"),
                     L10n.t("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens "
                             + "opens on what's showing, so you can select and copy its text.")));
+            stories.add(toggle(context, Settings.STORY_COPY_TEXT_IN_MENU, L10n.t("Copy text in the story menu"),
+                    L10n.t("Adds Copy text to the menu a story's three dots open. It copies the words Instagram "
+                            + "found in the picture, and when it found none, Google Lens opens on the story so you "
+                            + "can copy them there.")));
         }
         if (build.contains(PatchFamily.STORY_SEEN) || build.contains(PatchFamily.STORY_DOWNLOAD)) {
             stories.add(toggle(context, Settings.STORY_BUTTONS_BY_THUMB, L10n.t("Story buttons at the bottom"),
@@ -269,6 +292,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.STORY_VIEWERS, L10n.t("Keep story viewers"),
                     L10n.t("Each time you open who viewed one of your stories, the list is kept on this phone and set "
                             + "beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.")));
+            stories.add(toggle(context, Settings.STORY_VIEWERS_SEARCH, L10n.t("Search bar in the viewer list"),
+                    L10n.t("Puts a Search viewers bar at the top of the list of who viewed your story. It searches "
+                            + "the viewers kept on this phone, the ones Instagram has listed so far.")));
             Preference viewers = storyViewersRow(context);
             stories.add(viewers);
             HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);
