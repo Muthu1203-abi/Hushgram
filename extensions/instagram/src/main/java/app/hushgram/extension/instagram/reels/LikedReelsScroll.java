@@ -31,4 +31,38 @@ public final class LikedReelsScroll {
         }
         return original;
     }
+
+    /**
+     * The viewer source for a reel opened from a Your activity screen of [type]: the liked feed for
+     * the Likes screen, Instagram's own otherwise. The type is logged so a screen Instagram renames
+     * can be found in logcat (tag HushGram).
+     */
+    public static Object activityCenterSource(Object original, String type) {
+        try {
+            android.util.Log.i("HushGram", "Liked reels: Your activity reel opened from type=" + type);
+            if (!likesScreen(type)) return original;
+            HookStatus.invoked(FamilyNames.LIKED_REELS_SCROLL);
+            return source(original);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.LIKED_REELS_SCROLL, "activity center source", failure);
+            return original;
+        }
+    }
+
+    /**
+     * The one-item cache key for a reel opened from a Your activity screen of [type]. Null on the
+     * Likes screen, so the viewer loads the liked feed from that reel instead of stopping at it.
+     */
+    public static String activityCenterCache(String key, String type) {
+        try {
+            if (likesScreen(type) && !HushgramPause.isPaused() && Settings.LIKED_REELS_SCROLL.get()) return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.LIKED_REELS_SCROLL, "activity center cache", failure);
+        }
+        return key;
+    }
+
+    private static boolean likesScreen(String type) {
+        return type != null && type.toLowerCase(java.util.Locale.ROOT).contains("like");
+    }
 }
