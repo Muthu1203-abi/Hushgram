@@ -987,4 +987,10 @@ public final class SettingsStatus {
 
     /** Rewritten by the Liquid Glass navigation bar patch. */
     public static boolean liquidGlassNavBar() { return false; }
+
+    /** Rewritten by the Open developer options patch. */
+    public static boolean developerOptions() { return false; }
+
+    /** Rewritten by the Continue through liked Reels patch. */
+    public static boolean likedReelsScroll() { return false; }
 }
