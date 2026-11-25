@@ -408,6 +408,11 @@ final class ReelsCategory {
                             + "blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. "
                             + "Open Reels again after a change."))));
         }
+        if (build.contains(PatchFamily.LIKED_REELS_SCROLL)) {
+            reels.add(toggle(context, Settings.LIKED_REELS_SCROLL, L10n.t("Continue through liked Reels"),
+                    L10n.t("Open a reel from Your activity > Likes and swiping up goes on through the reels you liked, "
+                            + "instead of the Reels feed. Open the reel again after a change.")));
+        }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),
                     L10n.t("Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after "

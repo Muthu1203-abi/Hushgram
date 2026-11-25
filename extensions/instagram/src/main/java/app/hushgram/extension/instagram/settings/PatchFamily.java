@@ -329,7 +329,7 @@ public enum PatchFamily {
             Settings.HIDE_REEL_LOCK_MESSAGE),
     REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL,
             Settings.REEL_AUTO_ADVANCE),
-    LIKED_REELS_SCROLL(FamilyNames.LIKED_REELS_SCROLL, "likedReelsScroll", null),
+    LIKED_REELS_SCROLL(FamilyNames.LIKED_REELS_SCROLL, "likedReelsScroll", null, Settings.LIKED_REELS_SCROLL),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,
             Settings.REEL_SCROLL_FROM_PROFILE, Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO,
             Settings.PLAY_ONE_REEL, Settings.REEL_CAP),
