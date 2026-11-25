@@ -25,6 +25,9 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :patches:buildAndroid
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.MORPHE_PACKAGES_TOKEN }}
 
       - name: Publish bundle on GitHub Releases
         uses: softprops/action-gh-release@v2
