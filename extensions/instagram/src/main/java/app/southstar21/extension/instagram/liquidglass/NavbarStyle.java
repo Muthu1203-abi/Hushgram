@@ -16,6 +16,18 @@ final class NavbarStyle {
 
     // region Settings
 
+    /** Values of {@link #BAR_STYLE}. */
+    static final int STYLE_GLASS = 0, STYLE_TRANSPARENT = 1, STYLE_MATERIAL = 2;
+
+    static final ChoiceSetting BAR_STYLE = new ChoiceSetting("liquid_glass_bar_style",
+            "Bar style", "Glass, see-through, or a solid Material You pill.", false,
+            new String[]{"Liquid Glass", "Transparent", "Material"},
+            new int[]{STYLE_GLASS, STYLE_TRANSPARENT, STYLE_MATERIAL}, STYLE_GLASS)
+            .help("Liquid Glass blurs and bends what's behind the bar. Transparent drops the glass: the feed "
+                    + "shows straight through, with only a light veil set by Opacity (0% for none). Material is a "
+                    + "solid pill in your wallpaper's colors (Android 12+), or in the Tint color if one is set. "
+                    + "Transparent and Material skip the blur, so they're easier on the battery.");
+
     static final IntSetting OPACITY = new IntSetting("liquid_glass_opacity",
             "Opacity", "How much of the bar is material rather than see-through glass.", false,
             0, 100, "%", () -> 86)
@@ -152,6 +164,8 @@ final class NavbarStyle {
     final float edgeColors;
     final boolean haptics;
     final boolean shrinkOnScroll;
+    /** {@link #STYLE_GLASS}, {@link #STYLE_TRANSPARENT} or {@link #STYLE_MATERIAL}. */
+    final int barStyle;
     /** Changes whenever any value does. */
     final int version;
 
@@ -195,6 +209,13 @@ final class NavbarStyle {
         edgeColors = i(LiquidGlassNavBarPatch.EDGE_COLORS) / 100f;
         haptics = b(LiquidGlassNavBarPatch.HAPTICS);
         shrinkOnScroll = b(LiquidGlassNavBarPatch.SHRINK_ON_SCROLL);
+        Integer styleOverride = overrides != null ? overrides.get(BAR_STYLE.key) : null;
+        int chosenStyle = styleOverride != null ? styleOverride : BAR_STYLE.get();
+        barStyle = chosenStyle == STYLE_TRANSPARENT || chosenStyle == STYLE_MATERIAL ? chosenStyle : STYLE_GLASS;
+    }
+
+    boolean isGlass() {
+        return barStyle == STYLE_GLASS;
     }
 
     private int i(IntSetting setting) {
@@ -293,6 +314,18 @@ final class NavbarStyle {
         PRESETS.put("Neon", preset(
                 "liquid_glass_tint", 2, "liquid_glass_vibrancy", 180, "liquid_glass_rim", 180,
                 "liquid_glass_opacity", 75, "liquid_glass_refraction", 90, "liquid_glass_southstar21_style", 1));
+        PRESETS.put("Crystal", preset(
+                "liquid_glass_opacity", 25, "liquid_glass_blur_radius", 0, "liquid_glass_refraction", 100,
+                "liquid_glass_edge_clarity", 100, "liquid_glass_vibrancy", 150, "liquid_glass_rim", 150));
+        PRESETS.put("Floating", preset(
+                "liquid_glass_height", 58, "liquid_glass_side_margin", 48, "liquid_glass_bottom_gap", 16,
+                "liquid_glass_shadow", 90, "liquid_glass_tint", 6));
+        PRESETS.put("Transparent", preset(
+                "liquid_glass_bar_style", STYLE_TRANSPARENT, "liquid_glass_opacity", 0,
+                "liquid_glass_rim", 60, "liquid_glass_shadow", 0));
+        PRESETS.put("Material", preset(
+                "liquid_glass_bar_style", STYLE_MATERIAL, "liquid_glass_rim", 0,
+                "liquid_glass_shadow", 60, "liquid_glass_selection_shade", 150));
     }
 
     private static java.util.Map<String, Integer> preset(Object... keysAndValues) {
