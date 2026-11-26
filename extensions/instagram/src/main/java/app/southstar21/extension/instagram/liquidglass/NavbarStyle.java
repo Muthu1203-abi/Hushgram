@@ -17,16 +17,32 @@ final class NavbarStyle {
     // region Settings
 
     /** Values of {@link #BAR_STYLE}. */
-    static final int STYLE_GLASS = 0, STYLE_TRANSPARENT = 1, STYLE_MATERIAL = 2;
+    static final int STYLE_GLASS = 0, STYLE_TRANSPARENT = 1, STYLE_MATERIAL = 2, STYLE_NEON = 3;
 
     static final ChoiceSetting BAR_STYLE = new ChoiceSetting("liquid_glass_bar_style",
-            "Bar style", "Glass, see-through, or a solid Material You pill.", false,
-            new String[]{"Liquid Glass", "Transparent", "Material"},
-            new int[]{STYLE_GLASS, STYLE_TRANSPARENT, STYLE_MATERIAL}, STYLE_GLASS)
+            "Bar style", "Glass, see-through, a solid Material You pill, or a glowing neon pill.", false,
+            new String[]{"Liquid Glass", "Transparent", "Material", "Neon Glow"},
+            new int[]{STYLE_GLASS, STYLE_TRANSPARENT, STYLE_MATERIAL, STYLE_NEON}, STYLE_GLASS)
             .help("Liquid Glass blurs and bends what's behind the bar. Transparent drops the glass: the feed "
                     + "shows straight through, with only a light veil set by Opacity (0% for none). Material is a "
                     + "solid pill in your wallpaper's colors (Android 12+), or in the Tint color if one is set. "
-                    + "Transparent and Material skip the blur, so they're easier on the battery.");
+                    + "Neon Glow is a solid pill with a glowing colored edge, in the Tint color (purple if none); "
+                    + "Rim sets how bright it glows. All but Liquid Glass skip the blur, so they're easier on "
+                    + "the battery.");
+
+    /** Values of {@link #INDICATOR}. */
+    static final int INDICATOR_CAPSULE = 0, INDICATOR_DOT = 1, INDICATOR_LINE = 2;
+
+    static final ChoiceSetting INDICATOR = new ChoiceSetting("liquid_glass_indicator",
+            "Selection indicator", "A capsule behind the selected tab, or a dot or line under it.", false,
+            new String[]{"Capsule", "Dot", "Line"},
+            new int[]{INDICATOR_CAPSULE, INDICATOR_DOT, INDICATOR_LINE}, INDICATOR_CAPSULE)
+            .help("Capsule is iOS's grey pill behind the selected tab. Dot and Line sit under the selected "
+                    + "tab instead and stretch as they glide to another one. With Neon Glow they glow in the "
+                    + "neon color. Selection shade sets how strong they are.");
+
+    /** Neon Glow's color when no Tint is chosen. */
+    private static final int DEFAULT_NEON = 0xFFBF5AF2;
 
     static final IntSetting OPACITY = new IntSetting("liquid_glass_opacity",
             "Opacity", "How much of the bar is material rather than see-through glass.", false,
@@ -166,6 +182,8 @@ final class NavbarStyle {
     final boolean shrinkOnScroll;
     /** {@link #STYLE_GLASS}, {@link #STYLE_TRANSPARENT} or {@link #STYLE_MATERIAL}. */
     final int barStyle;
+    /** {@link #INDICATOR_CAPSULE}, {@link #INDICATOR_DOT} or {@link #INDICATOR_LINE}. */
+    final int indicator;
     /** Changes whenever any value does. */
     final int version;
 
@@ -211,11 +229,16 @@ final class NavbarStyle {
         shrinkOnScroll = b(LiquidGlassNavBarPatch.SHRINK_ON_SCROLL);
         Integer styleOverride = overrides != null ? overrides.get(BAR_STYLE.key) : null;
         int chosenStyle = styleOverride != null ? styleOverride : BAR_STYLE.get();
-        barStyle = chosenStyle == STYLE_TRANSPARENT || chosenStyle == STYLE_MATERIAL ? chosenStyle : STYLE_GLASS;
+        barStyle = chosenStyle >= STYLE_GLASS && chosenStyle <= STYLE_NEON ? chosenStyle : STYLE_GLASS;
+        Integer indicatorOverride = overrides != null ? overrides.get(INDICATOR.key) : null;
+        int chosenIndicator = indicatorOverride != null ? indicatorOverride : INDICATOR.get();
+        indicator = chosenIndicator >= INDICATOR_CAPSULE && chosenIndicator <= INDICATOR_LINE
+                ? chosenIndicator : INDICATOR_CAPSULE;
     }
 
-    boolean isGlass() {
-        return barStyle == STYLE_GLASS;
+    /** Neon Glow's color: the Tint, or purple without one. */
+    int neon() {
+        return tint != 0 ? tint : DEFAULT_NEON;
     }
 
     private int i(IntSetting setting) {
@@ -326,6 +349,9 @@ final class NavbarStyle {
         PRESETS.put("Material", preset(
                 "liquid_glass_bar_style", STYLE_MATERIAL, "liquid_glass_rim", 0,
                 "liquid_glass_shadow", 60, "liquid_glass_selection_shade", 150));
+        PRESETS.put("Neon Glow", preset(
+                "liquid_glass_bar_style", STYLE_NEON, "liquid_glass_indicator", INDICATOR_DOT,
+                "liquid_glass_rim", 130, "liquid_glass_shadow", 20));
     }
 
     private static java.util.Map<String, Integer> preset(Object... keysAndValues) {
