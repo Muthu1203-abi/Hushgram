@@ -348,6 +348,10 @@ final class LiquidGlassDrawable extends Drawable {
             // A solid pill: no backdrop recording, no blur, no shader.
             tintPaint.setColor(materialYouColor());
             canvas.drawRoundRect(pill, radius, radius, tintPaint);
+        } else if (style.barStyle == NavbarStyle.STYLE_NEON) {
+            drawNeon(canvas, radius);
+            drawGlow(canvas, radius);
+            return;
         } else {
             boolean glassDrawn = false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated()) {
@@ -363,6 +367,35 @@ final class LiquidGlassDrawable extends Drawable {
 
         drawGlow(canvas, radius);
         drawRim(canvas, radius);
+    }
+
+    /** Neon Glow's edge, outermost (widest, faintest) first, then the crisp core line. */
+    private static final float[] NEON_WIDTH_DP = {16f, 9f, 4.5f, 1.6f};
+    private static final float[] NEON_ALPHA = {0.05f, 0.11f, 0.26f, 1f};
+    private final Paint neonPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    /**
+     * Neon Glow: a solid pill (dark, or white in light mode so Instagram's black icons stay
+     * readable) with a glowing colored edge. The glow is stacked strokes rather than a blur mask
+     * filter, which isn't hardware accelerated everywhere; the parent doesn't clip children, so
+     * the outer glow spills past the bar. It brightens while the bar is pressed.
+     */
+    private void drawNeon(Canvas canvas, float radius) {
+        tintPaint.setColor(style.material(dark, dark ? 0xEB : 0xF5));
+        canvas.drawRoundRect(pill, radius, radius, tintPaint);
+
+        float strength = style.rim * (1f + 0.6f * Math.min(1f, Math.max(liquid, glow)));
+        if (strength <= 0f) return;
+        int neon = style.neon();
+        neonPaint.setStyle(Paint.Style.STROKE);
+        for (int i = 0; i < NEON_WIDTH_DP.length; i++) {
+            float a = NEON_ALPHA[i] * strength * (dark ? 1f : 0.8f);
+            int alpha = Math.max(0, Math.min(255, Math.round(255 * a)));
+            if (alpha == 0) continue;
+            neonPaint.setStrokeWidth(NEON_WIDTH_DP[i] * density);
+            neonPaint.setColor((neon & 0x00FFFFFF) | (alpha << 24));
+            canvas.drawRoundRect(pill, radius, radius, neonPaint);
+        }
     }
 
     private int materialYouCached;
