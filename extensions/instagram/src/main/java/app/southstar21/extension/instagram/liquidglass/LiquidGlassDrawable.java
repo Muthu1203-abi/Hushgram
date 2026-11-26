@@ -148,6 +148,8 @@ final class LiquidGlassDrawable extends Drawable {
     private RenderEffect blurEffect;
     private RenderEffect glassEffect;
     private String effectKey;
+    /** Reused each frame: the RenderNode copies its values. */
+    private final Outline clipOutline = new Outline();
 
 
     LiquidGlassDrawable(View host, float density, NavbarStyle.Source styleSource) {
@@ -334,19 +336,60 @@ final class LiquidGlassDrawable extends Drawable {
         float radius = cornerRadius();
         stepTint();
 
-        boolean glassDrawn = false;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated()) {
-            glassDrawn = drawBackdrop(canvas, radius);
-        }
-        if (!glassDrawn || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || style.refraction <= 0f) {
-            // The shader tints on its own; every other path needs a tint layer.
-            int alpha = glassDrawn ? Math.round(255 * Math.min(0.9f, 0.22f + tint)) : (dark ? 0xD9 : 0xD0);
-            tintPaint.setColor(materialColor(alpha));
+        if (style.barStyle == NavbarStyle.STYLE_TRANSPARENT) {
+            // No glass at all: what's behind shows as it is, under an optional light veil
+            // (30% of the Opacity setting, so 0% gives a fully clear bar).
+            int alpha = Math.round(255 * 0.3f * style.opacity);
+            if (alpha > 0) {
+                tintPaint.setColor(materialColor(alpha));
+                canvas.drawRoundRect(pill, radius, radius, tintPaint);
+            }
+        } else if (style.barStyle == NavbarStyle.STYLE_MATERIAL) {
+            // A solid pill: no backdrop recording, no blur, no shader.
+            tintPaint.setColor(materialYouColor());
             canvas.drawRoundRect(pill, radius, radius, tintPaint);
+        } else {
+            boolean glassDrawn = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated()) {
+                glassDrawn = drawBackdrop(canvas, radius);
+            }
+            if (!glassDrawn || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || style.refraction <= 0f) {
+                // The shader tints on its own; every other path needs a tint layer.
+                int alpha = glassDrawn ? Math.round(255 * Math.min(0.9f, 0.22f + tint)) : (dark ? 0xD9 : 0xD0);
+                tintPaint.setColor(materialColor(alpha));
+                canvas.drawRoundRect(pill, radius, radius, tintPaint);
+            }
         }
 
         drawGlow(canvas, radius);
         drawRim(canvas, radius);
+    }
+
+    private int materialYouCached;
+    private int materialYouVersion = -1;
+    private boolean materialYouDark;
+
+    /**
+     * The Material style's fill: the Tint color if one is set, otherwise Material You's surface
+     * colors from the wallpaper on Android 12+, otherwise the plain material. Looked up only when
+     * the style or dark mode changes.
+     */
+    private int materialYouColor() {
+        if (materialYouVersion == style.version && materialYouDark == dark) return materialYouCached;
+        int color = style.material(dark, 255);
+        if (style.tint == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                color = host.getContext().getColor(dark
+                        ? android.R.color.system_neutral2_800
+                        : android.R.color.system_accent2_50);
+            } catch (Throwable ignored) {
+                // Some ROMs strip the dynamic colors: keep the plain material.
+            }
+        }
+        materialYouCached = color;
+        materialYouVersion = style.version;
+        materialYouDark = dark;
+        return color;
     }
 
     /**
@@ -361,14 +404,26 @@ final class LiquidGlassDrawable extends Drawable {
         glowPaint.setColor(Color.argb(Math.round(255 * Math.min(1f, 0.08f * g)), 0xFF, 0xFF, 0xFF));
         canvas.drawRoundRect(pill, radius, radius, glowPaint);
 
+        // One unit gradient, created once and moved into place with a matrix each frame (a new
+        // gradient per frame while dragging made garbage for the GC). The paint's alpha fades it.
+        if (glowSpot == null) {
+            glowSpot = new android.graphics.RadialGradient(0f, 0f, 1f,
+                    new int[]{Color.WHITE, Color.WHITE, Color.argb(0, 0xFF, 0xFF, 0xFF)},
+                    new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
+        }
         float spot = pill.height() * 1.5f;
-        int c = Color.argb(Math.round(255 * Math.min(1f, 0.15f * g)), 0xFF, 0xFF, 0xFF);
         float x = Math.max(pill.left, Math.min(pill.right, glowX));
-        glowPaint.setShader(new android.graphics.RadialGradient(x, pill.centerY(), spot,
-                new int[]{c, c, Color.argb(0, 0xFF, 0xFF, 0xFF)}, new float[]{0f, 0.5f, 1f},
-                Shader.TileMode.CLAMP));
+        shaderMatrix.setScale(spot, spot);
+        shaderMatrix.postTranslate(x, pill.centerY());
+        glowSpot.setLocalMatrix(shaderMatrix);
+        glowPaint.setShader(glowSpot);
+        glowPaint.setColor(Color.WHITE);
+        glowPaint.setAlpha(Math.round(255 * Math.min(1f, 0.15f * g)));
         canvas.drawRoundRect(pill, radius, radius, glowPaint);
     }
+
+    private final android.graphics.Matrix shaderMatrix = new android.graphics.Matrix();
+    private android.graphics.RadialGradient glowSpot;
 
 
     /**
@@ -455,9 +510,8 @@ final class LiquidGlassDrawable extends Drawable {
 
         // Wrap in a node clipped to the pill outline: anti-aliased, unlike clipPath.
         clipped.setPosition(0, 0, Math.round(pill.width()), Math.round(pill.height()));
-        Outline outline = new Outline();
-        outline.setRoundRect(0, 0, Math.round(pill.width()), Math.round(pill.height()), radius);
-        clipped.setOutline(outline);
+        clipOutline.setRoundRect(0, 0, Math.round(pill.width()), Math.round(pill.height()), radius);
+        clipped.setOutline(clipOutline);
         clipped.setClipToOutline(true);
         RecordingCanvas cc = clipped.beginRecording();
         try {
@@ -526,6 +580,9 @@ final class LiquidGlassDrawable extends Drawable {
         return Math.max(0, Math.min(255, Math.round(alpha * style.rim)));
     }
     private final RectF rimRect = new RectF();
+    private LinearGradient edgeGlowShader;
+    private LinearGradient darkRimShader;
+    private float darkRimFor = -1f;
 
     /**
      * The edge as on iOS Instagram. Light mode: a crisp white line all around. Dark mode: a
@@ -533,19 +590,34 @@ final class LiquidGlassDrawable extends Drawable {
      * from the bottom edge.
      */
     private void drawRim(Canvas canvas, float radius) {
+        if (style.rim <= 0f) return;
         if (dark) {
+            // Unit gradients (0..1 tall), rebuilt only when the Rim setting changes and moved
+            // onto the pill with a matrix, so shrinking or dragging allocates nothing.
+            if (darkRimFor != style.rim || darkRimShader == null) {
+                darkRimFor = style.rim;
+                edgeGlowShader = new LinearGradient(0, 0, 0, 1,
+                        Color.argb(0, 0xFF, 0xFF, 0xFF), Color.argb(rimAlpha(0x1C), 0xFF, 0xFF, 0xFF),
+                        Shader.TileMode.CLAMP);
+                darkRimShader = new LinearGradient(0, 0, 0, 1,
+                        new int[]{Color.argb(rimAlpha(0x48), 0xFF, 0xFF, 0xFF),
+                                Color.argb(rimAlpha(0x0C), 0xFF, 0xFF, 0xFF),
+                                Color.argb(rimAlpha(0x66), 0xFF, 0xFF, 0xFF)},
+                        new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
+            }
             float glow = 5f * density;
-            edgeGlowPaint.setShader(new LinearGradient(0, pill.bottom - glow, 0, pill.bottom,
-                    Color.argb(0, 0xFF, 0xFF, 0xFF), Color.argb(rimAlpha(0x1C), 0xFF, 0xFF, 0xFF),
-                    Shader.TileMode.CLAMP));
+            shaderMatrix.setScale(1f, glow);
+            shaderMatrix.postTranslate(0f, pill.bottom - glow);
+            edgeGlowShader.setLocalMatrix(shaderMatrix);
+            edgeGlowPaint.setShader(edgeGlowShader);
             canvas.drawRoundRect(pill, radius, radius, edgeGlowPaint);
+
             rimPaint.setStrokeWidth(Math.max(1f, 0.6f * density));
             rimPaint.setColor(Color.WHITE);
-            rimPaint.setShader(new LinearGradient(0, pill.top, 0, pill.bottom,
-                    new int[]{Color.argb(rimAlpha(0x48), 0xFF, 0xFF, 0xFF),
-                            Color.argb(rimAlpha(0x0C), 0xFF, 0xFF, 0xFF),
-                            Color.argb(rimAlpha(0x66), 0xFF, 0xFF, 0xFF)},
-                    new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+            shaderMatrix.setScale(1f, Math.max(1f, pill.height()));
+            shaderMatrix.postTranslate(0f, pill.top);
+            darkRimShader.setLocalMatrix(shaderMatrix);
+            rimPaint.setShader(darkRimShader);
         } else {
             rimPaint.setStrokeWidth(Math.max(1f, 0.8f * density));
             rimPaint.setShader(null);
