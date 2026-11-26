@@ -120,7 +120,10 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
                     android.graphics.RectF pill = glass.getPill();
                     outline.setRoundRect(Math.round(pill.left), Math.round(pill.top),
                             Math.round(pill.right), Math.round(pill.bottom), glass.cornerRadius());
-                    outline.setAlpha(Math.min(1f, styleSource.get().shadow));
+                    NavbarStyle style = styleSource.get();
+                    // A see-through bar would show its own shadow through itself: none there.
+                    outline.setAlpha(style.barStyle == NavbarStyle.STYLE_TRANSPARENT
+                            ? 0f : Math.min(1f, style.shadow));
                 }
             });
             // Elevation (and the lens above it) is set from the Shadow setting in enforceGeometry().
@@ -315,7 +318,8 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
             appliedForWidth = -1;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 // 3dp at the default 50%; the lens stays just above the bar.
-                float elevation = 6f * density * style.shadow;
+                float elevation = style.barStyle == NavbarStyle.STYLE_TRANSPARENT
+                        ? 0f : 6f * density * style.shadow;
                 bar.setElevation(elevation);
                 lens.setElevation(elevation + 0.1f);
                 bar.invalidateOutline();
