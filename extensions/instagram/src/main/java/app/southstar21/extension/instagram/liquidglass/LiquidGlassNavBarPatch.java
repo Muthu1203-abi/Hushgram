@@ -85,7 +85,7 @@ public final class LiquidGlassNavBarPatch {
                     NavbarStyle.SHRUNK_SIZE.shownWhen(SHRINK_ON_SCROLL), BLUR_VIDEOS, HAPTICS))
             .customize("Customize navbar", "Glass, shape and selection, with a live preview.",
                     NavbarPreview::customizer,
-                    new SettingsGroup("Style", "Liquid Glass, Transparent or Material. The southstar21 style "
+                    new SettingsGroup("Style", "Liquid Glass, Transparent, Material or Neon Glow. The southstar21 style "
                             + "moves differently: the bar shrinks back and leans under your finger and the "
                             + "selection becomes a drop of glass.",
                             NavbarStyle.BAR_STYLE, SOUTHSTAR21_STYLE),
@@ -102,7 +102,7 @@ public final class LiquidGlassNavBarPatch {
                             NavbarStyle.PROFILE_BOTTOM_GAP),
                     new SettingsGroup("Reels", NavbarStyle.REEL_SEEK_BAR_POSITION),
                     new SettingsGroup("Selection", "Edge colors need Android 13+.",
-                            NavbarStyle.SELECTION_SHADE, NavbarStyle.SELECTION_WIDTH,
+                            NavbarStyle.INDICATOR, NavbarStyle.SELECTION_SHADE, NavbarStyle.SELECTION_WIDTH,
                             NavbarStyle.SELECTION_INSET, GLASSY_PILL, GLASS_WHILE_DRAGGING, EDGE_COLORS,
                             NavbarStyle.DROP_SIZE.shownWhen(SOUTHSTAR21_STYLE)))
             .demos(NavbarPreview::demo)
