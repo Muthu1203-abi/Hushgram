@@ -85,9 +85,10 @@ public final class LiquidGlassNavBarPatch {
                     NavbarStyle.SHRUNK_SIZE.shownWhen(SHRINK_ON_SCROLL), BLUR_VIDEOS, HAPTICS))
             .customize("Customize navbar", "Glass, shape and selection, with a live preview.",
                     NavbarPreview::customizer,
-                    new SettingsGroup("Style", "The southstar21 style moves differently: the bar shrinks back "
-                            + "and leans under your finger and the selection becomes a drop of glass.",
-                            SOUTHSTAR21_STYLE),
+                    new SettingsGroup("Style", "Liquid Glass, Transparent or Material. The southstar21 style "
+                            + "moves differently: the bar shrinks back and leans under your finger and the "
+                            + "selection becomes a drop of glass.",
+                            NavbarStyle.BAR_STYLE, SOUTHSTAR21_STYLE),
                     new SettingsGroup("Glass", "Refraction needs Android 13+, blur needs Android 12+.",
                             BLUR_RADIUS, REFRACTION, NavbarStyle.OPACITY, NavbarStyle.VIBRANCY,
                             NavbarStyle.EDGE_CLARITY, NavbarStyle.RIM, NavbarStyle.GLARE,
@@ -207,7 +208,9 @@ public final class LiquidGlassNavBarPatch {
      */
     public static boolean useSurfaceView(boolean original) {
         try {
-            if (original && SETTINGS.isActive() && BLUR_VIDEOS.get()) return false;
+            // isActive(), not SETTINGS.isActive(): with the bar switched off in HushGram, videos
+            // keep Instagram's cheaper SurfaceView player.
+            if (original && isActive() && BLUR_VIDEOS.get()) return false;
         } catch (Throwable t) {
             Log.e(TAG, "SurfaceView check failed", t);
         }
@@ -238,11 +241,37 @@ public final class LiquidGlassNavBarPatch {
                 }
                 @Override public void onActivityStopped(Activity activity) {}
                 @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
-                @Override public void onActivityDestroyed(Activity activity) {}
+                @Override public void onActivityDestroyed(Activity activity) {
+                    forgetBarsOf(activity);
+                }
             });
         } catch (Throwable t) {
             Log.e(TAG, "Failed to install liquid glass", t);
         }
+    }
+
+    /**
+     * Each controller holds its bar strongly, so the WeakHashMap alone would never let go of a
+     * bar (and with it the whole old activity) after a recreate or theme change.
+     */
+    private static void forgetBarsOf(Activity activity) {
+        try {
+            java.util.Iterator<View> bars = installed.keySet().iterator();
+            while (bars.hasNext()) {
+                View bar = bars.next();
+                if (bar == null || activityOf(bar.getContext()) == activity) bars.remove();
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to release liquid glass bars", t);
+        }
+    }
+
+    private static Activity activityOf(Context context) {
+        while (context instanceof android.content.ContextWrapper) {
+            if (context instanceof Activity) return (Activity) context;
+            context = ((android.content.ContextWrapper) context).getBaseContext();
+        }
+        return null;
     }
 
     private static boolean isMainActivity(Activity activity) {
