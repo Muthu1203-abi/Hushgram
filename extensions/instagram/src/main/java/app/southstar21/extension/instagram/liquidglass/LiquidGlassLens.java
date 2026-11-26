@@ -805,6 +805,13 @@ final class LiquidGlassLens extends View {
         updatePill();
         if (pill.isEmpty()) return;
         step();
+        int indicator = style().indicator;
+        if (indicator != NavbarStyle.INDICATOR_CAPSULE) {
+            // Dot and Line replace the capsule and the drop in both styles; they still glide,
+            // stretch and follow drags on the same springs.
+            drawDot(canvas, indicator == NavbarStyle.INDICATOR_LINE);
+            return;
+        }
         if (southstar21) {
             drawDrop(canvas);
             return;
@@ -846,8 +853,7 @@ final class LiquidGlassLens extends View {
                 drawGlassyCapsule(canvas, r, dark, restAlpha);
             } else {
                 // iOS Instagram: white 21% on dark, black 16% on light.
-                int a = shadeAlpha(dark, restAlpha);
-                fill.setColor(dark ? Color.argb(a, 0xFF, 0xFF, 0xFF) : Color.argb(a, 0, 0, 0));
+                fill.setColor(restFill(dark, restAlpha));
                 canvas.drawRoundRect(lens, r, r, fill);
             }
         }
@@ -926,8 +932,7 @@ final class LiquidGlassLens extends View {
             if (style().glassyPill) {
                 drawGlassyCapsule(canvas, r, dark, rest);
             } else {
-                int a = shadeAlpha(dark, rest);
-                fill.setColor(dark ? Color.argb(a, 0xFF, 0xFF, 0xFF) : Color.argb(a, 0, 0, 0));
+                fill.setColor(restFill(dark, rest));
                 canvas.drawRoundRect(lens, r, r, fill);
             }
         }
@@ -949,6 +954,63 @@ final class LiquidGlassLens extends View {
     private int shadeAlpha(boolean dark, float fade) {
         float a = (dark ? 0x36 : 0x29) * style().selectionShade * fade;
         return Math.max(0, Math.min(255, Math.round(a)));
+    }
+
+    /** The resting capsule's color: iOS grey, or a wash of the neon color with Neon Glow. */
+    private int restFill(boolean dark, float fade) {
+        int a = shadeAlpha(dark, fade);
+        if (style().barStyle == NavbarStyle.STYLE_NEON) {
+            return withAlpha(style().neon(), Math.min(255, Math.round(a * 1.6f)));
+        }
+        return dark ? Color.argb(a, 0xFF, 0xFF, 0xFF) : Color.argb(a, 0, 0, 0);
+    }
+
+    private static int withAlpha(int color, int alpha) {
+        return (color & 0x00FFFFFF) | (Math.max(0, Math.min(255, alpha)) << 24);
+    }
+
+    private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF halo = new RectF();
+
+    /**
+     * Dot or Line under the selected tab. It rides the same {@link #x} spring as the capsule, so
+     * it glides between tabs and follows drags; while moving it stretches into a short pill
+     * (the {@link #width} spring), and a press swells it a little. With Neon Glow it's neon
+     * colored with a soft halo, otherwise black, or white in dark mode.
+     */
+    private void drawDot(Canvas canvas, boolean line) {
+        NavbarStyle s = style();
+        float shade = Math.min(1f, s.selectionShade);
+        if (shade <= 0f) return;
+        float scale = glass.currentScale();
+        float p = clamp(press.value, 0f, 1f);
+        boolean dark = glass.isDark();
+        boolean neon = s.barStyle == NavbarStyle.STYLE_NEON;
+
+        float h = (line ? 3f : 5f) * density * scale * (1f + 0.3f * p);
+        float restW = line ? currentRestWidth() * 0.45f : h;
+        // The dot stretches much more than the line, which is already wide.
+        float stretch = 1f + (width.value - 1f) * (line ? 1f : 6f);
+        float w = Math.min(restW * stretch, pill.width());
+        float cx = clamp(x.value, pill.left + w / 2f, pill.right - w / 2f);
+        // In the lower part of the pill, clear of the icon (centered in the pill).
+        float cy = pill.bottom - pill.height() * 0.16f;
+        lens.set(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f);
+        float r = h / 2f;
+
+        int color = neon ? s.neon() : (dark ? Color.WHITE : Color.BLACK);
+        if (neon) {
+            // Two halo rings, faint and wide, then a little closer and brighter.
+            for (int i = 0; i < 2; i++) {
+                float grow = (i == 0 ? 5f : 2.5f) * density * scale;
+                float a = (i == 0 ? 0.12f : 0.3f) * shade * (1f + 0.5f * p);
+                halo.set(lens.left - grow, lens.top - grow, lens.right + grow, lens.bottom + grow);
+                dotPaint.setColor(withAlpha(color, Math.round(255 * a)));
+                canvas.drawRoundRect(halo, r + grow, r + grow, dotPaint);
+            }
+        }
+        dotPaint.setColor(withAlpha(color, Math.round(255 * shade)));
+        canvas.drawRoundRect(lens, r, r, dotPaint);
     }
 
     /** The customizable values for this bar right now. */
