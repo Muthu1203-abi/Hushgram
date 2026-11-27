@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-25T18:10:00",
-  "description": "## 0.0.22-4 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22. 202 patches for Instagram 457.0.0.55.73.\n\n* Continue through liked Reels works from the new Your activity > Likes screen, and has a switch under Reels settings.\n* With Run Reels behind the tab bar on, a reel's name, caption, buttons and seek bar stay above the Liquid Glass pill.\n* Adds Continue through liked Reels, Open developer options and Liquid Glass navigation bar.",
-  "download_url": "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-4/patches-0.0.22.mpp",
-  "signature_download_url": "",
-  "version": "0.0.22-4"
+    "created_at":  "2026-11-27T08:41:09",
+    "description":  "## 0.0.22-5 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22. 202 patches for Instagram 457.0.0.55.73.\n\n* HushGram settings use a Liquid Glass design in dark mode: page background, cards, category tiles, chips and header.\n* Liquid Glass navigation bar updates.\n* Fixes the settings build that two broken source files had stopped.",
+    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-5/patches-0.0.22.mpp",
+    "signature_download_url":  "",
+    "version":  "0.0.22-5"
 }
