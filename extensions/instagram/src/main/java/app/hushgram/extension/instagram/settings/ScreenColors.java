@@ -684,35 +684,6 @@ void paintSurface(View row, Preference preference, boolean first, boolean last) 
             )
     );
 }
- {
-        boolean overview = preference.getParent() instanceof PreferenceScreen;
-        if (flat) {
-            paintFlat(row, preference, overview);
-            return;
-        }
-        float top = dp(row, first ? CARD_RADIUS_DP : JOIN_RADIUS_DP);
-        float bottom = dp(row, last ? CARD_RADIUS_DP : JOIN_RADIUS_DP);
-        GradientDrawable surface = new GradientDrawable();
-        surface.setColor(card);
-        surface.setStroke(dp(row, 1), preference.isSelectable() ? interactionOutline(outline)
-                : ColorStateList.valueOf(outline));
-        surface.setCornerRadii(new float[]{top, top, top, top, bottom, bottom, bottom, bottom});
-        // Cards keep clear of both screen edges, so no stroke runs along one.
-        int side = dp(row, 18);
-        int above = first ? 6 : 1;
-        int below = last ? 6 : 1;
-        Drawable inset = new InsetDrawable(surface, side, dp(row, above), side, dp(row, below));
-        row.setBackground(preference.isSelectable()
-                ? new RippleDrawable(interactionRipple(heading), inset, null).mutate() : inset);
-        // Explicit padding after the inset background prevents its padding from moving the text.
-        int horizontal = overview ? 32 : 30;
-        int vertical = overview ? 6 : 10;
-        row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + above),
-                dp(row, horizontal), dp(row, vertical + below));
-        row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey())
-                || "hushgram_grid_toggle".equals(preference.getKey()) ? 48
-                : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 56 : 64));
-    }
 
     /** Instagram's rows reach from edge to edge, with its 16 at each side. */
     static final int FLAT_SIDE_DP = 16;
