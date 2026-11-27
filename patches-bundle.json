@@ -1,7 +1,7 @@
 {
-    "created_at":  "2026-11-27T09:12:53",
-    "description":  "## 0.0.22-6 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22, synced with SysAdminDoc/HushGram up to 634cb4994. For Instagram 457.0.0.55.73.\n\n* With Run Reels behind the tab bar on, every reel\u0027s caption and seek bar now sit in the same place above the Liquid Glass pill. Before, some reels kept the seek bar under the pill and others went far above it.\n* Brings in 87 upstream changes: chat theme tints and accent story rings, saves that resume after a drop and are dated by when the post went up, Select all in Your activity grids, HLG on HDR uploads, your own name and logo in the settings header, and more.\n* Your Liquid Glass navigation bar, Muthu12 header, developer options and liked Reels patches stay as they were.",
-    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-6/patches-0.0.22.mpp",
+    "created_at":  "2026-11-27T10:21:05",
+    "description":  "## 0.0.22-7 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22, synced with SysAdminDoc/HushGram up to 634cb4994. For Instagram 457.0.0.55.73.\n\n* New: Translate chat messages. Hold a message with text and tap Translate: Google Translate\u0027s pop-up opens over the chat, or Google Translate on the web into Tamil without the app. Switch in HushGram settings \u003e Messages.\n* New: Glass sheets. Comments, the share sheet and other sheets that slide up get the Liquid Glass look, with the page behind blurred on Android 12 and newer. Switch in Liquid Glass \u003e Behavior.\n* A chat\u0027s top bar now looks like glass even over a plain chat: a sheen, a light frost and a lit rim along its bottom.\n* Swiping to the next reel, its seek bar no longer shows under the pill for a moment before jumping above it.",
+    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-7/patches-0.0.22.mpp",
     "signature_download_url":  "",
-    "version":  "0.0.22-6"
+    "version":  "0.0.22-7"
 }
