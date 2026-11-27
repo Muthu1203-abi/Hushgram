@@ -1,7 +1,7 @@
 {
-    "created_at":  "2026-11-27T10:21:05",
-    "description":  "## 0.0.22-7 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22, synced with SysAdminDoc/HushGram up to 634cb4994. For Instagram 457.0.0.55.73.\n\n* New: Translate chat messages. Hold a message with text and tap Translate: Google Translate\u0027s pop-up opens over the chat, or Google Translate on the web into Tamil without the app. Switch in HushGram settings \u003e Messages.\n* New: Glass sheets. Comments, the share sheet and other sheets that slide up get the Liquid Glass look, with the page behind blurred on Android 12 and newer. Switch in Liquid Glass \u003e Behavior.\n* A chat\u0027s top bar now looks like glass even over a plain chat: a sheen, a light frost and a lit rim along its bottom.\n* Swiping to the next reel, its seek bar no longer shows under the pill for a moment before jumping above it.",
-    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-7/patches-0.0.22.mpp",
+    "created_at":  "2026-11-27T10:55:10",
+    "description":  "## 0.0.22-8 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22, synced with SysAdminDoc/HushGram up to 634cb4994. For Instagram 457.0.0.55.73.\n\n* Full glass chat top bar: a glass ring round the chat\u0027s avatar, and the name, status and icons turn white over a dark, colourful or photo chat theme. Switches under HushGram settings \u003e Messages \u003e Glass top bar in chats.\n* With white text, the chat\u0027s round buttons take clearer glass with a bright rim.\n* Also in this build: Translate chat messages, Glass sheets, the chat top bar\u0027s sheen, frost and lit rim, and the Reels seek bar fix.",
+    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-8/patches-0.0.22.mpp",
     "signature_download_url":  "",
-    "version":  "0.0.22-7"
+    "version":  "0.0.22-8"
 }
