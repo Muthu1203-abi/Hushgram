@@ -118,8 +118,8 @@ public final class GlassChat {
     static final int RIM_FAINT_DARK = 0x14ffffff;
     static final int RIM_BACK_DARK = 0x59ffffff;
     static final int RIM_LIT_LIGHT = 0xffffffff;
-    static final int RIM_FAINT_LIGHT = 0x1a000000;
-    static final int RIM_BACK_LIGHT = 0x29000000;
+    static final int RIM_FAINT_LIGHT = 0x2e000000;
+    static final int RIM_BACK_LIGHT = 0x38000000;
     /** The soft shadow under light glass, which has little to stand out against, as the tab bar's has. */
     static final int SHADE_LIGHT = 0x1f000000;
 

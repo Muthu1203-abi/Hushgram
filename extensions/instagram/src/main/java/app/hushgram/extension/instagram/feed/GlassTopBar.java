@@ -86,6 +86,17 @@ public final class GlassTopBar {
     /** The hairline along the bottom of a dark bar, and of a light one. */
     static final int HAIRLINE_DARK = 0x1fffffff;
     static final int HAIRLINE_LIGHT = 0x1f000000;
+    /**
+     * A chat header's stronger glass (Muthu build): a frost laid over the tint so the glass shows even over a plain
+     * white or black chat, a cool gray on a light screen and a white wash on a dark one, and the rim along its
+     * bottom, a line of light over the hairline.
+     */
+    static final int CHAT_FROST_LIGHT = 0x1a8a94a6;
+    static final int CHAT_FROST_DARK = 0x14ffffff;
+    static final int CHAT_RIM_LIGHT = 0x2e000000;
+    static final int CHAT_RIM_DARK = 0x33ffffff;
+    static final int CHAT_HIGHLIGHT_LIGHT = 0xccffffff;
+    static final int CHAT_HIGHLIGHT_DARK = 0x26ffffff;
     /** How deep under the header a view as wide as it is has its background taken off. */
     private static final int CLEAR_DEPTH = 3;
     /** How far the strip behind the status bar fades out below it, with no edge or hairline, in dp (#450). */
@@ -142,6 +153,7 @@ public final class GlassTopBar {
         try {
             if (header == null || !on.getAsBoolean() || !GLAZED.add(header)) return;
             Glass glass = new Glass(header, on, FamilyNames.GLASS_CHAT, 0, false, Settings.GLASS_CHAT_TOP_BAR_OPACITY, false);
+            glass.strong = true;
             // Below Android 12 there's no blur, so messages under the header would only be hidden.
             if (messages != 0 && list != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 glass.chat = new ChatReach(messages, list);
@@ -508,6 +520,12 @@ public final class GlassTopBar {
         @Nullable private final GlassReach reach;
         /** Runs a chat's messages on under its header and behind the status bar (#684). Null elsewhere. */
         @Nullable ChatReach chat;
+        /**
+         * A chat header's stronger glass: the sheen with or without the glass tab bar (the Liquid Glass bar takes
+         * its place in this build, so it was never on and the header showed a flat tint), a frost over the tint and
+         * a lit rim along the bottom.
+         */
+        boolean strong;
         /** Whether the last frame wasn't drawn because the chat's reach had just moved something (#757). */
         private boolean heldBack;
         /** The view holding a chat's messages while they run on under the glass, with its soft edge on it. */
@@ -1169,6 +1187,15 @@ public final class GlassTopBar {
                 keepSheen(GlassTabBar.isDark(base), area.top, sheenTo);
                 canvas.drawRect(area.left, area.top, area.right, sheenTo, sheen);
             }
+            if (glass.strong && !fades) {
+                // The lit rim: a line of light just over a darker hairline along the bottom, as on the pill's edge.
+                boolean dark = GlassTabBar.isDark(base);
+                paint.setColor(dark ? CHAT_HIGHLIGHT_DARK : CHAT_HIGHLIGHT_LIGHT);
+                canvas.drawRect(area.left, area.bottom - 2 * hairline, area.right, area.bottom - hairline, paint);
+                paint.setColor(dark ? CHAT_RIM_DARK : CHAT_RIM_LIGHT);
+                canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
+                return;
+            }
             if (!glass.lined || fades) return;
             paint.setColor(hairline(base));
             canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
@@ -1184,6 +1211,11 @@ public final class GlassTopBar {
             }
             paint.setColor(GlassTabBar.tint(base, blurred, glass.tintScale()));
             canvas.drawRect(area, paint);
+            if (glass.strong) {
+                paint.setColor(GlassTabBar.isDark(base) ? CHAT_FROST_DARK : CHAT_FROST_LIGHT);
+                canvas.drawRect(area, paint);
+                likeTabBar = true;
+            }
             sheened = likeTabBar;
             if (likeTabBar && withSheen) {
                 keepSheen(GlassTabBar.isDark(base), area.top, area.bottom);
