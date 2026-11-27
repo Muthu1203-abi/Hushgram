@@ -206,6 +206,7 @@ public final class FamilyNames {
     public static final String CHAT_MEDIA_WALK = "Swipe through a chat's photos and posts";
     public static final String CHAT_HISTORY = "Chat history tools";
     public static final String CHAT_BUTTON_LINKS = "Copy links from chat buttons";
+    public static final String TRANSLATE_MESSAGES = "Translate chat messages";
     public static final String PREVIEW_CHATS = "Preview chats";
     public static final String ASK_BEFORE_CALL = "Ask before a call";
     public static final String KINDNESS_REMINDER = "Hide the Community Standards reminder";

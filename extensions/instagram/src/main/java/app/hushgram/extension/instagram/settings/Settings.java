@@ -1294,6 +1294,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting COPY_CHAT_BUTTON_LINKS = new BooleanSetting("hushgram_copy_chat_button_links", FALSE);
 
     /**
+     * A held chat message with text offers Translate, which opens Google Translate's pop-up over the chat,
+     * or Google Translate on the web into Tamil without the app
+     * ({@link app.hushgram.extension.instagram.direct.MessageTranslate}). Read each time a message is held.
+     * On to start, since the patch is only in a build that asked for it.
+     */
+    public static final BooleanSetting TRANSLATE_MESSAGES = new BooleanSetting("hushgram_translate_messages", TRUE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */

@@ -225,6 +225,11 @@ final class MessagesCategory {
                         L10n.t("Hold a message with link buttons, like the ones automated accounts send, and tap Copy "
                                 + "link to copy where a button goes without opening it. With several buttons you pick one.")));
             }
+            if (build.contains(PatchFamily.TRANSLATE_MESSAGES)) {
+                messages.addPreference(toggle(context, Settings.TRANSLATE_MESSAGES, L10n.t("Translate chat messages"),
+                        L10n.t("Hold a message with text and tap Translate. Google Translate's pop-up opens over the chat, "
+                                + "or, without the Translate app, Google Translate on the web translates it into Tamil.")));
+            }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),
                         L10n.t("Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. "

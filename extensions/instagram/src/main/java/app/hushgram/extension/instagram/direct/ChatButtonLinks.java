@@ -159,7 +159,8 @@ public final class ChatButtonLinks {
      */
     @Nullable
     public static List<?> rows(@Nullable List<?> rows, Object message) {
-        return rows(rows, message, PATCHED, ChatButtonLinks::switchedOn);
+        // The Translate chat messages patch adds its row through this same hook.
+        return MessageTranslate.rows(rows(rows, message, PATCHED, ChatButtonLinks::switchedOn), message);
     }
 
     @Nullable
@@ -190,6 +191,7 @@ public final class ChatButtonLinks {
      * caller returns at once. Never throws.
      */
     public static boolean picked(@Nullable Activity activity, Object action, @Nullable String payload) {
+        if (MessageTranslate.picked(activity, payload)) return true;
         return picked(activity, payload, CLIPBOARD);
     }
 
