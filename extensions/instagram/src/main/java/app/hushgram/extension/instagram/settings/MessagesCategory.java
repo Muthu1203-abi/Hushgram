@@ -285,6 +285,11 @@ final class MessagesCategory {
                                 + "The round glass buttons and the glass message bar stay.")));
                 messages.addPreference(chatGlassTintRow(context, Settings.GLASS_CHAT_TOP_BAR_OPACITY,
                         L10n.t("Top bar tint in chats")));
+                messages.addPreference(toggle(context, Settings.GLASS_CHAT_AVATAR_RING, L10n.t("Glass ring on the chat's avatar"),
+                        L10n.t("Puts a ring of glass round the profile picture in a chat's top bar.")));
+                messages.addPreference(toggle(context, Settings.GLASS_CHAT_AUTO_WHITE_TEXT, L10n.t("White text over dark chat themes"),
+                        L10n.t("The name, status and icons in a chat's top bar turn white over a dark, colourful or photo theme, "
+                                + "so they read on the glass. Over a light chat they keep Instagram's colour.")));
                 messages.addPreference(chatGlassTintRow(context, Settings.GLASS_CHAT_BOX_OPACITY,
                         L10n.t("Message bar tint")));
                 messages.addPreference(toggle(context, Settings.GLASS_CHAT_BUTTONS, L10n.t("Glass buttons in chats"),

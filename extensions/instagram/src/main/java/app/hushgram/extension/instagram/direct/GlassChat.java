@@ -106,7 +106,7 @@ public final class GlassChat {
      * The disc's glass on a dark screen and on a light one (#537, #542), the liquid tab bar's look: a light fill
      * over the header's blur, frosted white on a light screen, and a sheen down from its top.
      */
-    static final int FILL_DARK = 0x1fffffff;
+    static final int FILL_DARK = 0x33ffffff;
     static final int FILL_LIGHT = 0x8cffffff;
     static final int SHEEN_DARK = 0x2effffff;
     static final int SHEEN_LIGHT = 0x73ffffff;
@@ -436,13 +436,17 @@ public final class GlassChat {
             GlassTopBar.glazeBox(box, id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
                     Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
         }
+        // The avatar's glass ring and white text over a dark chat, with the top bar's glass (Muthu build).
+        ChatHeaderLook.apply(activity, container, container.findViewById(id(activity, BACK)),
+                container.findViewById(id(activity, BUTTONS)), topBarOn());
         if (!Settings.GLASS_CHAT_BUTTONS.get()) {
             // A plain blur, Instagram's own look, with no glass behind the buttons (#684).
             takeDiscsOff();
             return;
         }
+        // White text over a dark chat takes the clear glass of a dark screen, or white icons sat on white discs.
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
+                == Configuration.UI_MODE_NIGHT_YES || ChatHeaderLook.white();
         float density = container.getResources().getDisplayMetrics().density;
         View left = container.findViewById(id(activity, BACK));
         if (left != null) disc(left, night, density);
@@ -472,6 +476,7 @@ public final class GlassChat {
     /** Takes every disc off and gives back the backgrounds under them, and forgets the header. */
     static void restore() {
         takeDiscsOff();
+        ChatHeaderLook.restore();
         header = new WeakReference<>(null);
         messageBox = new WeakReference<>(null);
         hiddenPill = new WeakReference<>(null);
