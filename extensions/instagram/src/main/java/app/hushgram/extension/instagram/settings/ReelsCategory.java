@@ -270,8 +270,10 @@ final class ReelsCategory {
                     L10n.t("Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While "
                             + "Pinch to zoom is on, two fingers zoom instead.")));
             reels.add(toggle(context, Settings.HIDE_CLEAR_MODE_EXIT_BUTTON, L10n.t("Hide the exit button in clear mode"),
-                    L10n.t("Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. "
-                            + "The button stays while Pinch to zoom is on.")));
+                    L10n.t("Takes away the round button a reel shows in clear mode. Leave clear mode from the reel's "
+                            + "menu, or with a pinch when Pinch for clear mode is on.")));
+            // In clear mode a tap where the hidden Share button is still shares the reel; this widens that spot.
+            reels.add(HushgramPreferenceFragment.clearModeShareAreaRow(context));
         }
         if (build.contains(PatchFamily.KEEP_REELS_TOP_BAR)) {
             reels.add(toggle(context, Settings.KEEP_REELS_TOP_BAR, L10n.t("Keep the Reels top bar"),

@@ -137,9 +137,12 @@ public final class ReelPinchClearMode {
         }
     }
 
-    /** Whether the exit button is hidden: both switches on, and no zoom taking the pinch. */
+    /**
+     * Whether the exit button is hidden: its switch on (Muthu build: with or without Pinch for clear mode, and
+     * whatever Pinch to zoom does). Clear mode is then left from the reel's menu, or by a pinch where that's on.
+     */
     static boolean hidden() {
-        return on() && Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.get() && !zoomTakesPinch();
+        return Utils.settingsReady() && Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.get();
     }
 
     /** What the diagnostic report counts each time a second finger keeps the list out. */
