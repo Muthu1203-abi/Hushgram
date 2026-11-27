@@ -4,6 +4,7 @@ import android.os.SystemClock;
 import android.view.View;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.reels.ReelSeekRoom;
 
 /**
  * Keeps a reel's author, caption, buttons and seek bar above the Liquid Glass pill while Reels run
@@ -18,6 +19,8 @@ import app.hushgram.extension.instagram.misc.GlassTabBar;
  */
 final class ReelsLift {
     private static final long LOOK_MS = 250;
+    /** How many levels under a lifted band are looked at for a view Litho put back down. */
+    private static final int PUT_BACK_DEPTH = 6;
     private static final String PACKAGE = "com.instagram.android";
 
     private final float density;
@@ -62,17 +65,52 @@ final class ReelsLift {
             View band = entry.getKey();
             if (band == null || !band.isAttachedToWindow() || band.getVisibility() != View.VISIBLE) continue;
             float current = band.getTranslationY();
+            Float ours = lifted.get(band);
+            // A translation someone else set (an animation of Instagram's) is left alone. The seek bar room's
+            // lift out of the navigation bar is taken over instead: left alone, it kept the seek bar row under
+            // the pill on some reels while their caption went above it. The seek bar room lets go of a lift it
+            // finds rewritten.
+            if (ours == null && current != 0f && !ReelSeekRoom.holdsUp(band)) continue;
             band.getLocationInWindow(at);
             // Where the band's bottom sits without any lift: getLocationInWindow counts the translation.
             float laidOutBottom = at[1] - current + band.getHeight();
-            float by = Math.max(0f, laidOutBottom - (pillTopInWindow - gap));
+            // A band whose content is scrolled up (the seek bar room raises the caption that way) already shows
+            // that much higher, so it needs that much less. Counted twice, such a reel went far above the pill.
+            float by = Math.max(0f, laidOutBottom - Math.max(0, band.getScrollY()) - (pillTopInWindow - gap));
             if (Boolean.TRUE.equals(entry.getValue())) by = Math.max(0f, by + seekExtra);
             float want = -Math.round(by);
-            Float ours = lifted.get(band);
-            // A translation someone else set (an animation of Instagram's) is left alone.
-            if (ours == null && current != 0f) continue;
             if (current != want) band.setTranslationY(want);
             lifted.put(band, want);
+            keepUnderTheLift(band);
+        }
+    }
+
+    /**
+     * Puts back at 0 each view under [band] that Litho left translated against the band's own lift. Litho
+     * ends an animation of one of its views (after a sheet over the reel closes, or the window grows back from
+     * picture in picture) by putting it where its layout says, counting the translations of the views it's in,
+     * so a child ends up pushed back down by the band's lift, on top of the pill. Such a child's translation and
+     * those between it and [band] add up to the opposite of the band's. Anything else is left as it is.
+     */
+    private static void keepUnderTheLift(View band) {
+        float lift = band.getTranslationY();
+        if (lift != 0f && band instanceof android.view.ViewGroup) {
+            putBackUnder((android.view.ViewGroup) band, lift, PUT_BACK_DEPTH);
+        }
+    }
+
+    private static void putBackUnder(android.view.ViewGroup group, float above, int depth) {
+        if (depth <= 0) return;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            float own = child.getTranslationY();
+            if (own != 0f && own + above == 0f) {
+                child.setTranslationY(0f);
+                own = 0f;
+            }
+            if (child instanceof android.view.ViewGroup) {
+                putBackUnder((android.view.ViewGroup) child, above + own, depth - 1);
+            }
         }
     }
 
