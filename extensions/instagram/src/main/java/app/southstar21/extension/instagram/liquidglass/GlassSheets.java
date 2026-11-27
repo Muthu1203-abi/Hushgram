@@ -1,37 +1,49 @@
 package app.southstar21.extension.instagram.liquidglass;
 
 import android.app.Activity;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
-import android.graphics.RenderEffect;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
  * Gives Instagram's bottom sheets (comments, the share sheet, a post's menu and the other menus that slide
- * up) a Liquid Glass background: a frosted, see-through surface with rounded top corners and a light rim,
- * dark or light with the app. On Android 12 and newer the screens behind an open sheet are blurred too, so
- * the sheet reads as glass over the page rather than a pane over a dimmed one.
+ * up) a Liquid Glass look: the sheet is frosted glass with the page behind it, the reel playing under a share
+ * sheet for one, blurred inside it ({@link SheetGlass}), while the page outside the sheet stays sharp under a
+ * dimmer lightened to {@link #DIMMER_KEPT} of Instagram's, so the reel still shows. Inside the sheet, text boxes
+ * (Search, Write a message) become glass pills, every profile picture wears a glass ring, and a Send button
+ * turns glossy purple glass.
  *
- * <p>Instagram puts every bottom sheet in one holder over the screens ({@link #HOLDER}). On each layout of
- * the window the holder's sheets are looked at: the first wide view with a background, a few levels in, is
- * the sheet's surface and wears the glass, and wide views under it painted one solid color are cleared so
- * the glass shows through. Each view's own background is kept and given back when the sheet closes, when
- * the switch goes off, or when anything goes wrong. Nothing in Instagram's code changes.
+ * <p>Instagram puts every bottom sheet in one holder over the screens ({@link #HOLDER}). On each layout of the
+ * window the holder's sheets are looked at: the first wide view with a background, a few levels in, is the
+ * sheet's surface and wears the glass, and wide views under it painted one solid color are cleared so the glass
+ * shows through. Before each frame while a sheet is up the glass records what's behind it again, and the dimmer,
+ * which Instagram fades by its alpha with no layout, is lightened again. Each view's own background, foreground,
+ * text color and alpha are kept and given back when the sheet closes, when the switch goes off, or when anything
+ * goes wrong. Nothing in Instagram's code changes.
  */
-final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
+final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener, ViewTreeObserver.OnPreDrawListener {
     private static final String TAG = "GlassSheets";
     private static final String PACKAGE = "com.instagram.android";
     /** Where Instagram puts a bottom sheet over the screens. */
@@ -41,26 +53,37 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
 
     /** How many levels into a sheet its surface and solid layers are looked for. */
     private static final int DEPTH = 4;
+    /** How deep into a sheet its boxes, pictures and Send button are looked for. */
+    private static final int CONTENT_DEPTH = 24;
     /** A view this share of the holder's width or wider is part of the sheet's surface, not a row in it. */
     private static final float WIDE = 0.9f;
-    private static final float CORNER_DP = 22f;
-    private static final float BLUR_DP = 18f;
-
-    /** Glass colors, top and bottom of the sheet, and the rim, for dark and light. */
-    private static final int DARK_TOP = 0xE62A3044, DARK_BOTTOM = 0xEB141926, DARK_RIM = 0x40FFFFFF;
-    private static final int LIGHT_TOP = 0xE6FFFFFF, LIGHT_BOTTOM = 0xEBF1F3F8, LIGHT_RIM = 0x1F000000;
+    /** The share of Instagram's dimmer that's kept, so the page behind the sheet still shows. */
+    static final float DIMMER_KEPT = 0.3f;
+    /** A profile picture's size, in dp, to wear a ring. */
+    private static final float PICTURE_MIN_DP = 40f, PICTURE_MAX_DP = 110f;
+    /** A box's background, or a button's click, is looked for this many parents up. */
+    private static final int REACH = 2;
+    /** Words a Send button carries, compared in lower case. */
+    private static final String[] SEND = {"send", "send separately", "அனுப்பு"};
 
     private static final Map<Activity, GlassSheets> WATCHING = new WeakHashMap<>();
 
     private final WeakReference<Activity> activity;
     private final int holderId, dimmerId;
     private final float density;
-    /** Each view this changed, with the background it had. */
+    /** Each view this changed the background of, with the background it had. */
     private final WeakHashMap<View, Drawable> before = new WeakHashMap<>();
-    /** The glass this gave each surface, to tell when Instagram has put another background on. */
+    /** What this put on each view, to tell when Instagram has put another background on. */
     private final WeakHashMap<View, Drawable> worn = new WeakHashMap<>();
-    /** The screens this blurred behind an open sheet. */
-    private final WeakHashMap<View, Boolean> blurred = new WeakHashMap<>();
+    /** The sheets' glass, refreshed before each frame. */
+    private final WeakHashMap<View, SheetGlass> glasses = new WeakHashMap<>();
+    /** Each picture given a ring, with the foreground it had. */
+    private final WeakHashMap<View, Drawable> ringed = new WeakHashMap<>();
+    /** Each Send text made white, with the colors it had. */
+    private final WeakHashMap<TextView, ColorStateList> sendTexts = new WeakHashMap<>();
+    /** The dimmer, with the alpha this last set on it. */
+    private final WeakHashMap<View, Float> dimmed = new WeakHashMap<>();
+    private WeakReference<View> dimmer = new WeakReference<>(null);
     private WeakReference<ViewGroup> holder = new WeakReference<>(null);
 
     private GlassSheets(Activity activity) {
@@ -86,7 +109,9 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
             GlassSheets sheets = new GlassSheets(activity);
             if (sheets.holderId == 0) return;
             WATCHING.put(activity, sheets);
-            activity.getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(sheets);
+            ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
+            observer.addOnGlobalLayoutListener(sheets);
+            observer.addOnPreDrawListener(sheets);
         } catch (Throwable t) {
             Log.e(TAG, "Could not watch for sheets", t);
         }
@@ -98,10 +123,27 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
             GlassSheets sheets = WATCHING.remove(activity);
             if (sheets == null) return;
             sheets.restoreAll();
-            activity.getWindow().getDecorView().getViewTreeObserver().removeOnGlobalLayoutListener(sheets);
+            ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
+            observer.removeOnGlobalLayoutListener(sheets);
+            observer.removeOnPreDrawListener(sheets);
         } catch (Throwable t) {
             Log.e(TAG, "Could not stop watching for sheets", t);
         }
+    }
+
+    @Override
+    public boolean onPreDraw() {
+        try {
+            if (glasses.isEmpty()) return true;
+            View shade = dimmer.get();
+            if (shade != null && shade.isAttachedToWindow()) lighten(shade);
+            for (SheetGlass glass : new ArrayList<>(glasses.values())) {
+                if (glass != null) glass.refresh();
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Sheet glass failed to refresh", t);
+        }
+        return true;
     }
 
     @Override
@@ -114,23 +156,36 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
                 return;
             }
             ViewGroup sheets = holder(owner);
-            List<View> open = new ArrayList<>();
+            boolean up = false;
             if (sheets != null) {
+                boolean dark = (sheets.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                        == Configuration.UI_MODE_NIGHT_YES;
                 for (int i = 0; i < sheets.getChildCount(); i++) {
                     View sheet = sheets.getChildAt(i);
-                    if (sheet.getId() == dimmerId || sheet.getVisibility() != View.VISIBLE) continue;
+                    if (sheet.getId() == dimmerId) {
+                        dimmer = new WeakReference<>(sheet);
+                        continue;
+                    }
+                    if (sheet.getVisibility() != View.VISIBLE) continue;
                     View surface = surface(sheet, sheets.getWidth());
                     if (surface == null) continue;
-                    open.add(surface);
-                    wear(surface);
+                    up = true;
+                    wear(surface, sheets, dark);
                     clearSolids(surface, surface.getWidth(), DEPTH);
+                    dressContent(surface, 0);
                 }
             }
-            // Views of sheets no longer up get their own backgrounds back.
+            // Views of sheets no longer up get back what they had.
             for (View view : new ArrayList<>(before.keySet())) {
-                if (view != null && !view.isAttachedToWindow()) restore(view);
+                if (view != null && !view.isAttachedToWindow()) restoreBackground(view);
             }
-            blurBehind(sheets, !open.isEmpty());
+            for (View view : new ArrayList<>(ringed.keySet())) {
+                if (view != null && !view.isAttachedToWindow()) ringed.remove(view);
+            }
+            for (View view : new ArrayList<>(glasses.keySet())) {
+                if (view == null || !view.isAttachedToWindow()) glasses.remove(view);
+            }
+            if (!up) undim();
         } catch (Throwable t) {
             Log.e(TAG, "Glass sheets failed, giving the sheets back", t);
             restoreAll();
@@ -146,6 +201,8 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
         return group;
     }
 
+    // ------------------------------------------------------------------ the sheet
+
     /** The sheet's surface: [sheet] or the first view under it, a few levels in, that is wide and has a background. */
     private View surface(View sheet, int holderWidth) {
         if (holderWidth <= 0) return null;
@@ -156,7 +213,7 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
             for (View view : level) {
                 if (view.getVisibility() != View.VISIBLE) continue;
                 boolean wide = view.getWidth() >= holderWidth * WIDE;
-                if (wide && (view.getBackground() != null || worn.containsKey(view))) return view;
+                if (wide && (view.getBackground() != null || glasses.containsKey(view))) return view;
                 if (view instanceof ViewGroup) {
                     ViewGroup group = (ViewGroup) view;
                     for (int i = 0; i < group.getChildCount(); i++) next.add(group.getChildAt(i));
@@ -167,14 +224,26 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
         return null;
     }
 
-    /** Puts the glass on [surface], keeping its own background, unless it already wears this glass. */
-    private void wear(View surface) {
-        Drawable glass = worn.get(surface);
-        if (glass != null && surface.getBackground() == glass) return;
-        if (!before.containsKey(surface) || glass != null) before.put(surface, surface.getBackground());
-        glass = glass(surface);
-        worn.put(surface, glass);
-        surface.setBackground(glass);
+    /** Puts the sheet's glass on [surface], keeping its own background, unless it already wears it. */
+    private void wear(View surface, ViewGroup sheets, boolean dark) {
+        SheetGlass glass = glasses.get(surface);
+        if (glass == null) {
+            glass = new SheetGlass(surface, sheets, dark, density);
+            glasses.put(surface, glass);
+        } else if (glass.dark != dark) {
+            glass.dark = dark;
+            glass.invalidateSelf();
+        }
+        put(surface, glass);
+    }
+
+    /** Sets [drawable] as [view]'s background, keeping the background Instagram gave it last. */
+    private void put(View view, Drawable drawable) {
+        Drawable now = view.getBackground();
+        if (now == drawable) return;
+        before.put(view, now);
+        worn.put(view, drawable);
+        view.setBackground(drawable);
     }
 
     /** Clears wide views under [view] painted one opaque color, so the glass shows through them. */
@@ -188,61 +257,241 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener {
             if (background instanceof ColorDrawable && ((ColorDrawable) background).getAlpha() == 255
                     && child.getWidth() >= width * WIDE) {
                 if (!before.containsKey(child)) before.put(child, background);
+                worn.remove(child);
                 child.setBackground(null);
             }
             clearSolids(child, width, depth - 1);
         }
     }
 
-    private Drawable glass(View surface) {
-        boolean dark = (surface.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
-        GradientDrawable glass = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                dark ? new int[]{DARK_TOP, DARK_BOTTOM} : new int[]{LIGHT_TOP, LIGHT_BOTTOM});
-        float corner = CORNER_DP * density;
-        glass.setCornerRadii(new float[]{corner, corner, corner, corner, 0, 0, 0, 0});
-        glass.setStroke(Math.max(1, Math.round(density)), dark ? DARK_RIM : LIGHT_RIM);
-        return glass;
+    /**
+     * Lightens Instagram's dimmer to {@link #DIMMER_KEPT} of the alpha Instagram has set on it now. Instagram fades
+     * it in and out by its alpha, so an alpha this didn't set is Instagram's and is scaled again.
+     */
+    private void lighten(View shade) {
+        Float ours = dimmed.get(shade);
+        float alpha = shade.getAlpha();
+        if (ours != null && Math.abs(alpha - ours) < 0.005f) return;
+        float want = alpha * DIMMER_KEPT;
+        shade.setAlpha(want);
+        dimmed.put(shade, want);
     }
 
-    /** Blurs the screens beside [sheets] while a sheet is up (Android 12 and newer), and takes the blur off after. */
-    private void blurBehind(ViewGroup sheets, boolean up) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
-        if (!up || sheets == null || !(sheets.getParent() instanceof ViewGroup)) {
-            unblur();
+    /** Gives the dimmer back the alpha Instagram had set, where it still has this one's. */
+    private void undim() {
+        for (Map.Entry<View, Float> entry : new ArrayList<>(dimmed.entrySet())) {
+            View shade = entry.getKey();
+            Float ours = entry.getValue();
+            if (shade != null && ours != null && Math.abs(shade.getAlpha() - ours) < 0.005f) {
+                shade.setAlpha(Math.min(1f, ours / DIMMER_KEPT));
+            }
+        }
+        dimmed.clear();
+        dimmer = new WeakReference<>(null);
+    }
+
+    // ------------------------------------------------------------------ inside the sheet
+
+    /** Glass pills for text boxes, rings for profile pictures and purple glass for a Send button, under [view]. */
+    private void dressContent(View view, int depth) {
+        if (depth > CONTENT_DEPTH || view.getVisibility() != View.VISIBLE) return;
+        if (view instanceof EditText) {
+            pill((EditText) view);
             return;
         }
-        ViewGroup parent = (ViewGroup) sheets.getParent();
-        float radius = BLUR_DP * density;
-        for (int i = 0; i < parent.getChildCount(); i++) {
-            View screen = parent.getChildAt(i);
-            if (screen == sheets || blurred.containsKey(screen) || screen.getVisibility() != View.VISIBLE) continue;
-            screen.setRenderEffect(RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP));
-            blurred.put(screen, Boolean.TRUE);
+        if (view instanceof TextView) {
+            sendButton((TextView) view);
+            return;
         }
+        if (looksLikePicture(view)) ring(view);
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) dressContent(group.getChildAt(i), depth + 1);
     }
 
-    private void unblur() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || blurred.isEmpty()) return;
-        for (View screen : new ArrayList<>(blurred.keySet())) {
-            if (screen != null) screen.setRenderEffect(null);
+    /** A glass pill behind [field]: on the nearest box round it with a background, or on the field itself. */
+    private void pill(EditText field) {
+        View box = field;
+        View at = field;
+        for (int up = 0; up <= REACH && at != null; up++) {
+            if (at.getBackground() != null) {
+                box = at;
+                break;
+            }
+            at = at.getParent() instanceof View ? (View) at.getParent() : null;
         }
-        blurred.clear();
+        if (glasses.containsKey(box) || box.getBackground() instanceof GlassPill) return;
+        put(box, new GlassPill(density, false));
     }
 
-    private void restore(View view) {
+    /** Purple glass on the button [text] names, when it says Send. */
+    private void sendButton(TextView text) {
+        CharSequence words = text.getText();
+        if (words == null || words.length() > 24) return;
+        String said = words.toString().trim().toLowerCase(Locale.ROOT);
+        boolean send = false;
+        for (String word : SEND) send |= said.equals(word);
+        if (!send) return;
+        // The button is the text or the nearest clickable view round it, a few levels up.
+        View button = text;
+        View at = text;
+        for (int up = 0; up <= REACH && at != null; up++) {
+            if (at.isClickable()) {
+                button = at;
+                break;
+            }
+            at = at.getParent() instanceof View ? (View) at.getParent() : null;
+        }
+        if (glasses.containsKey(button)) return;
+        if (!(button.getBackground() instanceof GlassPill)) put(button, new GlassPill(density, true));
+        if (!sendTexts.containsKey(text)) sendTexts.put(text, text.getTextColors());
+        if (text.getCurrentTextColor() != 0xffffffff) text.setTextColor(0xffffffff);
+    }
+
+    private boolean looksLikePicture(View view) {
+        int width = view.getWidth(), height = view.getHeight();
+        if (width < PICTURE_MIN_DP * density || width > PICTURE_MAX_DP * density) return false;
+        if (Math.abs(width - height) > Math.max(2, Math.round(2 * density))) return false;
+        return !holdsText(view);
+    }
+
+    private static boolean holdsText(View view) {
+        if (view instanceof TextView) return true;
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (holdsText(group.getChildAt(i))) return true;
+        }
+        return false;
+    }
+
+    private void ring(View picture) {
+        Drawable now = picture.getForeground();
+        if (now instanceof Ring) return;
+        // A picture inside one that wears a ring already is left alone, so a picture gets one ring.
+        for (View at = parentOf(picture); at != null; at = parentOf(at)) {
+            if (at.getForeground() instanceof Ring) return;
+        }
+        if (!ringed.containsKey(picture)) ringed.put(picture, now);
+        picture.setForeground(new Ring(density));
+    }
+
+    private static View parentOf(View view) {
+        return view.getParent() instanceof View ? (View) view.getParent() : null;
+    }
+
+    // ------------------------------------------------------------------ giving back
+
+    private void restoreBackground(View view) {
         Drawable own = before.remove(view);
-        Drawable glass = worn.remove(view);
+        Drawable ours = worn.remove(view);
         // Only what still wears this change goes back; a background Instagram has set since stays.
-        if (glass != null ? view.getBackground() == glass : view.getBackground() == null) view.setBackground(own);
+        if (ours != null ? view.getBackground() == ours : view.getBackground() == null) view.setBackground(own);
+        glasses.remove(view);
     }
 
     private void restoreAll() {
         for (View view : new ArrayList<>(before.keySet())) {
-            if (view != null) restore(view);
+            if (view != null) restoreBackground(view);
+        }
+        for (Map.Entry<View, Drawable> entry : new ArrayList<>(ringed.entrySet())) {
+            View picture = entry.getKey();
+            if (picture != null && picture.getForeground() instanceof Ring) picture.setForeground(entry.getValue());
+        }
+        for (Map.Entry<TextView, ColorStateList> entry : new ArrayList<>(sendTexts.entrySet())) {
+            if (entry.getKey() != null && entry.getValue() != null) entry.getKey().setTextColor(entry.getValue());
         }
         before.clear();
         worn.clear();
-        unblur();
+        glasses.clear();
+        ringed.clear();
+        sendTexts.clear();
+        undim();
+    }
+
+    // ------------------------------------------------------------------ drawables
+
+    /** A glass pill with fully round ends: frosted with a lit top edge, or glossy purple for Send. */
+    static final class GlassPill extends Drawable {
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint gloss = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF box = new RectF();
+        private final boolean purple;
+        private int shapedTop = Integer.MIN_VALUE, shapedHeight = -1;
+
+        GlassPill(float density, boolean purple) {
+            this.purple = purple;
+            rim.setStyle(Paint.Style.STROKE);
+            rim.setStrokeWidth(Math.max(1f, (purple ? 1.5f : 1f) * density));
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect bounds = getBounds();
+            if (bounds.isEmpty()) return;
+            if (bounds.top != shapedTop || bounds.height() != shapedHeight) {
+                shapedTop = bounds.top;
+                shapedHeight = bounds.height();
+                if (purple) {
+                    fill.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
+                            new int[]{0xff9b6bff, 0xff6d28d9, 0xff5b21b6}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
+                    rim.setColor(0xa6ffffff);
+                    gloss.setShader(new LinearGradient(0, bounds.top, 0, bounds.top + bounds.height() / 2f,
+                            0x59ffffff, 0x00ffffff, Shader.TileMode.CLAMP));
+                } else {
+                    fill.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
+                            0x33ffffff, 0x14ffffff, Shader.TileMode.CLAMP));
+                    rim.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
+                            0x99ffffff, 0x33ffffff, Shader.TileMode.CLAMP));
+                }
+            }
+            float inset = rim.getStrokeWidth() / 2f;
+            box.set(bounds.left + inset, bounds.top + inset, bounds.right - inset, bounds.bottom - inset);
+            float radius = box.height() / 2f;
+            canvas.drawRoundRect(box, radius, radius, fill);
+            if (purple) {
+                box.bottom = box.top + box.height() / 2f;
+                canvas.drawRoundRect(box, radius, radius, gloss);
+                box.bottom = bounds.bottom - inset;
+            }
+            canvas.drawRoundRect(box, radius, radius, rim);
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter filter) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
+    /** A glass ring round a profile picture: a bright inner line and a faint wider halo. */
+    static final class Ring extends Drawable {
+        private final Paint inner = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float innerWidth, haloWidth;
+
+        Ring(float density) {
+            innerWidth = Math.max(1.5f, 2.5f * density);
+            haloWidth = Math.max(1f, 2.5f * density);
+            inner.setStyle(Paint.Style.STROKE);
+            inner.setStrokeWidth(innerWidth);
+            inner.setColor(0xbfffffff);
+            halo.setStyle(Paint.Style.STROKE);
+            halo.setStrokeWidth(haloWidth);
+            halo.setColor(0x24ffffff);
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect bounds = getBounds();
+            if (bounds.isEmpty()) return;
+            float radius = Math.min(bounds.width(), bounds.height()) / 2f;
+            float x = bounds.exactCenterX(), y = bounds.exactCenterY();
+            canvas.drawCircle(x, y, radius - innerWidth / 2f, inner);
+            canvas.drawCircle(x, y, radius - innerWidth - haloWidth / 2f, halo);
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter filter) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 }

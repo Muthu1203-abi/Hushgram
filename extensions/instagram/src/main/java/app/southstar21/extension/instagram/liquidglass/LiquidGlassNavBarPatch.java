@@ -78,9 +78,12 @@ public final class LiquidGlassNavBarPatch {
             .help("A light tick each time the selection glides over another tab while you drag it.");
 
     static final BooleanSetting GLASS_SHEETS = new BooleanSetting("liquid_glass_sheets",
-            "Glass sheets", "Comments, share and menu sheets get a frosted glass background.", false, true)
-            .help("Sheets that slide up from the bottom, like comments, the share sheet and a post's menu, get the "
-                    + "same frosted glass as the bar, and on Android 12 and newer the page behind them is blurred.");
+            "Glass sheets", "Comments, share and menu sheets become frosted glass, with the reel still showing behind.",
+            false, true)
+            .help("Sheets that slide up from the bottom, like comments, the share sheet and a post's menu, become "
+                    + "frosted glass: on Android 12 and newer the reel or page behind shows through them, blurred, and "
+                    + "stays visible above them under a lighter shade. Search and message boxes turn into glass pills, "
+                    + "profile pictures get a glass ring and Send turns purple glass.");
 
     public static final PatchSettings SETTINGS = new PatchSettings("liquid_glass",
             "Liquid Glass",
