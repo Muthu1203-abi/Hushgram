@@ -1,7 +1,7 @@
 {
-    "created_at":  "2026-11-27T08:41:09",
-    "description":  "## 0.0.22-5 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22. 202 patches for Instagram 457.0.0.55.73.\n\n* HushGram settings use a Liquid Glass design in dark mode: page background, cards, category tiles, chips and header.\n* Liquid Glass navigation bar updates.\n* Fixes the settings build that two broken source files had stopped.",
-    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-5/patches-0.0.22.mpp",
+    "created_at":  "2026-11-27T09:12:53",
+    "description":  "## 0.0.22-6 (Muthu build)\n\nBuilt from Muthu1203-abi/Hushgram on HushGram 0.0.22, synced with SysAdminDoc/HushGram up to 634cb4994. For Instagram 457.0.0.55.73.\n\n* With Run Reels behind the tab bar on, every reel\u0027s caption and seek bar now sit in the same place above the Liquid Glass pill. Before, some reels kept the seek bar under the pill and others went far above it.\n* Brings in 87 upstream changes: chat theme tints and accent story rings, saves that resume after a drop and are dated by when the post went up, Select all in Your activity grids, HLG on HDR uploads, your own name and logo in the settings header, and more.\n* Your Liquid Glass navigation bar, Muthu12 header, developer options and liked Reels patches stay as they were.",
+    "download_url":  "https://github.com/Muthu1203-abi/Hushgram/releases/download/v0.0.22-6/patches-0.0.22.mpp",
     "signature_download_url":  "",
-    "version":  "0.0.22-5"
+    "version":  "0.0.22-6"
 }
