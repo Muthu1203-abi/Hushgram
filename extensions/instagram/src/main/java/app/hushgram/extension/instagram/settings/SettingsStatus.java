@@ -997,6 +997,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Translate chat messages patch. */
+    public static boolean translateMessages() {
+        return false;
+    }
+
     /** Rewritten by the Preview chats patch. */
     public static boolean previewChats() {
         return false;
