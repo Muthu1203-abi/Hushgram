@@ -211,11 +211,15 @@ final class CategoryStrip extends Preference {
         chip.setClickable(true);
         chip.setFocusable(true);
         chip.setSelected(open);
-        GradientDrawable surface = new GradientDrawable();
-        surface.setColor(open ? blend(colors.card, colors.accent) : colors.card);
-        surface.setCornerRadius(Math.round(20 * density));
-        surface.setStroke(Math.round((open ? 2 : 1) * density), open ? colors.accent : colors.outline);
-        chip.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading), surface, null));
+        
+chip.setBackground(
+        LiquidGlassSurfaces.chip(
+                context,
+                open,
+                colors.accent
+        )
+);
+
 
         if (iconCode != null) {
             ImageView icon = new ImageView(context);
