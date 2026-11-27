@@ -59,6 +59,17 @@ final class BackupCategory {
                     L10n.t("Unlocks Instagram's developer options by long pressing the Home tab.")));
             backup.addPreference(toggle(context, Settings.DIRECTLY_OPEN_METACONFIG, L10n.t("Directly open MetaConfig"),
                     L10n.t("Open MetaConfig directly when long pressing Home.")));
+            Row mapping = new Row(context);
+            mapping.setKey("hushgram_upload_developer_mapping");
+            mapping.setPersistent(false);
+            mapping.setTitle(L10n.t("Upload developer names mapping"));
+            mapping.setSummary(L10n.t("Choose Instagram's id_name_mapping JSON. Restart Instagram after upload to show "
+                    + "names in MetaConfig."));
+            mapping.setOnPreferenceClickListener(p -> {
+                page.pickDeveloperMapping();
+                return true;
+            });
+            backup.addPreference(mark(mapping, SettingsIcons.DOWNLOADS));
         }
         page.showConfiguration();
     }

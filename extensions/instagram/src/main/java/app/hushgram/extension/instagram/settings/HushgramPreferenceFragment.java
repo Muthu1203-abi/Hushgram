@@ -290,6 +290,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_ICON_PICTURE = 0x4852;
     private static final int PICK_HEADER_PICTURE = 0x4853;
     private static final int PICK_SETTINGS_LOGO = 0x4854;
+    /** Instagram's id_name_mapping JSON, which names the flags in MetaConfig (Muthu build). */
+    private static final int IMPORT_DEVELOPER_MAPPING = 0x4858;
+    /** The largest mapping file read: Instagram's is under 2 MB. */
+    private static final int MAPPING_MAX_BYTES = 8 * 1024 * 1024;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -2506,11 +2510,67 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /**
+     * Opens a file picker for Instagram's id_name_mapping JSON, which {@link
+     * app.hushgram.extension.instagram.download.DeveloperFlagMapping#importMapping} checks and keeps, so
+     * MetaConfig shows each flag's name after a restart. Any file can be picked; one that isn't a mapping is
+     * turned down with nothing changed.
+     */
+    void pickDeveloperMapping() {
+        if (documentRequest != 0 || changingConfiguration) return;
+        if (SettingsLock.locked()) {
+            sayLocked();
+            return;
+        }
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = IMPORT_DEVELOPER_MAPPING;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            Utils.showToastLong(L10n.t("There's no file picker. Try again."));
+        }
+    }
+
+    /** Reads the mapping file at [uri] and keeps it, saying how many names came in, or that nothing changed. */
+    private void keepDeveloperMapping(@Nullable Uri uri) {
+        Context context = getContext();
+        if (context == null || uri == null || !"content".equals(uri.getScheme())) return;
+        try (java.io.InputStream input = context.getContentResolver().openInputStream(uri);
+             java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream()) {
+            if (input == null) throw new java.io.IOException("No file");
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                if (output.size() + count > MAPPING_MAX_BYTES) throw new java.io.IOException("File too large");
+                output.write(buffer, 0, count);
+            }
+            int imported = app.hushgram.extension.instagram.download.DeveloperFlagMapping
+                    .importMapping(context, output.toByteArray());
+            Utils.showToastLong(L10n.f("Imported %1$d mapping entries. Restart Instagram to show names in MetaConfig.",
+                    imported));
+        } catch (Exception failure) {
+            Utils.showToastLong(L10n.t("That mapping file couldn't be read. No changes were made."));
+        }
+    }
+
     @Override
     public void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
         if (code != documentCode) return;
         int request = documentRequest;
+        if (request == IMPORT_DEVELOPER_MAPPING) {
+            documentRequest = 0;
+            documentCode = 0;
+            if (result == Activity.RESULT_OK && data != null) keepDeveloperMapping(data.getData());
+            return;
+        }
         if (isFontRequest(request)) {
             long revision = fontRequestRevision;
             documentRequest = 0;
