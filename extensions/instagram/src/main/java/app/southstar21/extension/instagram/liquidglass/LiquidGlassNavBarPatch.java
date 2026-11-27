@@ -77,12 +77,17 @@ public final class LiquidGlassNavBarPatch {
             "Haptics", "A tick when the selection glides over a tab.", false, true)
             .help("A light tick each time the selection glides over another tab while you drag it.");
 
+    static final BooleanSetting GLASS_SHEETS = new BooleanSetting("liquid_glass_sheets",
+            "Glass sheets", "Comments, share and menu sheets get a frosted glass background.", false, true)
+            .help("Sheets that slide up from the bottom, like comments, the share sheet and a post's menu, get the "
+                    + "same frosted glass as the bar, and on Android 12 and newer the page behind them is blurred.");
+
     public static final PatchSettings SETTINGS = new PatchSettings("liquid_glass",
             "Liquid Glass",
             "iOS 26 style glass tab bar. Defaults come from the patch options in Morphe Manager.",
             LiquidGlassNavBarPatch::isIncluded,
             new SettingsGroup("Behavior", EXTEND_CONTENT, SHRINK_ON_SCROLL,
-                    NavbarStyle.SHRUNK_SIZE.shownWhen(SHRINK_ON_SCROLL), BLUR_VIDEOS, HAPTICS))
+                    NavbarStyle.SHRUNK_SIZE.shownWhen(SHRINK_ON_SCROLL), BLUR_VIDEOS, HAPTICS, GLASS_SHEETS))
             .customize("Customize navbar", "Glass, shape and selection, with a live preview.",
                     NavbarPreview::customizer,
                     new SettingsGroup("Style", "Liquid Glass, Transparent, Material or Neon Glow. The southstar21 style "
@@ -229,6 +234,8 @@ public final class LiquidGlassNavBarPatch {
                 @Override public void onActivityStarted(Activity activity) {}
                 @Override public void onActivityResumed(Activity activity) {
                     front = new WeakReference<>(activity);
+                    // Sheets open over any screen, so every activity is watched; the switch is read at each look.
+                    if (isIncluded()) GlassSheets.watch(activity);
                     if (isMainActivity(activity) && isIncluded()) {
                         ProfileSettingsButton.ensureInstalled(activity);
                         if (isActive()) {
@@ -242,6 +249,7 @@ public final class LiquidGlassNavBarPatch {
                 @Override public void onActivityStopped(Activity activity) {}
                 @Override public void onActivitySaveInstanceState(Activity activity, Bundle outState) {}
                 @Override public void onActivityDestroyed(Activity activity) {
+                    GlassSheets.forget(activity);
                     forgetBarsOf(activity);
                 }
             });
