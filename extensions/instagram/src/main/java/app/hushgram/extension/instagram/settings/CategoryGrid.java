@@ -125,13 +125,19 @@ final class CategoryGrid extends Preference {
         tile.setMinimumHeight(Math.round(64 * density));
         tile.setClickable(true);
         tile.setFocusable(true);
-        GradientDrawable surface = new GradientDrawable();
-        boolean open = section.expanded;
-        // The open section's tile reads as selected: an accent outline over a faint accent fill.
-        surface.setColor(open ? blend(colors.card, colors.accent) : colors.card);
-        surface.setCornerRadius(Math.round(12 * density));
-        surface.setStroke(Math.round((open ? 2 : 1) * density), open ? colors.accent : colors.outline);
-        tile.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading), surface, null));
+        
+boolean open = section.expanded;
+
+// Liquid Glass category tile.
+// Selected category receives an accent border.
+tile.setBackground(
+        LiquidGlassSurfaces.card(
+                context,
+                open,
+                colors.accent
+        )
+);
+
 
         ImageView icon = new ImageView(context);
         icon.setImageDrawable(SettingsIcons.icon(context, section.icon, colors.heading));
