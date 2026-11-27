@@ -14,11 +14,14 @@ import app.hushgram.extension.instagram.reels.ReelSeekRoom;
  * Vertical position or a page's bottom gap moves the reel's controls with it. The band holding the seek
  * bar also takes the Reel seek bar position setting.
  * <p>
- * The view tree is walked for bands at most every {@link #LOOK_MS}; the lift itself is checked every
- * frame, since Instagram's layout can put a band back where it was.
+ * The view tree is walked for bands at most every {@link #LOOK_MS}, and on the next frame when a band
+ * found before has left the window, as a reel scrolled away does; the lift itself is checked every frame,
+ * since Instagram's layout can put a band back where it was. A hidden seek bar is found and its band lifted
+ * too, so the next reel's seek bar is already above the pill when it shows as that reel starts playing.
+ * Found only once shown, it showed under the pill until the next walk.
  */
 final class ReelsLift {
-    private static final long LOOK_MS = 250;
+    private static final long LOOK_MS = 100;
     /** How many levels under a lifted band are looked at for a view Litho put back down. */
     private static final int PUT_BACK_DEPTH = 6;
     private static final String PACKAGE = "com.instagram.android";
@@ -30,7 +33,6 @@ final class ReelsLift {
     /** The translation this gave each band, to put back only what is still ours. */
     private final java.util.WeakHashMap<View, Float> lifted = new java.util.WeakHashMap<>();
     private final java.util.ArrayList<View> anchors = new java.util.ArrayList<>();
-    private final java.util.ArrayList<View> footers = new java.util.ArrayList<>();
     private final int[] at = new int[2];
     private long lookedAt;
 
@@ -61,9 +63,15 @@ final class ReelsLift {
         }
         int gap = Math.round(gapDp * density);
         int seekExtra = Math.round(seekBarDp * density);
+        boolean left = false;
         for (java.util.Map.Entry<View, Boolean> entry : bands.entrySet()) {
             View band = entry.getKey();
-            if (band == null || !band.isAttachedToWindow() || band.getVisibility() != View.VISIBLE) continue;
+            if (band == null || !band.isAttachedToWindow()) {
+                left = true;
+                continue;
+            }
+            // A hidden band is lifted as well, so it shows in place rather than under the pill first.
+            if (band.getVisibility() == View.GONE) continue;
             float current = band.getTranslationY();
             Float ours = lifted.get(band);
             // A translation someone else set (an animation of Instagram's) is left alone. The seek bar room's
@@ -83,6 +91,8 @@ final class ReelsLift {
             lifted.put(band, want);
             keepUnderTheLift(band);
         }
+        // A reel went out of the window, so another has come in: look for its bands on the next frame.
+        if (left) lookedAt = 0;
     }
 
     /**
@@ -122,8 +132,7 @@ final class ReelsLift {
         findRoots(root, roots, 0);
         for (View reels : roots) {
             anchors.clear();
-            footers.clear();
-            GlassTabBar.reelAnchors(reels, infoId, scrubberId, footersId, anchors, footers, 0);
+            anchorsUnder(reels, 0);
             for (View anchor : anchors) {
                 View band = GlassTabBar.reelBand(anchor, mediaId, reels);
                 if (band == null) continue;
@@ -133,7 +142,6 @@ final class ReelsLift {
             }
         }
         anchors.clear();
-        footers.clear();
         // Bands no longer on screen go back where Instagram put them.
         java.util.Iterator<java.util.Map.Entry<View, Float>> it = lifted.entrySet().iterator();
         while (it.hasNext()) {
@@ -146,6 +154,27 @@ final class ReelsLift {
                 it.remove();
             }
         }
+    }
+
+    /**
+     * Puts each view under [view] whose id is the reel's info or seek bar in {@link #anchors}, without looking
+     * inside those or inside the footers. Unlike {@link GlassTabBar#reelAnchors} it also takes hidden ones: a
+     * reel's seek bar is hidden until its video plays, and lifted only once shown, it first showed under the pill.
+     * Only what is gone, and has no place laid out, is passed over.
+     */
+    private void anchorsUnder(View view, int depth) {
+        if (depth > 60 || view.getVisibility() == View.GONE) return;
+        int own = view.getId();
+        if (own != View.NO_ID && own != 0) {
+            if (own == footersId) return;
+            if (own == infoId || own == scrubberId) {
+                anchors.add(view);
+                return;
+            }
+        }
+        if (!(view instanceof android.view.ViewGroup)) return;
+        android.view.ViewGroup group = (android.view.ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) anchorsUnder(group.getChildAt(i), depth + 1);
     }
 
     private void findRoots(View view, java.util.List<View> roots, int depth) {
