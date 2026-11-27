@@ -1346,6 +1346,19 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting GLASS_CHAT_BUTTONS =
             new BooleanSetting("hushgram_glass_chat_buttons", TRUE, parent(GLASS_CHAT));
     /**
+     * Under {@link #GLASS_CHAT_TOP_BAR}: a glass ring round the avatar in a chat's top bar
+     * ({@link app.hushgram.extension.instagram.direct.ChatHeaderLook}, Muthu build). On to start.
+     */
+    public static final BooleanSetting GLASS_CHAT_AVATAR_RING =
+            new BooleanSetting("hushgram_glass_chat_avatar_ring", TRUE, parent(GLASS_CHAT_TOP_BAR));
+    /**
+     * Under {@link #GLASS_CHAT_TOP_BAR}: the name, status and icons in a chat's top bar turn white over a dark, colourful
+     * or photo chat theme, and keep Instagram's colour over a light one
+     * ({@link app.hushgram.extension.instagram.direct.ChatHeaderLook}, Muthu build). On to start.
+     */
+    public static final BooleanSetting GLASS_CHAT_AUTO_WHITE_TEXT =
+            new BooleanSetting("hushgram_glass_chat_auto_white_text", TRUE, parent(GLASS_CHAT_TOP_BAR));
+    /**
      * Holding a message blurs the rest of the chat behind it and its reactions, with or without the glass
      * ({@link app.hushgram.extension.instagram.direct.HeldMessageBlur}, #684). Off to start.
      */
