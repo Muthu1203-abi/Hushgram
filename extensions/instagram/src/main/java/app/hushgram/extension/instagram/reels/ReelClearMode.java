@@ -865,9 +865,11 @@ public final class ReelClearMode {
                 decor.getLocationOnScreen(rootAt);
                 float relativeX = (event.getRawX() - rootAt[0]) / Math.max(1, decor.getWidth());
                 float relativeY = (event.getRawY() - rootAt[1]) / Math.max(1, decor.getHeight());
-                // Share sits on the lower part of the Reels action rail. This keeps a Share label
-                // elsewhere in an open sheet from being mistaken for the hidden Reels button.
-                if (relativeX < 0.68f || relativeY < 0.55f || relativeY > 0.96f) return false;
+                // Share sits on the Reels action rail at the right. The Liquid Glass bar lifts a reel's
+                // buttons above its pill, so Share can sit well above the screen's middle: 0.55 left it
+                // out on those reels, and the tap paused the video. A sheet's own Share label is kept
+                // out by the hit test, where its visible controls own the point.
+                if (relativeX < 0.6f || relativeY < 0.3f || relativeY > 0.97f) return false;
                 int touchSlop = Math.round(Settings.CLEAR_MODE_SHARE_TOUCH_SLOP_DP.get()
                         * activity.getResources().getDisplayMetrics().density);
                 Object hit = shareTarget(decor, event.getRawX(), event.getRawY(), false, touchSlop);

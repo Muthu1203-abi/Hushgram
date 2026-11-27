@@ -6108,6 +6108,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * How far past the hidden Share button a tap in clear mode still shares the reel, from a slider in dp (Muthu
+     * build, {@link app.hushgram.extension.instagram.reels.ReelClearMode#shareTouch}).
+     */
+    static SliderRow clearModeShareAreaRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.CLEAR_MODE_SHARE_TOUCH_SLOP_DP, 2, L10n.t("%1$d dp"));
+        row.setTitle(L10n.t("Invisible Share touch area"));
+        row.setText(String.valueOf(Settings.CLEAR_MODE_SHARE_TOUCH_SLOP_DP.savedValue()));
+        return row;
+    }
+
     /** How far a double tap moves a reel, from a slider in seconds under Double tap to skip (#645). */
     static SliderRow reelSkipLengthRow(Context context) {
         SliderRow row = new SliderRow(context, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS, 5, L10n.t("%1$d seconds"));

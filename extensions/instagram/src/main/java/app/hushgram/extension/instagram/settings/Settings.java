@@ -4254,13 +4254,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_pinch_clear_mode", FALSE);
 
     /**
-     * With {@link #PINCH_CLEAR_MODE} on, a reel in clear mode draws no exit button and takes no tap
-     * where it was, so a pinch is how you leave it, unless Pinch to zoom takes the pinch (#744,
+     * A reel in clear mode draws no exit button and takes no tap where it was (Muthu build: on its own, with
+     * or without {@link #PINCH_CLEAR_MODE}). Clear mode is left from the reel's menu, or by a pinch (#744,
      * {@link app.hushgram.extension.instagram.reels.ReelPinchClearMode#exitIcon}). Read as each button
      * is drawn, so a change needs no restart. Off to start.
      */
     public static final BooleanSetting HIDE_CLEAR_MODE_EXIT_BUTTON =
-            new BooleanSetting("hushgram_hide_clear_mode_exit_button", FALSE, parent(PINCH_CLEAR_MODE));
+            new BooleanSetting("hushgram_hide_clear_mode_exit_button", FALSE);
 
     /**
      * The top bar of a reels viewer staying in place while you swipe through reels (#411,
