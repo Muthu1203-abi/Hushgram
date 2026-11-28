@@ -851,9 +851,7 @@ Hides the rewind cards, which bring back old highlights, from the row of stories
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	雙擊留言不會按讚。預設關閉，因此留言會保留雙擊按讚功能，直到你啟用此選項。
 On messages	訊息
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	雙擊聊天中的訊息不會傳送心情回應。預設關閉。長按仍會顯示心情回應選項。
-Hide the Share button	隱藏分享按鈕
 On comments	留言
-Takes the Share button and its count off the posts in your feed and off reels.	移除動態首頁貼文與 Reels 的分享按鈕及次數。
 Ask before a call	撥打電話前詢問
 Call	撥打
 Change the like animation	更改「按讚」動畫
@@ -3127,3 +3125,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	在「你的動態」中全選
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	在「你的動態」的相片和影片格狀檢視中，於「選取」旁加入「全選」，例如你的貼文、Reels 和按讚內容。勾選一項後就會出現。它只會勾選項目。在你自己按下「刪除」或「收回讚」之前，什麼都不會消失。
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	點兩下頂端即可分享
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	在連續短片頂端附近點兩下會開啟分享選單，而不是按讚，在清除模式下也一樣。在其他地方點兩下照常運作。
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	分享區域

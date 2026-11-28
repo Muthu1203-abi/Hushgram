@@ -848,9 +848,7 @@ Hides the rewind cards, which bring back old highlights, from the row of stories
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Ketuk dua kali pada komentar tidak menyukainya. Awalnya nonaktif, jadi komentar tetap bisa disukai dengan ketuk dua kali sampai Anda menyalakannya.
 On messages	Pada pesan
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Ketuk dua kali pada pesan di obrolan tidak memberi reaksi. Mulai dalam keadaan mati. Tekan lama tetap menampilkan reaksi.
-Hide the Share button	Sembunyikan tombol Bagikan
 On comments	Pada komentar
-Takes the Share button and its count off the posts in your feed and off reels.	Menghapus tombol Bagikan dan jumlahnya dari postingan di feed Anda dan dari reel.
 Ask before a call	Tanya sebelum menelepon
 Call	Telepon
 Change the like animation	Ubah animasi suka
@@ -3124,3 +3122,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	Pilih semua di Aktivitas Anda
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	Menambahkan Pilih semua di samping Pilih pada kisi foto dan video di Aktivitas Anda, seperti postingan, reel, dan suka Anda. Tombol ini muncul setelah Anda mencentang satu. Ini hanya mencentangnya. Tidak ada yang hilang sampai Anda sendiri menekan Hapus atau Batal suka.
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	Ketuk dua kali di atas untuk berbagi
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	Ketuk dua kali di dekat bagian atas reel membuka lembar berbagi alih-alih menyukainya, juga dalam mode bersih. Ketuk dua kali di tempat lain berfungsi seperti biasa.
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	Area berbagi

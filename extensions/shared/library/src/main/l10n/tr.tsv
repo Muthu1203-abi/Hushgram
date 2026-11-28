@@ -848,9 +848,7 @@ Hides the rewind cards, which bring back old highlights, from the row of stories
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Bir yoruma iki kez dokunmak onu beğenmez. Kapalı başlar, yani sen bunu açana kadar yorumlar iki kez dokunarak beğenmeyi korur.
 On messages	Mesajlarda
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Sohbetteki bir mesaja çift dokunmak ona tepki vermez. Kapalı başlar. Uzun basmak tepkileri yine gösterir.
-Hide the Share button	Paylaş düğmesini gizle
 On comments	Yorumlarda
-Takes the Share button and its count off the posts in your feed and off reels.	Paylaş düğmesini ve sayısını akışındaki gönderilerden ve reel'lerden kaldırır.
 Ask before a call	Aramadan önce sor
 Call	Ara
 Change the like animation	Beğeni animasyonunu değiştir
@@ -3124,3 +3122,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	Hareketlerin'de tümünü seç
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	Hareketlerin'deki fotoğraf ve video ızgaralarında, örneğin gönderilerin, Reels videoların ve beğenilerinde, Seç'in yanına Tümünü seç ekler. Birini işaretleyince görünür. Yalnızca işaretler. Sil'e ya da Beğenmekten Vazgeç'e kendin basana kadar hiçbir şey gitmez.
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	Paylaşmak için üste çift dokun
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	Bir reelin üst kısmına yakın çift dokunmak, beğenmek yerine paylaşım sayfasını açar, temiz modda da. Başka bir yere çift dokunmak eskisi gibi çalışır.
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	Paylaşım alanı

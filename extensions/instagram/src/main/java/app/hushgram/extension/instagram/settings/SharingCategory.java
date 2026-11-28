@@ -22,8 +22,7 @@ final class SharingCategory {
     private SharingCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.SHARE_SHEET) || build.contains(PatchFamily.REPOST_BUTTON)
-                || build.contains(PatchFamily.HIDE_SHARE_BUTTON)) {
+        if (build.contains(PatchFamily.SHARE_SHEET) || build.contains(PatchFamily.REPOST_BUTTON)) {
             PreferenceCategory sharing = category(screen, L10n.t("Sharing"), SettingsIcons.NETWORK,
                     L10n.t("Take buttons you don't use off posts and the share sheet."));
             if (build.contains(PatchFamily.SHARE_SHEET)) {
@@ -41,10 +40,6 @@ final class SharingCategory {
                 sharing.addPreference(toggle(context, Settings.HIDE_REPOST_BUTTON, L10n.t("Hide the Repost button"),
                         L10n.t("Takes Repost and its count off posts and reels, so nothing gets reposted to your "
                                 + "followers by mistake. Share still sends a post or reel to someone.")));
-            }
-            if (build.contains(PatchFamily.HIDE_SHARE_BUTTON)) {
-                sharing.addPreference(toggle(context, Settings.HIDE_SHARE_BUTTON, L10n.t("Hide the Share button"),
-                        L10n.t("Takes the Share button and its count off the posts in your feed and off reels.")));
             }
         }
     }

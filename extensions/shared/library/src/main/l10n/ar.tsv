@@ -904,7 +904,6 @@ Hide the Save button on reels	إخفاء زر الحفظ في Reels
 Hide the More button on reels	إخفاء زر المزيد في Reels
 Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	يزيل النقاط الثلاث، والقائمة التي تفتحها، من أسفل عمود الأزرار بجانب المقطع. لزر إعادة النشر وزر المشاركة مفتاحان خاصان بهما ضمن المشاركة.
 Hide the Search tab	إخفاء تبويب البحث
-Hide the Share button	إخفاء زر المشاركة
 Hide the Share button on stories	إخفاء زر المشاركة في القصص
 Hide the Stories tray	إخفاء شريط القصص
 Hide the Threads badge	إخفاء شارة Threads
@@ -2078,7 +2077,6 @@ Takes the People you don't follow back section off the bottom of your notificati
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	يزيل زر الحفظ من أسفل المنشورات في خلاصتك، حتى لا تؤدي نقرة عابرة إلى حفظ منشور.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	يزيل زر الحفظ من عمود الأزرار بجانب المقطع، والعدد الموجود تحته. وتحتفظ منشورات خلاصتك بأزرارها.
 Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.	يزيل مربع إرسال رسالة من أسفل قصص الآخرين. ويبقى زرّا الإعجاب والمشاركة بجانبه في مكانهما.
-Takes the Share button and its count off the posts in your feed and off reels.	يزيل زر المشاركة وعدده من المنشورات في خلاصتك ومن المقاطع.
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	يزيل زر مشاركة الملف الشخصي من ملفك، ويتمدد زر تعديل الملف الشخصي ليملأ المساحة.
 Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	يزيل زر الاشتراك من ملفات منشئي المحتوى، وتتمدد الأزرار الأخرى لتملأ المساحة.
 Takes the Suggested people off the New message and new group screens. Search still finds anyone.	يزيل الأشخاص المقترحين من شاشة الرسالة الجديدة وشاشة المجموعة الجديدة. ولا يزال البحث يعثر على أي شخص.
@@ -2660,3 +2658,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	تحديد الكل في نشاطك
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	يضيف تحديد الكل بجانب تحديد في شبكات الصور والفيديوهات في نشاطك، مثل منشوراتك ومقاطع Reels والإعجابات. يظهر بعد أن تحدد عنصرًا واحدًا. هو يحددها فقط، ولا يُحذف شيء حتى تضغط حذف أو إلغاء الإعجاب بنفسك.
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	النقر المزدوج على الأعلى للمشاركة
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	النقر المزدوج بالقرب من أعلى الريل يفتح قائمة المشاركة بدلًا من الإعجاب به، حتى في الوضع الصافي. النقر المزدوج في أي مكان آخر يعمل كما كان.
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	منطقة المشاركة

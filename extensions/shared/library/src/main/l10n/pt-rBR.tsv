@@ -848,9 +848,7 @@ Hides the rewind cards, which bring back old highlights, from the row of stories
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Tocar duas vezes em um comentário não curte ele. Começa desativada, então os comentários mantêm o toque duplo para curtir até você ativar esta chave.
 On messages	Nas mensagens
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Tocar duas vezes em uma mensagem em uma conversa não reage a ela. Começa desativado. Tocar e segurar ainda mostra as reações.
-Hide the Share button	Ocultar o botão Compartilhar
 On comments	Nos comentários
-Takes the Share button and its count off the posts in your feed and off reels.	Tira o botão Compartilhar e a contagem dele dos posts do seu feed e dos reels.
 Ask before a call	Perguntar antes de uma chamada
 Call	Ligar
 Change the like animation	Mudar a animação de curtida
@@ -3124,3 +3122,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	Selecionar tudo em Sua atividade
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	Adiciona Selecionar tudo ao lado de Selecionar nas grades de fotos e vídeos de Sua atividade, como suas publicações, reels e curtidas. Ele aparece assim que você marca um. Ele só marca os itens. Nada é removido até você mesmo tocar em Excluir ou Descurtir.
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	Toque duas vezes no topo para compartilhar
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	Tocar duas vezes perto do topo de um reel abre a folha de compartilhamento em vez de curtir, também no modo limpo. Tocar duas vezes em qualquer outro lugar funciona como antes.
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	Área de compartilhamento

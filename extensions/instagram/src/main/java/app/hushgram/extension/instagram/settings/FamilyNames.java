@@ -92,7 +92,6 @@ public final class FamilyNames {
     public static final String INSTANTS = "Hide Instants";
     public static final String SHARE_SHEET = "Hide group buttons on the share sheet";
     public static final String REPOST_BUTTON = "Hide the Repost button";
-    public static final String HIDE_SHARE_BUTTON = "Hide the Share button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
     public static final String PHONE_LAYOUT = "Phone layout on big screens";
     public static final String GLASS_TAB_BAR = "Glass tab bar";
@@ -176,6 +175,7 @@ public final class FamilyNames {
     public static final String REEL_SOUND = "Start reels with sound";
     public static final String REEL_ZOOM = "Pinch to zoom on Reels";
     public static final String REEL_DOUBLE_TAP_SKIP = "Double tap to skip on Reels";
+    public static final String REEL_TOP_SHARE = "Double tap the top of a reel to share";
     public static final String HIDE_REEL_2X_POPUP = "Hide the 2x popup on Reels";
     public static final String REEL_AUTO_SCROLL = "Keep Reels auto scroll on";
     public static final String LIKED_REELS_SCROLL = "Continue through liked Reels";

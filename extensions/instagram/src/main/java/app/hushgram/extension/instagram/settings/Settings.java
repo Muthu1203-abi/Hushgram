@@ -2150,15 +2150,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_repost_button", FALSE);
 
     /**
-     * Feed's action rows and the reels leave out the Share button and its count
-     * ({@link app.hushgram.extension.instagram.share.ShareButton}). Read as each row's state is
-     * built and as each reel is drawn, so a post or reel already on screen changes the next time
-     * it's drawn. Off to start.
-     */
-    public static final BooleanSetting HIDE_SHARE_BUTTON =
-            new BooleanSetting("hushgram_hide_share_button", FALSE);
-
-    /**
      * The space Instagram leaves under its tab bar for a navigation bar the phone says isn't there:
      * when the phone reports no bottom inset, Instagram's guess from the system's navigation bar
      * height becomes 0 ({@link app.hushgram.extension.instagram.misc.BottomSpace}). Read each time
@@ -5269,6 +5260,19 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting REEL_SKIP_ARROWS =
             new BooleanSetting("hushgram_double_tap_skip_reels_arrows", TRUE, parent(DOUBLE_TAP_SKIP_REELS));
+
+    /**
+     * A double tap in the top {@link #REEL_TOP_SHARE_ZONE} percent of a reel presses its Share button
+     * instead of liking it, in clear mode too ({@link app.hushgram.extension.instagram.reels.ReelTopShare}).
+     * A double tap anywhere else stays Instagram's. Off to start.
+     */
+    public static final BooleanSetting REEL_TOP_SHARE =
+            new BooleanSetting("hushgram_reel_top_share", FALSE);
+
+    /** Under {@link #REEL_TOP_SHARE}: how much of the reel, from its top, shares on a double tap, in percent. */
+    public static final IntegerSetting REEL_TOP_SHARE_ZONE =
+            new IntegerSetting("hushgram_reel_top_share_zone", 25, false, parent(REEL_TOP_SHARE))
+                    .withRange(10, 40);
 
     /**
      * Keeps the "2x" label off a reel while a held finger plays it faster

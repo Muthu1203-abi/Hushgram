@@ -329,6 +329,7 @@
           "Keep a seek bar on Reels",
           "Pinch to zoom on Reels",
           "Double tap to skip on Reels",
+          "Double tap the top of a reel to share",
           "Hide the 2x popup on Reels",
           "Blur the bars around Reels",
           "Keep Reels auto scroll on",
@@ -477,8 +478,7 @@
         "op": "any",
         "patches": [
           "Hide group buttons on the share sheet",
-          "Hide the Repost button",
-          "Hide the Share button"
+          "Hide the Repost button"
         ]
       },
       "anchors": [

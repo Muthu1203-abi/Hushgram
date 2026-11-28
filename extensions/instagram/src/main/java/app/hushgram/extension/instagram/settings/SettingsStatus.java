@@ -282,10 +282,6 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean hideShareButton() {
-        return false;
-    }
-
     public static boolean bottomSpace() {
         return false;
     }
@@ -737,6 +733,11 @@ public final class SettingsStatus {
 
     /** Rewritten by the Show a reel's exact time patch. */
     public static boolean reelPostTime() {
+        return false;
+    }
+
+    /** Rewritten by the Double tap the top of a reel to share patch. */
+    public static boolean reelTopShare() {
         return false;
     }
 

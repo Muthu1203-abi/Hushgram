@@ -20,11 +20,8 @@ import app.morphe.patches.instagram.feed.feedRowState
 import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.share.REPOST_COUNT_LABEL
-import app.morphe.patches.instagram.share.SHARE_COUNT_LABEL
 import app.morphe.patches.instagram.share.findFeedRepostState
-import app.morphe.patches.instagram.share.findFeedShareState
 import app.morphe.patches.instagram.share.hideFeedState
-import app.morphe.patches.instagram.share.prepareFeedShare
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -49,7 +46,7 @@ import java.io.File
 /**
  * Hide counts on posts (#762): the comment, share and repost count flags Feed's action-row state
  * prints go through FeedSaveRow right before the state's constructor stores them, after the hooks
- * Hide comments, Hide the Share button and Hide the Repost button put on the same writes.
+ * Hide comments and Hide the Repost button put on the same writes.
  */
 class FeedCountsHookTest {
     @Test
@@ -109,7 +106,7 @@ class FeedCountsHookTest {
 
     /**
      * On each build the three counts are hooked right before each write, after the hooks Hide
-     * comments, Hide the Share button and Hide the Repost button put there.
+     * comments and Hide the Repost button put there.
      */
     @Test
     fun eachBuildHooksEveryCountAfterTheOtherHooks() {
@@ -129,7 +126,6 @@ class FeedCountsHookTest {
         val context = PatchContexts.of(states + FixtureDex.classesCreating(bundle, states.mapTo(HashSet()) { it.type }))
         context.findFeedLikeCount().write()
         context.prepareFeedComments(context.findFeedCommentState())()
-        context.prepareFeedShare(context.findFeedShareState())()
         context.hideFeedState(context.findFeedRepostState())
 
         assertEquals("$label: every count is hooked", 3, context.hideFeedCounts())

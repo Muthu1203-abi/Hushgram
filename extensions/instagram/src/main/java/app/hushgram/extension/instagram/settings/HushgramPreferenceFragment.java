@@ -6187,6 +6187,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How much of a reel, from its top, shares on a double tap, from a slider in percent. */
+    static SliderRow reelTopShareZoneRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.REEL_TOP_SHARE_ZONE, 5, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Share area"));
+        row.setText(String.valueOf(Settings.REEL_TOP_SHARE_ZONE.savedValue()));
+        return row;
+    }
+
     /** How far the glass tab bar blurs what's behind it, from a slider in dp (#289, #391). */
     static SliderRow glassBlurRow(Context context) {
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_BLUR_RADIUS, 1, L10n.t("%1$d dp"));
