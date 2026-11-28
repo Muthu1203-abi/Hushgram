@@ -25,8 +25,25 @@ import app.hushgram.extension.shared.L10n;
 final class TabBarCategory {
     private TabBarCategory() { }
 
+    /**
+     * Whether the Liquid Glass bar's switches belong on the page. They turn on the Liquid Glass navigation bar, which
+     * asks for Settings.GLASS_TAB_BAR on top of its own page's switch, but were only shown with the old Glass tab bar
+     * patch in the build. This build leaves that patch out, so the switch never showed and the bar stayed off on a
+     * fresh install whatever was turned on.
+     */
+    static boolean liquidGlassInBuild(Set<PatchFamily> build) {
+        if (build.contains(PatchFamily.GLASS_TAB_BAR)) return true;
+        if (PatchFamily.inBuildForTests != null) return false;
+        try {
+            return SettingsStatus.liquidGlassNavBar();
+        } catch (RuntimeException failure) {
+            return false;
+        }
+    }
+
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.GLASS_TAB_BAR) || build.contains(PatchFamily.REELS_TAB)
+        boolean liquidGlass = liquidGlassInBuild(build);
+        if (liquidGlass || build.contains(PatchFamily.REELS_TAB)
                 || build.contains(PatchFamily.TAB_BAR_LAYOUT)) {
             PreferenceCategory glass = category(screen, L10n.t("Tab bar"), SettingsIcons.TAB_BAR,
                     L10n.t("Pick your tabs, their order and how the bar looks."));
@@ -123,7 +140,7 @@ final class TabBarCategory {
                         L10n.t("Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. "
                                 + "Tab icon size still sizes every icon on top of that.")));
             }
-            if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+            if (liquidGlass) {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Liquid Glass navigation bar"),
                         L10n.t("Uses the Liquid Glass bar with scroll shrinking and draggable tab selection. Open the sliders button "
                                 + "on your profile to customize its style, glass, shape and selection.")));
