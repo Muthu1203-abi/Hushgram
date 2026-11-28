@@ -290,14 +290,103 @@ final class LiquidGlassController implements ViewTreeObserver.OnPreDrawListener 
 
     private Boolean forcedDark;
 
+    /**
+     * Light or dark from what Instagram shows, not from the app's mode. Instagram colors its own tab icons, black on
+     * a light bar and white on a dark one, and a bar of the other kind put black icons on dark glass. So the icons
+     * decide first ({@link #iconsLight()}), then the color Instagram gave the bar, then the app's mode.
+     */
     private boolean isDark() {
         if (forcedDark != null) return forcedDark;
+        Boolean light = preview ? null : iconsLight();
+        if (light != null) return light;
         Integer hint = glass.getHostColorHint();
         if (hint != null && Color.alpha(hint) > 0x80) {
             return luminance(hint) < 0.4f;
         }
         int mode = bar.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         return mode == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    /** How often the tab icons' color is read again, in ms. */
+    private static final long ICON_CHECK_MS = 400;
+    /** The size the icons are drawn at to read their color, in pixels. */
+    private static final int ICON_SAMPLE_PX = 24;
+    private long iconsCheckedAt;
+    private Boolean iconsLightNow;
+    private android.graphics.Bitmap iconSample;
+
+    /**
+     * Whether Instagram's tab icons are drawn light (white, for a dark bar), dark (black, for a light bar), or
+     * null when that can't be told. Read from up to three icons drawn small, leaving out the profile picture,
+     * at most once every {@link #ICON_CHECK_MS}.
+     */
+    private Boolean iconsLight() {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (iconsCheckedAt != 0 && now - iconsCheckedAt < ICON_CHECK_MS) return iconsLightNow;
+        iconsCheckedAt = now;
+        try {
+            float[] sum = new float[2];
+            int read = 0;
+            for (int i = 0; i < bar.getChildCount() && read < 3; i++) {
+                View tab = bar.getChildAt(i);
+                if (tab.getVisibility() != View.VISIBLE || tabIndexByName(tab) == 4) continue;
+                android.widget.ImageView icon = firstIcon(tab, 3);
+                if (icon != null && sampleIcon(icon, sum)) read++;
+            }
+            if (read == 0 || sum[1] <= 0f) {
+                iconsLightNow = null;
+            } else {
+                float average = sum[0] / sum[1];
+                iconsLightNow = average > 0.6f ? Boolean.TRUE : average < 0.35f ? Boolean.FALSE : null;
+            }
+        } catch (Throwable t) {
+            iconsLightNow = null;
+        }
+        return iconsLightNow;
+    }
+
+    /** The first shown ImageView at most [depth] levels into [view] that isn't a round profile picture. */
+    private static android.widget.ImageView firstIcon(View view, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return null;
+        if (view instanceof android.widget.ImageView) {
+            android.widget.ImageView image = (android.widget.ImageView) view;
+            String name = view.getClass().getName().toLowerCase(java.util.Locale.ROOT);
+            if (image.getDrawable() == null || name.contains("avatar") || name.contains("circular")) return null;
+            return image;
+        }
+        if (depth <= 0 || !(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            android.widget.ImageView found = firstIcon(group.getChildAt(i), depth - 1);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** Draws [icon] small and adds its drawn pixels' luminance and weight to [sum]; false when nothing drew. */
+    private boolean sampleIcon(android.widget.ImageView icon, float[] sum) {
+        if (iconSample == null) {
+            iconSample = android.graphics.Bitmap.createBitmap(ICON_SAMPLE_PX, ICON_SAMPLE_PX, android.graphics.Bitmap.Config.ARGB_8888);
+        }
+        iconSample.eraseColor(Color.TRANSPARENT);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(iconSample);
+        canvas.scale(ICON_SAMPLE_PX / (float) icon.getWidth(), ICON_SAMPLE_PX / (float) icon.getHeight());
+        icon.getDrawable().draw(canvas);
+        float weight = 0f, light = 0f;
+        for (int y = 0; y < ICON_SAMPLE_PX; y++) {
+            for (int x = 0; x < ICON_SAMPLE_PX; x++) {
+                int pixel = iconSample.getPixel(x, y);
+                int alpha = Color.alpha(pixel);
+                if (alpha < 0x80) continue;
+                float a = alpha / 255f;
+                weight += a;
+                light += a * luminance(pixel);
+            }
+        }
+        if (weight < 4f) return false;
+        sum[0] += light;
+        sum[1] += weight;
+        return true;
     }
 
     private static float luminance(int color) {

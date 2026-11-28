@@ -86,7 +86,7 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener, View
     private WeakReference<View> dimmer = new WeakReference<>(null);
     private WeakReference<ViewGroup> holder = new WeakReference<>(null);
 
-    private GlassSheets(Activity activity) {
+    GlassSheets(Activity activity) {
         this.activity = new WeakReference<>(activity);
         holderId = activity.getResources().getIdentifier(HOLDER, "id", PACKAGE);
         dimmerId = activity.getResources().getIdentifier(DIMMER, "id", PACKAGE);
@@ -158,7 +158,7 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener, View
             ViewGroup sheets = holder(owner);
             boolean up = false;
             if (sheets != null) {
-                boolean dark = (sheets.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                boolean appDark = (sheets.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                         == Configuration.UI_MODE_NIGHT_YES;
                 for (int i = 0; i < sheets.getChildCount(); i++) {
                     View sheet = sheets.getChildAt(i);
@@ -170,7 +170,7 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener, View
                     View surface = surface(sheet, sheets.getWidth());
                     if (surface == null) continue;
                     up = true;
-                    wear(surface, sheets, dark);
+                    wear(surface, sheets, sheetDark(surface, sheets.getWidth(), appDark));
                     clearSolids(surface, surface.getWidth(), DEPTH);
                     dressContent(surface, 0);
                 }
@@ -222,6 +222,75 @@ final class GlassSheets implements ViewTreeObserver.OnGlobalLayoutListener, View
             level = next;
         }
         return null;
+    }
+
+    /**
+     * Whether the sheet [surface] belongs to is a dark one. Instagram themes a sheet on its own: in Reels its
+     * sheets are dark with white text whatever the app's light or dark mode is, so the app's mode put light glass
+     * under white text there. The sheet's own solid color decides first, the one Instagram painted on the surface
+     * or a wide layer under it (kept in {@link #before} once the glass replaced it), then its text: mostly light
+     * text is a dark sheet. Only a sheet with neither falls back to [appDark].
+     */
+    boolean sheetDark(View surface, int holderWidth, boolean appDark) {
+        Integer color = solidColor(surface, holderWidth, DEPTH);
+        if (color != null) return luminance(color) < 0.4f;
+        int[] counts = new int[2];
+        countText(surface, 0, counts);
+        if (counts[0] + counts[1] > 0 && counts[0] != counts[1]) return counts[0] > counts[1];
+        return appDark;
+    }
+
+    /** The opaque color Instagram painted [view] or a wide view under it, as it was before the glass, or null. */
+    private Integer solidColor(View view, int holderWidth, int depth) {
+        Drawable original = before.containsKey(view) ? before.get(view) : view.getBackground();
+        Integer color = opaqueColor(original);
+        if (color != null) return color;
+        if (depth <= 0 || !(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() < holderWidth * WIDE) continue;
+            Integer found = solidColor(child, holderWidth, depth - 1);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** The color of a plain or shape background painted all but opaque, or null. */
+    private static Integer opaqueColor(Drawable drawable) {
+        if (drawable instanceof ColorDrawable) {
+            int color = ((ColorDrawable) drawable).getColor();
+            return android.graphics.Color.alpha(color) >= 0xF0 ? color : null;
+        }
+        if (drawable instanceof android.graphics.drawable.GradientDrawable) {
+            ColorStateList list = ((android.graphics.drawable.GradientDrawable) drawable).getColor();
+            if (list == null) return null;
+            int color = list.getDefaultColor();
+            return android.graphics.Color.alpha(color) >= 0xF0 ? color : null;
+        }
+        return null;
+    }
+
+    /** Counts the light ([0]) and dark ([1]) text under [view], leaving out text boxes and the Send button. */
+    private void countText(View view, int depth, int[] counts) {
+        if (depth > CONTENT_DEPTH || view.getVisibility() != View.VISIBLE) return;
+        if (view instanceof EditText) return;
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            if (sendTexts.containsKey(text) || text.length() == 0) return;
+            float light = luminance(text.getCurrentTextColor());
+            if (light > 0.6f) counts[0]++;
+            else if (light < 0.4f) counts[1]++;
+            return;
+        }
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) countText(group.getChildAt(i), depth + 1, counts);
+    }
+
+    private static float luminance(int color) {
+        return (0.2126f * android.graphics.Color.red(color) + 0.7152f * android.graphics.Color.green(color)
+                + 0.0722f * android.graphics.Color.blue(color)) / 255f;
     }
 
     /** Puts the sheet's glass on [surface], keeping its own background, unless it already wears it. */
