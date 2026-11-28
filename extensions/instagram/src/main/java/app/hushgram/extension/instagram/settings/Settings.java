@@ -2279,10 +2279,11 @@ public class Settings extends BaseSettings {
     /**
      * Under {@link #GLASS_TAB_BAR_FLOAT}: the Reels tab's video runs full screen behind the pill, like Home,
      * with the caption, buttons and seek bar raised clear of it (#372). Off, the reel stops above the pill's
-     * slot. Read each frame, so a change shows without a restart.
+     * slot. Read each frame, so a change shows without a restart. On to start, so with the Liquid Glass bar only
+     * the pill is glass and the reel shows all round it, as the feed does.
      */
     public static final BooleanSetting GLASS_TAB_BAR_REELS_BEHIND =
-            new BooleanSetting("hushgram_glass_tab_bar_reels_behind", FALSE, false, parent(GLASS_TAB_BAR_FLOAT));
+            new BooleanSetting("hushgram_glass_tab_bar_reels_behind", TRUE, false, parent(GLASS_TAB_BAR_FLOAT));
 
     /**
      * Under {@link #GLASS_TAB_BAR}: a light tick each time the highlight slides across a tab, so the

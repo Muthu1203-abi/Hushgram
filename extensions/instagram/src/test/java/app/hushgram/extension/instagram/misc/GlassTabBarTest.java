@@ -4316,7 +4316,7 @@ public class GlassTabBarTest {
      */
     @Test
     public void reelsBehindThePillRaiseTheControlsInsteadOfStoppingTheViewer() {
-        assertFalse("off by default", Settings.GLASS_TAB_BAR_REELS_BEHIND.defaultValue);
+        assertTrue("on by default", Settings.GLASS_TAB_BAR_REELS_BEHIND.defaultValue);
         assertEquals(126, GlassTabBar.reelsViewerMargin(true, false, 126));
         assertEquals("only the gap over a viewer that stops at the slot", 8, GlassTabBar.reelsBandLift(true, false, 126, 48, 8));
         assertEquals(0, GlassTabBar.reelsViewerMargin(true, true, 126));
