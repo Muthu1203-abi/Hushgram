@@ -843,9 +843,7 @@ Hides the rewind cards, which bring back old highlights, from the row of stories
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Nhấn đúp vào bình luận không thích bình luận. Mặc định tắt, nên bình luận vẫn nhấn đúp để thích cho đến khi bạn bật mục này.
 On messages	Trên tin nhắn
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Nhấn đúp vào tin nhắn trong cuộc trò chuyện không thả cảm xúc. Mặc định tắt. Nhấn giữ vẫn hiện các cảm xúc.
-Hide the Share button	Ẩn nút Chia sẻ
 On comments	Trên bình luận
-Takes the Share button and its count off the posts in your feed and off reels.	Gỡ nút Chia sẻ và số lượt chia sẻ khỏi bài viết trong bảng feed và khỏi reel.
 Ask before a call	Hỏi trước khi gọi
 Call	Gọi
 Change the like animation	Đổi hiệu ứng thích
@@ -3039,3 +3037,8 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	Chọn tất cả trong Hoạt động của bạn
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	Thêm Chọn tất cả cạnh nút Chọn trên lưới ảnh và video trong Hoạt động của bạn, như bài viết, Reels và lượt thích của bạn. Nút này hiện ra khi bạn đánh dấu một mục. Nó chỉ đánh dấu chúng. Không gì bị mất cho đến khi chính bạn nhấn Xóa hoặc Bỏ thích.
+# context: Double tap the top of a reel to share, in Reels settings
+Double tap the top to share	Nhấn đúp phía trên để chia sẻ
+A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. A double tap anywhere else works as before.	Nhấn đúp gần phía trên của reel sẽ mở bảng chia sẻ thay vì thích, kể cả ở chế độ gọn. Nhấn đúp ở chỗ khác vẫn hoạt động như trước.
+# context: Slider title under Double tap the top to share: how much of the reel, from its top, shares
+Share area	Vùng chia sẻ

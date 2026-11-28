@@ -1334,6 +1334,45 @@
       "options": []
     },
     {
+      "name": "Double tap the top of a reel to share",
+      "description": "A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode too. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Double tap to skip on Reels",
       "description": "A double tap on the left side of a reel goes back 10 seconds and on the right side goes ahead 10 seconds, with Instagram's own skip. A double tap in the middle still likes it. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
@@ -1882,165 +1921,9 @@
       "options": []
     },
     {
-      "name": "Hide activity bubbles",
-      "description": "Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Interaction",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide ads",
-      "description": "Hides sponsored posts, reels, stories and the ad in comments, and leaves no gap where an ad would have been. On by default. Turn it off in HushGram settings > Ads and privacy.",
-      "category": "Ads",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Hide AI-labeled reels",
       "description": "Leaves out reels that carry Instagram's own AI label. A reel without that label stays. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide captions",
-      "description": "Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Interaction",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide comments",
-      "description": "Takes the Comment button and the comment count off posts in your feed. Other switches take Reply, the heart and like count, or AI labels off each comment, and the comment box off the comments. All start off. Turn them on in HushGram settings > Comments.",
-      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2233,84 +2116,6 @@
       "options": []
     },
     {
-      "name": "Hide group buttons on the share sheet",
-      "description": "Takes the New group button and the button that sends to several people as a group off the share sheet, and lets you pick which of the round buttons under the people it shows and hide its search bar. It can also fill the row of people a long press on Share opens. You can still start a group from your messages. All start off. Find them in HushGram settings > Sharing.",
-      "category": "Interaction",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide highlights",
-      "description": "Takes the row of story highlights off profiles, yours and other people's. Bios, counts and posts stay. Starts off. Turn it on in HushGram settings > Profiles.",
-      "category": "Profiles",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Hide Instagram Plus prompts",
       "description": "Takes Instagram's offers to try Plus out of chats, stories and menus. Nothing that comes with Plus is turned on. Starts off. Turn it on in HushGram settings > Ads and privacy.",
       "category": "Ads",
@@ -2389,45 +2194,6 @@
       "options": []
     },
     {
-      "name": "Hide lives in Reels",
-      "description": "Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Hide Made with Edits",
       "description": "Takes the \"Made with Edits\" label out of the line under the author of posts in your feed. The song, the place and the other labels keep taking turns there. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Ads",
@@ -2468,7 +2234,7 @@
     },
     {
       "name": "Hide Meta AI",
-      "description": "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet and feed. Each part has its own switch. The search one and the Meta AI posts one start on, the rest start off. Change them in HushGram settings > Meta AI.",
+      "description": "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet, stories and feed, and its restyle credits from stories and reels. Each part has its own switch. The search one and the Meta AI posts one start on, the rest start off. Change them in HushGram settings > Meta AI.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2548,6 +2314,318 @@
       "name": "Hide Notes on profile pictures",
       "description": "Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay. Starts off. Turn it on in HushGram settings > Profiles.",
       "category": "Profiles",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide Reels in the feed",
+      "description": "Removes the rows of suggested reels from your home feed. A reel posted by someone you follow stays. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide activity bubbles",
+      "description": "Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide ads",
+      "description": "Hides sponsored posts, reels, stories and the ad in comments, and leaves no gap where an ad would have been. On by default. Turn it off in HushGram settings > Ads and privacy.",
+      "category": "Ads",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide captions",
+      "description": "Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide comments",
+      "description": "Takes the Comment button and the comment count off posts in your feed. Other switches take Reply, the heart and like count, or AI labels off each comment, and the comment box, its gift button, the Meta AI search suggestion or the (i) button off the comments. All start off. Turn them on in HushGram settings > Comments.",
+      "category": "Comments",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide group buttons on the share sheet",
+      "description": "Takes the New group button and the button that sends to several people as a group off the share sheet, and lets you pick which of the round buttons under the people it shows and hide its search bar. It can also fill the row of people a long press on Share opens. You can still start a group from your messages. All start off. Find them in HushGram settings > Sharing.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide highlights",
+      "description": "Takes the row of story highlights off profiles, yours and other people's. Bios, counts and posts stay. Starts off. Turn it on in HushGram settings > Profiles.",
+      "category": "Profiles",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide lives in Reels",
+      "description": "Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2743,45 +2821,6 @@
       "name": "Hide reels by caption words",
       "description": "Leaves out reels whose caption holds a word or phrase from your list, or is in a language you don't keep. Also on Home does the same for Home's posts, Also in comments hides matching comments, and Also in search takes matching rows out of the Explore grid and search results. Starts off. Turn it on and type the words or languages in HushGram settings > Reels.",
       "category": "Reels",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide Reels in the feed",
-      "description": "Removes the rows of suggested reels from your home feed. A reel posted by someone you follow stays. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Feed",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3208,84 +3247,6 @@
       "options": []
     },
     {
-      "name": "Hide the audio icon on posts",
-      "description": "Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. A second switch takes the tagged people icon off posts too. Both start off. Turn them on in HushGram settings > Feed.",
-      "category": "Interaction",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide the comment emoji row",
-      "description": "Takes the row of quick emoji off above the comment box. The box itself stays. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Comments",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Hide the Community Standards reminder",
       "description": "Takes the banner reminding you to be respectful off the bottom of a chat. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Fixes",
@@ -3328,6 +3289,201 @@
       "name": "Hide the Explore grid",
       "description": "Empties the grid of posts and reels on the Search tab. Search, recent searches and results stay. Two more switches hide the suggested accounts that show when you tap the search bar and the You may also like posts below search results. Starts off. Turn it on in HushGram settings > Explore.",
       "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the Reels tab",
+      "description": "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. Under Tab bar, switches do the same for Home, Search, Create, Messages and Profile, one takes the unread count off the Messages button, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages, Ghost mode or menu button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the Repost button",
+      "description": "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. Share still works. Starts off. Turn it on in HushGram settings > Sharing.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the Threads button",
+      "description": "Takes the Threads button off the top of profiles, with switches for the Create button, Share profile and the empty profile prompt on your own, and Subscribe and the arrow after the buttons on creators' profiles. The menu and the other buttons stay. Each starts off. Turn them on in HushGram settings > Profiles.",
+      "category": "Profiles",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the audio icon on posts",
+      "description": "Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. A second switch takes the tagged people icon off posts too. Both start off. Turn them on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the comment emoji row",
+      "description": "Takes the row of quick emoji off above the comment box. The box itself stays. Starts off. Turn it on in HushGram settings > Comments.",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3481,87 +3637,9 @@
       "options": []
     },
     {
-      "name": "Hide the Reels tab",
-      "description": "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. Under Tab bar, switches do the same for Home, Search, Create, Messages and Profile, one takes the unread count off the Messages button, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages, Ghost mode or menu button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
-      "category": "Interface",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Hide the reply box on stories",
-      "description": "Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are. Switches of their own take the Like, Comment and Share buttons off too, with no empty space left behind. All start off. Turn them on in HushGram settings > Stories.",
+      "description": "Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are. Switches of their own take the Like, Comment and Share buttons off too, with no empty space left behind, and the comments floating over stories. A choice lifts the line for writing a comment. All start off. Set them in HushGram settings > Stories.",
       "category": "Stories",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide the Repost button",
-      "description": "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. Share still works. Starts off. Turn it on in HushGram settings > Sharing.",
-      "category": "Interaction",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3601,84 +3679,6 @@
       "name": "Hide the search bar in Messages",
       "description": "Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats and notes stay. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Messages",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide the Share button",
-      "description": "Takes the Share button and its count off posts in your feed and off reels. Starts off. Turn it on in HushGram settings > Sharing.",
-      "category": "Interaction",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Hide the Threads button",
-      "description": "Takes the Threads button off the top of profiles, with switches for the Create button, Share profile and the empty profile prompt on your own, and Subscribe and the arrow after the buttons on creators' profiles. The menu and the other buttons stay. Each starts off. Turn them on in HushGram settings > Profiles.",
-      "category": "Profiles",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3949,45 +3949,6 @@
       "options": []
     },
     {
-      "name": "Keep a seek bar on Reels",
-      "description": "Keeps a seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Playback",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Keep HDR on photo uploads",
       "description": "Lets an Ultra HDR photo you post keep its HDR gain map on Android 14 and newer. Experimental. Starts off. Turn it on in HushGram settings > Playback.",
       "category": "Downloads",
@@ -4069,6 +4030,84 @@
       "name": "Keep Home's top bar",
       "description": "Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll. A second switch shows your feed blurred under them. Both start off. Turn them on in HushGram settings > Feed.",
       "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Keep Reels auto scroll on",
+      "description": "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, until you turn it off yourself. It can also move on to the next reel when one ends on accounts where Instagram doesn't offer auto scroll. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Keep a seek bar on Reels",
+      "description": "Keeps a seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -4262,45 +4301,6 @@
       "options": []
     },
     {
-      "name": "Keep Reels auto scroll on",
-      "description": "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, until you turn it off yourself. It can also move on to the next reel when one ends on accounts where Instagram doesn't offer auto scroll. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Keep stories playing while zooming",
       "description": "Keeps a story playing while you pinch to zoom it, instead of pausing it. A story you hold still first stays paused. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
@@ -4418,9 +4418,9 @@
       "options": []
     },
     {
-      "name": "Keep the reel speed",
-      "description": "Keeps the 2x speed on for the next reels after you lock a reel at 2x (hold its edge, then slide down), until you slide the lock off. On by default. Turn it off in HushGram settings > Reels.",
-      "category": "Playback",
+      "name": "Keep the Reels top bar",
+      "description": "Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -4457,9 +4457,9 @@
       "options": []
     },
     {
-      "name": "Keep the Reels top bar",
-      "description": "Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "name": "Keep the reel speed",
+      "description": "Keeps the 2x speed on for the next reels after you lock a reel at 2x (hold its edge, then slide down), until you slide the lock off. On by default. Turn it off in HushGram settings > Reels.",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -6799,9 +6799,9 @@
       "options": []
     },
     {
-      "name": "Start feed videos with sound",
-      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, and a photo post's song too, or keeps videos muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Playback",
+      "name": "Start Home on Following",
+      "description": "Opens Home on posts from accounts you follow instead of For you. A second switch removes For you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. A fourth, Fall back to Following, opens Home on Following for an account whose For you brings only suggested posts, unless you picked a feed. A fifth, Mix in Following, shows a page of posts from accounts you follow after each page of For you. Restart Instagram to see the change. Keep the tab bar on Favorites leaves Search and Messages a tap away there, and a tab you choose can open Favorites with a long press. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Feed",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -6838,9 +6838,9 @@
       "options": []
     },
     {
-      "name": "Start Home on Following",
-      "description": "Opens Home on posts from accounts you follow instead of For you. A second switch removes For you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. A fourth, Fall back to Following, opens Home on Following for an account whose For you brings only suggested posts, unless you picked a feed. A fifth, Mix in Following, shows a page of posts from accounts you follow after each page of For you. Restart Instagram to see the change. Keep the tab bar on Favorites leaves Search and Messages a tap away there, and a tab you choose can open Favorites with a long press. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Feed",
+      "name": "Start feed videos with sound",
+      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, and a photo post's song too, or keeps videos muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -6994,45 +6994,6 @@
       "options": []
     },
     {
-      "name": "Stop background wake-ups",
-      "description": "Stops three things that wake your phone while Instagram is in the background. One alarm goes off every minute or two only to note that Instagram is still running, another wakes it five minutes later to upload usage events, and a job about every half hour downloads your feed ahead of time. Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
-      "category": "Fixes",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "457.0.0.55.73"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "457.0.0.55.73",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 386314341,
-                "ARMEABI_V7A": 386314340,
-                "X86_64": 386314286
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Stop Reels scrolling",
       "description": "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened, with switches that leave reels from a profile, Search and Explore or a song page free to scroll. Play only the reel you opened does the same, auto scroll included, for reels you open from a post on Home, a suggested reels row or a message, and leaves the Reels tab alone. Another switch stops swiping after as many reels as you pick, for as long as you pick, and Take a scroll break covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
@@ -7075,6 +7036,45 @@
       "name": "Stop Story auto-advance",
       "description": "Keeps each story on screen until you tap or swipe. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Stop background wake-ups",
+      "description": "Stops four things that keep Instagram busy while it's in the background. One alarm goes off every minute or two only to note that Instagram is still running, another wakes it five minutes later to upload usage events, and a job about every half hour downloads your feed ahead of time. And when your phone checks its accounts, Instagram never answers, which keeps it running for up to 15 minutes. Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -7776,9 +7776,9 @@
       "options": []
     },
     {
-      "name": "Turn off double tap to like",
-      "description": "Stops a double tap on a post or reel from liking it, and the heart doesn't show. The Like button still works. Separate switches cover posts, reels, comments and chat messages. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "name": "Turn off HDR brightness boosts",
+      "description": "Stops HDR photos and reels from making the screen brighter than everything else. Starts off. Turn it on in HushGram settings > Playback.",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -7815,9 +7815,9 @@
       "options": []
     },
     {
-      "name": "Turn off HDR brightness boosts",
-      "description": "Stops HDR photos and reels from making the screen brighter than everything else. Starts off. Turn it on in HushGram settings > Playback.",
-      "category": "Fixes",
+      "name": "Turn off double tap to like",
+      "description": "Stops a double tap on a post or reel from liking it, and the heart doesn't show. The Like button still works. Separate switches cover posts, reels, comments and chat messages. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
       "use": true,
       "dependencies": [
         "BytecodePatch",

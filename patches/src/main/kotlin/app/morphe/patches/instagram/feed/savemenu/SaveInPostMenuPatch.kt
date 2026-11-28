@@ -38,7 +38,6 @@ import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.share.REPOST_COUNT_LABEL
-import app.morphe.patches.instagram.share.SHARE_COUNT_LABEL
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -59,6 +58,9 @@ internal const val SETTLE_SAVE = "$SAVE_ROW->settle(Ljava/lang/Object;)V"
 internal const val LIKE_COUNT_STATE = "$SAVE_ROW->likeCountState(I)Z"
 internal const val COUNT_STATE = "$SAVE_ROW->countState(I)Z"
 internal const val LIKES_ROW = "$SAVE_ROW->likesRow(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** The label Feed's action-row state prints whether the row shows the share count under. */
+internal const val SHARE_COUNT_LABEL = ", shouldShowShareCountInUfi="
 
 /** The label Feed's action-row state prints whether the row shows the like count under (#668). */
 internal const val LIKE_COUNT_LABEL = ", shouldShowLikeCountInUfi="
@@ -270,7 +272,7 @@ internal fun BytecodePatchContext.findFeedCount(label: String, what: String, hoo
  * Hide counts on posts (#762): the comment, share and repost count flags of the same state, each
  * passed through [COUNT_STATE] right before the constructor stores it, so a state built while the
  * switch is on lays the row out with the buttons and no numbers. The like count goes through
- * [LIKE_COUNT_STATE], which answers for this switch too. Hide comments, Hide the Share button and
+ * [LIKE_COUNT_STATE], which answers for this switch too. Hide comments and
  * Hide the Repost button may have hooked the same writes already, and the hook goes in after theirs.
  * Each flag is found right before it's hooked, since a hook in the constructor moves the writes
  * after it, and one that moved only leaves its own count showing, with a warning. Answers how many

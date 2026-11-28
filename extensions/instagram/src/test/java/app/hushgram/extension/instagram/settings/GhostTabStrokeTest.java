@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.view.View;
 import android.widget.ImageView;
 
 import org.junit.After;

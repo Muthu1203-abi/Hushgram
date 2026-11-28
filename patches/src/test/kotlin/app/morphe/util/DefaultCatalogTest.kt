@@ -6,7 +6,6 @@ package app.morphe.util
 
 import app.morphe.patches.instagram.ads.hideAdsPatch
 import app.morphe.patches.instagram.ads.plus.hidePlusUpsellPatch
-import app.morphe.patches.instagram.coexist.installNextToInstagramPatch
 import app.morphe.patches.instagram.direct.bubbles.chatBubblesPatch
 import app.morphe.patches.instagram.direct.calls.askBeforeCallPatch
 import app.morphe.patches.instagram.direct.calls.callRecorderPatch
@@ -168,7 +167,7 @@ import app.morphe.patches.instagram.direct.viewonce.markViewOncePatch
 import app.morphe.patches.instagram.reels.watchhistory.dontSendReelWatchHistoryPatch
 import app.morphe.patches.instagram.reels.zoom.pinchZoomReelsPatch
 import app.morphe.patches.instagram.share.hideRepostButtonPatch
-import app.morphe.patches.instagram.share.hideShareButtonPatch
+import app.morphe.patches.instagram.reels.topshare.reelTopSharePatch
 import app.morphe.patches.instagram.feed.likes.changeLikeAnimationPatch
 import app.morphe.patches.instagram.share.hideShareSheetGroupPatch
 import app.morphe.patches.instagram.stories.autoadvance.stopStoryAutoAdvancePatch
@@ -200,7 +199,6 @@ import app.morphe.patches.instagram.stories.replybox.hideStoryReplyBoxPatch
 import app.morphe.patches.instagram.stories.buttonsroom.storyButtonsRoomPatch
 import app.morphe.patches.instagram.stories.quality.uploadStoriesAtFullQualityPatch
 import app.morphe.patches.instagram.stories.tray.hideSuggestedStoriesPatch
-import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.instagram.reels.fullscreen.fullScreenBarsPatch
 import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
 import app.morphe.patches.instagram.misc.refreshrate.refreshRatePatch
@@ -254,7 +252,6 @@ class DefaultCatalogTest {
         findReelOriginPatch,
         fontPatch,
         fullResolutionPhotosPatch,
-        glassTabBarPatch,
         groupNotificationsPatch,
         hideActiveStatusPatch,
         hideCommentsPatch,
@@ -295,7 +292,7 @@ class DefaultCatalogTest {
         hideSeenReelsPatch,
         hideReelsTabPatch,
         hideRepostButtonPatch,
-        hideShareButtonPatch,
+        reelTopSharePatch,
         hideShareSheetGroupPatch,
         hideStoryFollowPatch,
         hideThreadsButtonPatch,
@@ -430,7 +427,6 @@ class DefaultCatalogTest {
 
     private val optIn = listOf<Patch>(
         changeVersionCodePatch,
-        installNextToInstagramPatch,
         pureBlackPatch,
         viewDmMediaAnonymouslyPatch,
     )

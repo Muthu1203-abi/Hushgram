@@ -31,6 +31,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapCountRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelSkipLengthRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelTopShareZoneRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
@@ -395,6 +396,12 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.REEL_SKIP_ARROWS, L10n.t("Show the skip arrows"),
                     L10n.t("Two arrows flash on the side you double tapped, with the seconds skipped under them, "
                             + "like on feed videos.")));
+        }
+        if (build.contains(PatchFamily.REEL_TOP_SHARE)) {
+            reels.add(toggle(context, Settings.REEL_TOP_SHARE, L10n.t("Double tap the top to share"),
+                    L10n.t("A double tap near the top of a reel opens its share sheet instead of liking it, in clear mode "
+                            + "too. A double tap anywhere else works as before.")));
+            reels.add(reelTopShareZoneRow(context));
         }
         if (build.contains(PatchFamily.HIDE_REEL_2X_POPUP)) {
             reels.add(toggle(context, Settings.HIDE_REEL_2X_POPUP, L10n.t("Hide the 2x popup"),
